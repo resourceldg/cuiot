@@ -10,19 +10,14 @@
     import type { ElderlyPerson, SystemStatus } from "$lib/types";
     import {
         Activity,
-        AlertTriangle,
-        Clock,
-        Edit,
+        ArrowRight,
         Heart,
-        LogOut,
-        Plus,
-        Settings,
-        Trash2,
+        MapPin,
+        Shield,
+        Smartphone,
         Users,
     } from "lucide-svelte";
     import { onMount } from "svelte";
-    import DeviceForm from "../components/DeviceForm.svelte";
-    import ElderlyPersonForm from "../components/ElderlyPersonForm.svelte";
 
     // Datos reales del backend
     let elderlyPersons: ElderlyPerson[] = [];
@@ -58,6 +53,12 @@
     let editingDevice: any = null;
     let deviceFormTitle = "Agregar Dispositivo";
     let deviceFormKey = Date.now();
+
+    let isAuthenticated = false;
+
+    onMount(() => {
+        isAuthenticated = authService.isAuthenticated();
+    });
 
     onMount(async () => {
         // Verificar autenticación
@@ -331,707 +332,427 @@
             }
         }
     }
+
+    function handleGetStarted() {
+        if (isAuthenticated) {
+            goto("/dashboard");
+        } else {
+            goto("/login");
+        }
+    }
+
+    function handleLearnMore() {
+        // Scroll to features section
+        document
+            .getElementById("features")
+            ?.scrollIntoView({ behavior: "smooth" });
+    }
 </script>
 
 <svelte:head>
-    <title>Viejos Son Los Trapos - Panel de Control</title>
+    <title>CUIOT - Tecnologías para el Cuidado</title>
+    <meta
+        name="description"
+        content="Plataforma integral de monitoreo y cuidado para personas que requieren atención especializada"
+    />
 </svelte:head>
 
-<div class="container">
-    <header class="header">
-        <div class="header-content">
-            <h1>👴 Viejos Son Los Trapos</h1>
-            <p>Panel de monitoreo para adultos mayores</p>
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-background">
+        <div class="hero-overlay"></div>
+    </div>
+
+    <div class="container mx-auto px-6 py-20">
+        <div class="text-center max-w-4xl mx-auto">
+            <div class="mb-8">
+                <h1 class="text-5xl md:text-7xl font-bold text-white mb-6">
+                    CUIOT
+                </h1>
+                <p class="text-xl md:text-2xl text-blue-100 mb-8">
+                    Tecnologías para el Cuidado
+                </p>
+                <p
+                    class="text-lg md:text-xl text-blue-50 mb-12 max-w-3xl mx-auto"
+                >
+                    Plataforma integral de monitoreo inteligente que conecta
+                    cuidadores, instituciones y familias para brindar el mejor
+                    cuidado posible a quienes más lo necesitan.
+                </p>
+            </div>
+
+            <div
+                class="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            >
+                <button
+                    on:click={handleGetStarted}
+                    class="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl"
+                >
+                    {isAuthenticated ? "Ir al Dashboard" : "Comenzar"}
+                    <ArrowRight class="w-5 h-5" />
+                </button>
+                <button
+                    on:click={handleLearnMore}
+                    class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-blue-600 transition-all duration-300"
+                >
+                    Conocer Más
+                </button>
+            </div>
         </div>
-        <button class="logout-button" on:click={handleLogout}>
-            <LogOut class="icon-small" />
-            Cerrar Sesión
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-20 bg-gray-50">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                Solución Integral de Cuidado
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Nuestra plataforma combina tecnología IoT avanzada con
+                inteligencia artificial para crear un ecosistema completo de
+                cuidado y monitoreo.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Monitoreo Inteligente -->
+            <div
+                class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+                <div
+                    class="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mb-6"
+                >
+                    <Activity class="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Monitoreo Inteligente
+                </h3>
+                <p class="text-gray-600">
+                    Sensores avanzados y algoritmos de IA para detectar patrones
+                    de comportamiento y alertar sobre situaciones que requieren
+                    atención inmediata.
+                </p>
+            </div>
+
+            <!-- Seguridad 24/7 -->
+            <div
+                class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+                <div
+                    class="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center mb-6"
+                >
+                    <Shield class="w-8 h-8 text-green-600" />
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Seguridad 24/7
+                </h3>
+                <p class="text-gray-600">
+                    Sistema de alertas en tiempo real con protocolos de
+                    emergencia automatizados y comunicación directa con
+                    servicios de emergencia.
+                </p>
+            </div>
+
+            <!-- Gestión de Cuidadores -->
+            <div
+                class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+                <div
+                    class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mb-6"
+                >
+                    <Users class="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Gestión de Cuidadores
+                </h3>
+                <p class="text-gray-600">
+                    Coordinación eficiente entre cuidadores, asignación
+                    inteligente de tareas y seguimiento del bienestar de cada
+                    persona bajo cuidado.
+                </p>
+            </div>
+
+            <!-- Ubicación y Geofencing -->
+            <div
+                class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+                <div
+                    class="w-16 h-16 bg-orange-100 rounded-lg flex items-center justify-center mb-6"
+                >
+                    <MapPin class="w-8 h-8 text-orange-600" />
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Ubicación y Geofencing
+                </h3>
+                <p class="text-gray-600">
+                    Seguimiento de ubicación en tiempo real con zonas de
+                    seguridad personalizables y alertas automáticas cuando se
+                    cruzan límites.
+                </p>
+            </div>
+
+            <!-- Dispositivos IoT -->
+            <div
+                class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+                <div
+                    class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mb-6"
+                >
+                    <Smartphone class="w-8 h-8 text-red-600" />
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Dispositivos IoT
+                </h3>
+                <p class="text-gray-600">
+                    Red de sensores inteligentes que monitorean signos vitales,
+                    actividad física y condiciones ambientales de manera no
+                    invasiva.
+                </p>
+            </div>
+
+            <!-- Cuidado Personalizado -->
+            <div
+                class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+                <div
+                    class="w-16 h-16 bg-pink-100 rounded-lg flex items-center justify-center mb-6"
+                >
+                    <Heart class="w-8 h-8 text-pink-600" />
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Cuidado Personalizado
+                </h3>
+                <p class="text-gray-600">
+                    Protocolos de cuidado adaptados a las necesidades
+                    específicas de cada persona, con seguimiento personalizado y
+                    reportes detallados.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-20 bg-white">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                ¿Cómo Funciona?
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Un proceso simple y efectivo para implementar el cuidado
+                inteligente
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div class="text-center">
+                <div
+                    class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"
+                >
+                    <span class="text-white text-2xl font-bold">1</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Configuración
+                </h3>
+                <p class="text-gray-600">
+                    Instalamos y configuramos los dispositivos IoT en el entorno
+                    de cuidado, adaptándolos a las necesidades específicas.
+                </p>
+            </div>
+
+            <div class="text-center">
+                <div
+                    class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"
+                >
+                    <span class="text-white text-2xl font-bold">2</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Monitoreo
+                </h3>
+                <p class="text-gray-600">
+                    El sistema comienza a recopilar datos en tiempo real,
+                    analizando patrones y detectando situaciones que requieren
+                    atención.
+                </p>
+            </div>
+
+            <div class="text-center">
+                <div
+                    class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"
+                >
+                    <span class="text-white text-2xl font-bold">3</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                    Cuidado
+                </h3>
+                <p class="text-gray-600">
+                    Los cuidadores reciben alertas inteligentes y pueden
+                    coordinar la atención de manera eficiente y personalizada.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-blue-600">
+    <div class="container mx-auto px-6 text-center">
+        <h2 class="text-4xl font-bold text-white mb-6">
+            ¿Listo para Transformar el Cuidado?
+        </h2>
+        <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Únete a la revolución del cuidado inteligente y brinda la mejor
+            atención posible a quienes más lo necesitan.
+        </p>
+        <button
+            on:click={handleGetStarted}
+            class="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all duration-300 flex items-center gap-2 mx-auto"
+        >
+            {isAuthenticated ? "Acceder al Sistema" : "Comenzar Ahora"}
+            <ArrowRight class="w-5 h-5" />
         </button>
-    </header>
+    </div>
+</section>
 
-    {#if error}
-        <div class="error-banner">
+<!-- Footer -->
+<footer class="bg-gray-900 text-white py-12">
+    <div class="container mx-auto px-6">
+        <div class="grid md:grid-cols-4 gap-8">
             <div>
-                {error}
-                {#if errorDetail}
-                    <div class="error-detail">{errorDetail}</div>
-                {/if}
+                <h3 class="text-2xl font-bold mb-4">CUIOT</h3>
+                <p class="text-gray-400">Tecnologías para el Cuidado</p>
             </div>
-            <button on:click={loadDashboardData}>Reintentar</button>
+            <div>
+                <h4 class="font-semibold mb-4">Plataforma</h4>
+                <ul class="space-y-2 text-gray-400">
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Características</a
+                        >
+                    </li>
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Precios</a
+                        >
+                    </li>
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >API</a
+                        >
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold mb-4">Soporte</h4>
+                <ul class="space-y-2 text-gray-400">
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Documentación</a
+                        >
+                    </li>
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Contacto</a
+                        >
+                    </li>
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Estado del Sistema</a
+                        >
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold mb-4">Legal</h4>
+                <ul class="space-y-2 text-gray-400">
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Privacidad</a
+                        >
+                    </li>
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Términos</a
+                        >
+                    </li>
+                    <li>
+                        <a href="#" class="hover:text-white transition-colors"
+                            >Cookies</a
+                        >
+                    </li>
+                </ul>
+            </div>
         </div>
-    {/if}
-
-    <div class="dashboard">
-        <!-- Estado del sistema -->
-        <section class="system-status">
-            <h2>Estado del Sistema</h2>
-            {#if loading}
-                <div class="loading">Cargando datos...</div>
-            {:else}
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="card">
-                        <div class="stat">
-                            <Users class="icon" />
-                            <div>
-                                <h3>{systemStatus.devices}</h3>
-                                <p>Dispositivos Activos</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="stat">
-                            <AlertTriangle class="icon warning" />
-                            <div>
-                                <h3>{systemStatus.activeAlerts}</h3>
-                                <p>Alertas Activas</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="stat">
-                            <Activity class="icon" />
-                            <div>
-                                <h3>{systemStatus.totalEvents}</h3>
-                                <p>Eventos Totales</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="stat">
-                            <Heart class="icon success" />
-                            <div>
-                                <h3>{systemStatus.uptime}</h3>
-                                <p>Tiempo Activo</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {/if}
-        </section>
-
-        <!-- Adultos mayores -->
-        <section class="elderly-persons">
-            <div class="section-header">
-                <h2>Adultos Mayores</h2>
-                <button
-                    class="btn btn-primary"
-                    on:click={openAddForm}
-                    disabled={loading}
-                >
-                    <Plus class="icon-small" />
-                    Agregar
-                </button>
-            </div>
-
-            {#if loading}
-                <div class="loading">Cargando adultos mayores...</div>
-            {:else if elderlyPersons.length === 0}
-                <div class="empty-state">
-                    <Users class="icon-large" />
-                    <h3>No hay adultos mayores registrados</h3>
-                    <p>
-                        Agrega el primer adulto mayor para comenzar el monitoreo
-                    </p>
-                </div>
-            {:else}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {#each elderlyPersons as person}
-                        <div class="card person-card">
-                            <div class="person-header">
-                                <h3>{person.name}</h3>
-                                <span class="age">{person.age} años</span>
-                            </div>
-                            <div class="person-status">
-                                <div class="status-indicator {person.status}">
-                                    <Activity class="icon-small" />
-                                    <span
-                                        >{person.status === "active"
-                                            ? "Activo"
-                                            : "Inactivo"}</span
-                                    >
-                                </div>
-                                <div class="person-details">
-                                    <p>
-                                        <Clock class="icon-small" /> Última actividad:
-                                        {person.lastActivity}
-                                    </p>
-                                    <p>
-                                        <Settings class="icon-small" /> Ubicación:
-                                        {person.location}
-                                    </p>
-                                    {#if person.alerts > 0}
-                                        <p class="alert">
-                                            <AlertTriangle class="icon-small" />
-                                            {person.alerts} alerta(s)
-                                        </p>
-                                    {/if}
-                                </div>
-                            </div>
-                            <div class="person-actions">
-                                <button
-                                    class="btn btn-primary"
-                                    on:click={() => openEditForm(person)}
-                                >
-                                    <Edit class="icon-small" /> Editar
-                                </button>
-                                <button
-                                    class="btn btn-danger"
-                                    on:click={() => handleDelete(person)}
-                                >
-                                    <Trash2 class="icon-small" /> Eliminar
-                                </button>
-                            </div>
-                        </div>
-                    {/each}
-                </div>
-            {/if}
-        </section>
-
-        <!-- Acciones rápidas -->
-        <section class="quick-actions">
-            <h2>Acciones Rápidas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                    class="card action-card"
-                    on:click={handleConfigureDevice}
-                >
-                    <Settings class="icon" />
-                    <h3>Configurar Dispositivo</h3>
-                    <p>Agregar o configurar un nuevo dispositivo IoT</p>
-                </button>
-                <button class="card action-card" on:click={openAddForm}>
-                    <Users class="icon" />
-                    <h3>Agregar Familiar</h3>
-                    <p>Registrar un nuevo adulto mayor</p>
-                </button>
-                <button class="card action-card" on:click={handleViewAlerts}>
-                    <AlertTriangle class="icon" />
-                    <h3>Ver Alertas</h3>
-                    <p>Revisar historial de alertas y eventos</p>
-                </button>
-            </div>
-        </section>
-
-        <!-- Dispositivos -->
-        <section class="devices">
-            <div class="section-header">
-                <h2>Dispositivos</h2>
-                <button
-                    class="btn btn-primary"
-                    on:click={openAddDeviceForm}
-                    disabled={deviceFormLoading}
-                    title="Agregar un nuevo dispositivo"
-                >
-                    <Plus class="icon-small" /> Agregar Dispositivo
-                </button>
-            </div>
-            {#if deviceFormLoading}
-                <div class="loading">Cargando dispositivos...</div>
-            {:else if devices.length === 0}
-                <div class="empty-state">
-                    <h3>No hay dispositivos registrados</h3>
-                    <p>
-                        Agrega el primer dispositivo para comenzar el monitoreo
-                    </p>
-                </div>
-            {:else}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {#each devices as device}
-                        <div class="card device-card">
-                            <div class="device-header">
-                                <h3>{device.name}</h3>
-                                <span class="device-id"
-                                    >ID: {device.device_id}</span
-                                >
-                            </div>
-                            <div class="device-details">
-                                <p>
-                                    <strong>Ubicación:</strong>
-                                    {device.location || "N/A"}
-                                </p>
-                                <p>
-                                    <strong>Adulto Mayor:</strong>
-                                    {#if device.elderly_person_id}{elderlyPersons.find(
-                                            (p) =>
-                                                p.id ===
-                                                device.elderly_person_id,
-                                        )?.first_name || ""}
-                                        {elderlyPersons.find(
-                                            (p) =>
-                                                p.id ===
-                                                device.elderly_person_id,
-                                        )?.last_name || ""}{:else}N/A{/if}
-                                </p>
-                                <p>
-                                    <strong>Estado:</strong>
-                                    {device.is_active ? "Activo" : "Inactivo"}
-                                </p>
-                            </div>
-                            <div class="device-actions">
-                                <button
-                                    class="btn btn-primary"
-                                    on:click={() => openEditDeviceForm(device)}
-                                    title="Editar dispositivo"
-                                >
-                                    <Edit class="icon-small" /> Editar
-                                </button>
-                                <button
-                                    class="btn btn-danger"
-                                    on:click={() => handleDeleteDevice(device)}
-                                    title="Eliminar dispositivo"
-                                >
-                                    <Trash2 class="icon-small" /> Eliminar
-                                </button>
-                            </div>
-                        </div>
-                    {/each}
-                </div>
-            {/if}
-        </section>
+        <div
+            class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400"
+        >
+            <p>
+                &copy; 2024 CUIOT - Tecnologías para el Cuidado. Todos los
+                derechos reservados.
+            </p>
+        </div>
     </div>
-</div>
-
-<ElderlyPersonForm
-    visible={showForm}
-    initialData={editingPerson}
-    loading={formLoading}
-    error={formError}
-    title={formTitle}
-    key={formKey}
-    on:submit={handleFormSubmit}
-    on:close={handleFormClose}
-/>
-
-<DeviceForm
-    visible={deviceFormVisible}
-    initialData={editingDevice}
-    {elderlyPersons}
-    loading={deviceFormLoading}
-    error={deviceFormError}
-    title={deviceFormTitle}
-    key={deviceFormKey}
-    on:submit={handleDeviceFormSubmit}
-    on:close={closeDeviceForm}
-/>
-
-<!-- En el modal ElderlyPersonForm, muestro formSuccess si existe -->
-{#if formSuccess}
-    <div class="form-success">{formSuccess}</div>
-{/if}
-
-<!-- Nuevo banner/modal visual para la sesión -->
-{#if sessionExpiring && !sessionExpired}
-    <div class="session-warning">
-        <strong>¡Atención!</strong> Tu sesión está por expirar.
-        <button on:click={handleRenewSession}>Renovar sesión</button>
-    </div>
-{/if}
-{#if sessionExpired}
-    <div class="session-expired">
-        <strong>Sesión expirada.</strong> Por favor, vuelve a iniciar sesión.
-        <button on:click={handleRenewSession}>Ir a login</button>
-    </div>
-{/if}
+</footer>
 
 <style>
+    .hero-section {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(
+            135deg,
+            #1e3a8a 0%,
+            #3b82f6 50%,
+            #1e40af 100%
+        );
+    }
+
+    .hero-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: radial-gradient(
+                circle at 20% 80%,
+                rgba(120, 119, 198, 0.3) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                circle at 80% 20%,
+                rgba(255, 119, 198, 0.3) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                circle at 40% 40%,
+                rgba(120, 219, 255, 0.3) 0%,
+                transparent 50%
+            );
+    }
+
+    .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
     .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
+        position: relative;
+        z-index: 10;
     }
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 3rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    .header-content h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--primary-color);
-        margin-bottom: 0.5rem;
-    }
-    .header-content p {
-        font-size: 1.1rem;
-        color: var(--text-secondary);
-    }
-    .logout-button {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: #ef4444;
-        color: white;
-        border: none;
-        border-radius: 0.375rem;
-        cursor: pointer;
-        font-size: 0.875rem;
-        transition: background-color 0.15s ease-in-out;
-    }
-    .logout-button:hover {
-        background: #dc2626;
-    }
-    .error-banner {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #dc2626;
-        padding: 1rem;
-        border-radius: 0.375rem;
-        margin-bottom: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .error-banner button {
-        background: #dc2626;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        cursor: pointer;
-    }
-    .error-detail {
-        font-size: 0.9rem;
-        color: #b91c1c;
-        margin-top: 0.5rem;
-        word-break: break-all;
-    }
-    .dashboard section {
-        margin-bottom: 3rem;
-    }
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        border-bottom: 2px solid #e5e7eb;
-        padding-bottom: 0.5rem;
-    }
-    .dashboard h2 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 1rem;
-    }
-    .loading {
-        text-align: center;
-        padding: 2rem;
-        color: var(--text-secondary);
-        font-size: 1.1rem;
-    }
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: var(--text-secondary);
-    }
-    .empty-state .icon-large {
-        width: 4rem;
-        height: 4rem;
-        margin: 0 auto 1rem;
-        color: var(--text-secondary);
-    }
-    .grid {
-        display: grid;
-    }
-    .grid-cols-1 {
-        grid-template-columns: repeat(1, minmax(0, 1fr));
-    }
-    .md\:grid-cols-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .md\:grid-cols-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .md\:grid-cols-4 {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .gap-4 {
-        gap: 1rem;
-    }
-    .card {
-        background: white;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        box-shadow:
-            0 1px 3px 0 rgba(0, 0, 0, 0.1),
-            0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        border: 1px solid #e5e7eb;
-    }
-    .stat {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    .stat h3 {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-    }
-    .stat p {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin: 0;
-    }
-    .icon {
-        width: 2rem;
-        height: 2rem;
-        color: var(--primary-color);
-    }
-    .icon-small {
-        width: 1rem;
-        height: 1rem;
-    }
-    .icon-large {
-        width: 4rem;
-        height: 4rem;
-    }
-    .warning {
-        color: #f59e0b;
-    }
-    .success {
-        color: #10b981;
-    }
-    .person-card {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-    .person-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .person-header h3 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
-    .age {
-        background: var(--primary-color);
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 1rem;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    .person-status {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    .status-indicator {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    .status-indicator.active {
-        color: #10b981;
-    }
-    .status-indicator.inactive {
-        color: #6b7280;
-    }
-    .person-details {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    .person-details p {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        margin: 0;
-    }
-    .person-details .alert {
-        color: #dc2626;
-        font-weight: 500;
-    }
-    .person-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: auto;
-    }
-    .action-card {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 1rem;
-        cursor: pointer;
-        transition: transform 0.15s ease-in-out;
-    }
-    .action-card:hover {
-        transform: translateY(-2px);
-    }
-    .action-card h3 {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
-    .action-card p {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin: 0;
-    }
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s ease-in-out;
-        text-decoration: none;
-    }
-    .btn-primary {
-        background: var(--primary-color);
-        color: white;
-    }
-    .btn-primary:hover {
-        background: var(--primary-dark);
-    }
-    .btn-secondary {
-        background: #f3f4f6;
-        color: var(--text-primary);
-    }
-    .btn-secondary:hover {
-        background: #e5e7eb;
-    }
-    .btn-danger {
-        background: #ef4444;
-        color: white;
-    }
-    .btn-danger:hover {
-        background: #dc2626;
-    }
+
+    /* Responsive adjustments */
     @media (max-width: 768px) {
-        .header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
+        .hero-section {
+            min-height: 80vh;
+            padding: 2rem 0;
         }
-        .section-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: stretch;
-        }
-        .person-actions {
-            flex-direction: column;
-        }
-    }
-    .form-success {
-        background: #d1fae5;
-        color: #065f46;
-        border: 1px solid #6ee7b7;
-        border-radius: 0.375rem;
-        padding: 0.5rem 1rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.95rem;
-    }
-    .session-warning {
-        background: #fef9c3;
-        color: #92400e;
-        border: 1px solid #fde68a;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        text-align: center;
-        font-size: 1rem;
-        z-index: 1200;
-    }
-    .session-warning button {
-        background: #2563eb;
-        color: #fff;
-        border: none;
-        border-radius: 0.375rem;
-        padding: 0.3rem 1rem;
-        margin-left: 1rem;
-        cursor: pointer;
-    }
-    .session-warning button:hover {
-        background: #1d4ed8;
-    }
-    .session-expired {
-        background: #fee2e2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        text-align: center;
-        font-size: 1rem;
-        z-index: 1200;
-    }
-    .session-expired button {
-        background: #2563eb;
-        color: #fff;
-        border: none;
-        border-radius: 0.375rem;
-        padding: 0.3rem 1rem;
-        margin-left: 1rem;
-        cursor: pointer;
-    }
-    .session-expired button:hover {
-        background: #1d4ed8;
-    }
-    .devices .device-card {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-    .device-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .device-header h3 {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
-    .device-id {
-        background: #f3f4f6;
-        color: #2563eb;
-        padding: 0.2rem 0.7rem;
-        border-radius: 1rem;
-        font-size: 0.8rem;
-        font-weight: 500;
-    }
-    .device-details p {
-        margin: 0.2rem 0;
-        font-size: 0.95rem;
-        color: var(--text-secondary);
-    }
-    .device-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: auto;
-    }
-    .devices {
-        margin-top: 3rem;
-        margin-bottom: 3rem;
-        padding-top: 2rem;
-        border-top: 3px solid #2563eb;
-        border-radius: 0.5rem;
-        background: #f8fafc;
-    }
-    .elderly-persons {
-        margin-bottom: 3rem;
-        padding-bottom: 2rem;
-        border-bottom: 3px solid #2563eb;
-        border-radius: 0.5rem;
-        background: #f8fafc;
     }
 </style>
