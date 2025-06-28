@@ -4,6 +4,7 @@
         { path: "/dashboard/human", label: "Gestión Humana", icon: "👵" },
         { path: "/dashboard/devices", label: "Dispositivos", icon: "📟" },
         { path: "/dashboard/admin", label: "Administración", icon: "⚙️" },
+        { path: "/debug", label: "Debug & Testing", icon: "🧪" },
     ];
     let activeSection = sections[0].label;
     function navigate(path, label) {

@@ -2,8 +2,10 @@ from sqlalchemy import Column, String, Text, Boolean, DateTime, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy import ForeignKey
 from app.core.database import Base
 import uuid
+from datetime import datetime, timedelta
 
 
 class ServiceSubscription(Base):
@@ -47,8 +49,6 @@ class ServiceSubscription(Base):
         Returns:
             bool: True si está activa, False en caso contrario
         """
-        from datetime import datetime
-        
         now = datetime.utcnow()
         
         # Verificar fecha de inicio
@@ -149,8 +149,6 @@ class ServiceSubscription(Base):
         Returns:
             datetime: Fecha del próximo cobro
         """
-        from datetime import datetime, timedelta
-        
         if not self.is_active_subscription():
             return None
         
