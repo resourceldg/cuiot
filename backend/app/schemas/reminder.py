@@ -1,73 +1,39 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
-from datetime import datetime, time
-from uuid import UUID
-from enum import Enum
-
-class ReminderType(str, Enum):
-    """Tipos de recordatorios disponibles"""
-    MEDICATION = "medication"
-    APPOINTMENT = "appointment"
-    ACTIVITY = "activity"
-    MEAL = "meal"
-    EXERCISE = "exercise"
-    HYDRATION = "hydration"
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime, date
+from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class ReminderBase(BaseModel):
-    """Schema base para recordatorios"""
-    elderly_person_id: UUID = Field(..., description="ID del adulto mayor")
-    title: str = Field(..., min_length=1, max_length=200, description="Título del recordatorio")
-    description: Optional[str] = Field(None, max_length=1000, description="Descripción opcional")
-    reminder_type: ReminderType = Field(..., description="Tipo de recordatorio")
-    scheduled_time: time = Field(..., description="Hora programada para el recordatorio")
-    days_of_week: Optional[List[int]] = Field(None, description="Días de la semana (1-7, donde 1=Lunes)")
+    reminder_type: str = Field(..., max_length=50)
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    scheduled_time: datetime
+    due_date: Optional[date] = None
+    repeat_pattern: Optional[str] = Field(None, max_length=100)
+    status: str = Field(default="pending", max_length=20)
+    completed_at: Optional[datetime] = None
+    completed_by: Optional[int] = None
+    priority: int = Field(default=5, ge=1, le=10)
+    is_important: bool = False
+    reminder_data: Optional[str] = None  # JSON string
+    notes: Optional[str] = None
+    user_id: Optional[int] = None
+    cared_person_id: Optional[int] = None
 
-    @validator('days_of_week')
-    def validate_days_of_week(cls, v):
-        if v is not None:
-            for day in v:
-                if not 1 <= day <= 7:
-                    raise ValueError('Los días de la semana deben estar entre 1 y 7')
-        return v
+class ReminderCreate(ReminderBase, BaseCreate):
+    pass
 
-class ReminderCreate(ReminderBase):
-    """Schema para crear un nuevo recordatorio"""
-    created_by_id: UUID = Field(..., description="ID del usuario que crea el recordatorio")
-    received_by_id: Optional[UUID] = Field(None, description="ID del usuario que recibe el recordatorio")
-
-class ReminderUpdate(BaseModel):
-    """Schema para actualizar un recordatorio"""
+class ReminderUpdate(ReminderBase, BaseUpdate):
+    reminder_type: Optional[str] = Field(None, max_length=50)
     title: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=1000)
-    reminder_type: Optional[ReminderType] = None
-    scheduled_time: Optional[time] = None
-    received_by_id: Optional[UUID] = None
-    is_active: Optional[bool] = None
-    days_of_week: Optional[List[int]] = None
+    scheduled_time: Optional[datetime] = None
+    status: Optional[str] = Field(None, max_length=20)
+    priority: Optional[int] = Field(None, ge=1, le=10)
+    is_important: Optional[bool] = None
 
-    @validator('days_of_week')
-    def validate_days_of_week(cls, v):
-        if v is not None:
-            for day in v:
-                if not 1 <= day <= 7:
-                    raise ValueError('Los días de la semana deben estar entre 1 y 7')
-        return v
+class ReminderResponse(ReminderBase, BaseResponse):
+    is_overdue: bool
+    is_completed: bool
 
-class ReminderResponse(ReminderBase):
-    """Schema para respuesta de recordatorio"""
-    id: UUID
-    created_by_id: UUID
-    received_by_id: Optional[UUID] = None
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-class ReminderListResponse(BaseModel):
-    """Schema para lista de recordatorios"""
-    reminders: list[ReminderResponse]
-    total: int
-    skip: int
-    limit: int 
+class ReminderInDB(ReminderBase, BaseResponse):
+    pass

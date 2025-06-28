@@ -1,31 +1,21 @@
-from sqlalchemy import Column, String, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, Text, Boolean
 from sqlalchemy.orm import relationship
-from app.core.database import Base
-import uuid
+from app.models.base import BaseModel
 
-
-class Role(Base):
-    """
-    Modelo para roles de usuario en el sistema.
-    
-    Reglas de negocio implementadas:
-    - Un usuario puede tener uno o más roles
-    - Los roles tienen permisos específicos almacenados en JSONB
-    - Los roles son configurables y extensibles
-    """
+class Role(BaseModel):
+    """Role model for user permissions and access control"""
     __tablename__ = "roles"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(50), unique=True, nullable=False, index=True)
-    description = Column(Text)
-    permissions = Column(JSONB, nullable=False, default=dict)
     
-    # Relaciones
-    users = relationship("UserRole", back_populates="role", cascade="all, delete-orphan")
+    name = Column(String(50), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    permissions = Column(Text, nullable=True)  # JSON string of permissions
+    is_system = Column(Boolean, default=False, nullable=False)  # System roles cannot be deleted
+    
+    # Relationships
+    user_roles = relationship("UserRole", back_populates="role", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Role(id={self.id}, name='{self.name}')>"
+        return f"<Role(name='{self.name}')>"
     
     def has_permission(self, permission: str) -> bool:
         """

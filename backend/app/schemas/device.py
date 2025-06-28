@@ -1,36 +1,39 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-from uuid import UUID
+from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class DeviceBase(BaseModel):
-    """Esquema base para dispositivos IoT"""
-    device_id: str = Field(..., min_length=1, max_length=100, description="ID único del dispositivo ESP32")
-    name: str = Field(..., min_length=1, max_length=100)
-    location: Optional[str] = Field(None, max_length=100)
-    is_active: bool = True
+    device_id: str = Field(..., min_length=1, max_length=100)
+    device_type: str = Field(..., max_length=50)
+    model: Optional[str] = Field(None, max_length=100)
+    manufacturer: Optional[str] = Field(None, max_length=100)
+    serial_number: Optional[str] = Field(None, max_length=100)
+    status: str = Field(default="active", max_length=50)
+    battery_level: Optional[int] = Field(None, ge=0, le=100)
+    signal_strength: Optional[int] = Field(None, ge=0, le=100)
+    last_seen: Optional[datetime] = None
+    location_description: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude: Optional[float] = None
+    settings: Optional[str] = None  # JSON string
+    firmware_version: Optional[str] = Field(None, max_length=50)
+    hardware_version: Optional[str] = Field(None, max_length=50)
+    user_id: Optional[int] = None
+    cared_person_id: Optional[int] = None
+    institution_id: Optional[int] = None
 
-class DeviceCreate(DeviceBase):
-    """Esquema para crear dispositivo"""
-    elderly_person_id: UUID
+class DeviceCreate(DeviceBase, BaseCreate):
+    pass
 
-class DeviceUpdate(BaseModel):
-    """Esquema para actualizar dispositivo"""
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    location: Optional[str] = Field(None, max_length=100)
-    is_active: Optional[bool] = None
+class DeviceUpdate(DeviceBase, BaseUpdate):
+    device_id: Optional[str] = Field(None, min_length=1, max_length=100)
+    device_type: Optional[str] = Field(None, max_length=50)
+    status: Optional[str] = Field(None, max_length=50)
 
-class DeviceInDB(DeviceBase):
-    """Esquema para dispositivo en base de datos"""
-    id: UUID
-    elderly_person_id: UUID
-    last_heartbeat: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+class DeviceResponse(DeviceBase, BaseResponse):
+    is_online: bool
 
-    class Config:
-        from_attributes = True
-
-class Device(DeviceInDB):
-    """Esquema para respuesta de dispositivo"""
-    pass 
+class DeviceInDB(DeviceBase, BaseResponse):
+    pass

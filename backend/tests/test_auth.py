@@ -17,8 +17,8 @@ async def test_register_and_login(async_client):
     assert response.status_code in (200, 201)
     
     # Login
-    response = await async_client.post("/api/v1/auth/login", data={
-        "username": unique_email,
+    response = await async_client.post("/api/v1/auth/login", json={
+        "email": unique_email,
         "password": "testpassword"
     })
     assert response.status_code == 200

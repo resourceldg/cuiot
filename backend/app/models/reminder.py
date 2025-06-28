@@ -1,31 +1,72 @@
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Text, Time, Integer
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from sqlalchemy.sql import func
+from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Date
 from sqlalchemy.orm import relationship
-from app.core.database import Base
-import uuid
+from app.models.base import BaseModel
 
-class Reminder(Base):
-    """Modelo de recordatorios"""
+class Reminder(BaseModel):
+    """Reminder model for medication, appointments, and tasks"""
     __tablename__ = "reminders"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    elderly_person_id = Column(UUID(as_uuid=True), ForeignKey("elderly_persons.id"), nullable=False)
+    # Reminder identification
+    reminder_type = Column(String(50), nullable=False, index=True)  # medication, appointment, task, etc.
     title = Column(String(200), nullable=False)
-    description = Column(Text)
-    reminder_type = Column(String(50), nullable=False)  # 'medication', 'appointment', 'activity'
-    scheduled_time = Column(Time, nullable=False)
-    is_active = Column(Boolean, default=True)
-    days_of_week = Column(ARRAY(Integer))  # [1,2,3,4,5,6,7] para días de la semana
-    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    received_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    description = Column(Text, nullable=True)
     
-    # Relaciones
-    elderly_person = relationship("ElderlyPerson", back_populates="reminders")
-    created_by = relationship("User", foreign_keys=[created_by_id], back_populates="reminders_created")
-    received_by = relationship("User", foreign_keys=[received_by_id], back_populates="reminders_received")
+    # Scheduling
+    scheduled_time = Column(DateTime(timezone=True), nullable=False)
+    due_date = Column(Date, nullable=True)
+    repeat_pattern = Column(String(100), nullable=True)  # daily, weekly, monthly, custom
+    
+    # Status and completion
+    status = Column(String(20), default="pending", nullable=False)  # pending, completed, missed, cancelled
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    completed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Priority and importance
+    priority = Column(Integer, default=5, nullable=False)  # 1-10, higher is more important
+    is_important = Column(Boolean, default=False, nullable=False)
+    
+    # Additional data
+    reminder_data = Column(Text, nullable=True)  # JSON string with reminder details
+    notes = Column(Text, nullable=True)
+    
+    # Relationships
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id], back_populates="reminders")
+    cared_person = relationship("CaredPerson", back_populates="reminders")
+    completed_by_user = relationship("User", foreign_keys=[completed_by])
     
     def __repr__(self):
-        return f"<Reminder(id={self.id}, title='{self.title}', type='{self.reminder_type}')>" 
+        return f"<Reminder(type='{self.reminder_type}', title='{self.title}', status='{self.status}')>"
+    
+    @property
+    def is_overdue(self) -> bool:
+        """Check if reminder is overdue"""
+        from datetime import datetime
+        now = datetime.now()
+        return self.status == "pending" and self.scheduled_time < now
+    
+    @property
+    def is_completed(self) -> bool:
+        """Check if reminder is completed"""
+        return self.status == "completed"
+    
+    @classmethod
+    def get_reminder_types(cls) -> list:
+        """Returns available reminder types"""
+        return [
+            "medication", "appointment", "task", "exercise", "meal",
+            "hygiene", "social", "medical_checkup", "therapy", "maintenance"
+        ]
+    
+    @classmethod
+    def get_status_types(cls) -> list:
+        """Returns available status types"""
+        return ["pending", "completed", "missed", "cancelled", "snoozed"]
+    
+    @classmethod
+    def get_repeat_patterns(cls) -> list:
+        """Returns available repeat patterns"""
+        return ["none", "daily", "weekly", "monthly", "yearly", "custom"]

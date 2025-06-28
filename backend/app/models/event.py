@@ -1,45 +1,54 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship, validates
-from app.core.database import Base
-import uuid
-import json
+from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Float
+from sqlalchemy.orm import relationship
+from app.models.base import BaseModel
 
-class Event(Base):
-    """Modelo de eventos: sensores y calendario"""
+class Event(BaseModel):
+    """Event model for sensor events, system events, and user activities"""
     __tablename__ = "events"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    elderly_person_id = Column(UUID(as_uuid=True), ForeignKey("elderly_persons.id"), nullable=True)
-    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=True)
-    title = Column(String(120), nullable=True)
-    description = Column(Text, nullable=True)
-    event_type = Column(String(50), nullable=False, index=True)  # 'medical', 'family', 'medication', 'sensor', etc.
-    value = Column(JSONB, nullable=True)  # Datos del evento (temperatura, etc.)
-    location = Column(String(100), nullable=True)
-    start_datetime = Column(DateTime(timezone=True), nullable=True)
-    end_datetime = Column(DateTime(timezone=True), nullable=True)
-    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    received_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    # Event identification
+    event_type = Column(String(50), nullable=False, index=True)  # sensor_event, system_event, user_action, etc.
+    event_subtype = Column(String(50), nullable=True, index=True)  # motion_detected, temperature_alert, etc.
+    severity = Column(String(20), default="info", nullable=False)  # info, warning, error, critical
     
-    # Relaciones
+    # Event data
+    event_data = Column(Text, nullable=True)  # JSON string with event details
+    message = Column(Text, nullable=True)
+    source = Column(String(100), nullable=True)  # device_id, system, user, etc.
+    
+    # Location and context
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    altitude = Column(Float, nullable=True)
+    
+    # Timestamps
+    event_time = Column(DateTime(timezone=True), nullable=False)
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Relationships
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
+    device_id = Column(Integer, ForeignKey("devices.id"), nullable=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="events")
+    cared_person = relationship("CaredPerson", back_populates="events")
     device = relationship("Device", back_populates="events")
-    elderly_person = relationship("ElderlyPerson", backref="events")
-    created_by = relationship("User", foreign_keys=[created_by_id], back_populates="events_created")
-    received_by = relationship("User", foreign_keys=[received_by_id], back_populates="events_received")
-    
-    @validates('value')
-    def validate_value_field(self, key, value):
-        if isinstance(value, str):
-            try:
-                return json.loads(value)
-            except Exception:
-                return {}
-        return value
+    alerts = relationship("Alert", back_populates="event")
     
     def __repr__(self):
-        return f"<Event(id={self.id}, type='{self.event_type}', elderly_person_id={self.elderly_person_id}, device_id={self.device_id})>" 
+        return f"<Event(type='{self.event_type}', subtype='{self.event_subtype}', severity='{self.severity}')>"
+    
+    @classmethod
+    def get_event_types(cls) -> list:
+        """Returns available event types"""
+        return [
+            "sensor_event", "system_event", "user_action", "alert_event",
+            "device_event", "location_event", "health_event", "environmental_event",
+            "security_event", "maintenance_event", "error_event"
+        ]
+    
+    @classmethod
+    def get_severity_levels(cls) -> list:
+        """Returns available severity levels"""
+        return ["info", "warning", "error", "critical", "debug"]

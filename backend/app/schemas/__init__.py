@@ -1,37 +1,28 @@
-# Pydantic schemas for data validation 
-
-# User schemas
+# Import all schemas
+from .base import BaseSchema, BaseResponse, BaseCreate, BaseUpdate
+from .role import RoleCreate, RoleUpdate, RoleResponse, RoleInDB
 from .user import (
-    UserBase, UserCreate, UserUpdate, User, 
-    UserLogin, Token, TokenData
+    UserCreate, UserUpdate, UserResponse, UserInDB, 
+    UserWithRoles, UserLogin, UserToken
 )
+from .institution import InstitutionCreate, InstitutionUpdate, InstitutionResponse, InstitutionInDB
+from .cared_person import CaredPersonCreate, CaredPersonUpdate, CaredPersonResponse, CaredPersonInDB
+from .device import DeviceCreate, DeviceUpdate, DeviceResponse, DeviceInDB
+from .event import EventCreate, EventUpdate, EventResponse, EventInDB
+from .alert import AlertCreate, AlertUpdate, AlertResponse, AlertInDB
+from .reminder import ReminderCreate, ReminderUpdate, ReminderResponse, ReminderInDB
+from .debug import DebugEventCreate, DebugEventUpdate, DebugEventResponse, DebugEventInDB, DebugSummary
 
-# Elderly person schemas
-from .elderly_person import (
-    EmergencyContact, ElderlyPersonBase, ElderlyPersonCreate, ElderlyPersonUpdate, 
-    ElderlyPerson, ElderlyPersonWithDevices
-)
-
-# Device schemas
-from .device import (
-    DeviceBase, DeviceCreate, DeviceUpdate, 
-    Device
-)
-
-# Event schemas
-from .event import (
-    EventBase, EventCreate, 
-    Event
-)
-
-# Alert schemas
-from .alert import (
-    AlertType, AlertSeverity, AlertBase, AlertCreate, 
-    AlertUpdate, AlertResponse, AlertListResponse
-)
-
-# Reminder schemas
-from .reminder import (
-    ReminderType, ReminderBase, ReminderCreate, 
-    ReminderUpdate, ReminderResponse, ReminderListResponse
-) 
+__all__ = [
+    "BaseSchema", "BaseResponse", "BaseCreate", "BaseUpdate",
+    "RoleCreate", "RoleUpdate", "RoleResponse", "RoleInDB",
+    "UserCreate", "UserUpdate", "UserResponse", "UserInDB", 
+    "UserWithRoles", "UserLogin", "UserToken",
+    "InstitutionCreate", "InstitutionUpdate", "InstitutionResponse", "InstitutionInDB",
+    "CaredPersonCreate", "CaredPersonUpdate", "CaredPersonResponse", "CaredPersonInDB",
+    "DeviceCreate", "DeviceUpdate", "DeviceResponse", "DeviceInDB",
+    "EventCreate", "EventUpdate", "EventResponse", "EventInDB",
+    "AlertCreate", "AlertUpdate", "AlertResponse", "AlertInDB",
+    "ReminderCreate", "ReminderUpdate", "ReminderResponse", "ReminderInDB",
+    "DebugEventCreate", "DebugEventUpdate", "DebugEventResponse", "DebugEventInDB", "DebugSummary",
+]

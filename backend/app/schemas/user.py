@@ -1,57 +1,49 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
 from datetime import datetime
-from uuid import UUID
-from enum import Enum
-
-class UserType(str, Enum):
-    """Tipos de usuario disponibles"""
-    FAMILY = "family"
-    EMPLOYEE = "employee"
+from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class UserBase(BaseModel):
-    """Esquema base para usuarios"""
     email: EmailStr
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
     first_name: str = Field(..., min_length=1, max_length=100)
-    last_name: str = Field(..., min_length=1, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
-    user_type: UserType = Field(default=UserType.FAMILY, description="Tipo de usuario: family o employee")
+    date_of_birth: Optional[datetime] = None
+    gender: Optional[str] = Field(None, max_length=20)
+    professional_license: Optional[str] = Field(None, max_length=50)
+    specialization: Optional[str] = Field(None, max_length=100)
+    experience_years: Optional[int] = Field(None, ge=0)
+    is_freelance: bool = False
+    hourly_rate: Optional[int] = Field(None, ge=0)  # Rate in cents
+    availability: Optional[str] = None  # JSON string
+    is_verified: bool = False
+    institution_id: Optional[int] = None
 
-class UserCreate(UserBase):
-    """Esquema para crear usuario"""
+class UserCreate(UserBase, BaseCreate):
     password: str = Field(..., min_length=8)
 
-class UserUpdate(BaseModel):
-    """Esquema para actualizar usuario"""
+class UserUpdate(UserBase, BaseUpdate):
     email: Optional[EmailStr] = None
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    phone: Optional[str] = Field(None, max_length=20)
-    user_type: Optional[UserType] = None
+    password: Optional[str] = Field(None, min_length=8)
 
-class UserInDB(UserBase):
-    """Esquema para usuario en base de datos"""
-    id: UUID
-    created_at: datetime
-    updated_at: datetime
+class UserResponse(UserBase, BaseResponse):
+    last_login: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+class UserInDB(UserBase, BaseResponse):
+    hashed_password: str
+    last_login: Optional[datetime] = None
 
-class User(UserInDB):
-    """Esquema para respuesta de usuario"""
-    pass
+class UserWithRoles(UserResponse):
+    roles: List[str] = []  # List of role names
 
 class UserLogin(BaseModel):
-    """Esquema para login de usuario"""
     email: EmailStr
     password: str
 
-class Token(BaseModel):
-    """Esquema para token de autenticación"""
+class UserToken(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
-class TokenData(BaseModel):
-    """Esquema para datos del token"""
-    email: Optional[str] = None 
+    user: UserResponse

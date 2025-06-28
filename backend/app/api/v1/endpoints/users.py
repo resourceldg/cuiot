@@ -1,76 +1,111 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
-from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.user import User, UserCreate, UserUpdate
-from app.services.user import (
-    get_users, get_user_by_id, create_user, 
-    update_user, delete_user
-)
-from app.core.auth import get_current_user
+from app.services.auth import AuthService
+from app.services.user import UserService
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserWithRoles
 
 router = APIRouter()
 
-@router.get("/me", response_model=User)
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """Obtener información del usuario autenticado"""
-    return current_user
-
-@router.get("/{user_id}", response_model=User)
-async def get_user(user_id: UUID, db: Session = Depends(get_db)):
-    """Obtener usuario por ID"""
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
-        )
-    return user
-
-@router.get("/", response_model=List[User])
-async def get_all_users(
-    skip: int = 0, 
-    limit: int = 100, 
-    db: Session = Depends(get_db)
+@router.get("/", response_model=List[UserResponse])
+def get_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    institution_id: int = Query(None),
+    is_freelance: bool = Query(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.get_current_active_user)
 ):
-    """Obtener lista de usuarios"""
-    users = get_users(db, skip=skip, limit=limit)
+    """Get list of users"""
+    users = UserService.get_users(
+        db, 
+        skip=skip, 
+        limit=limit,
+        institution_id=institution_id,
+        is_freelance=is_freelance
+    )
     return users
 
-@router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
-async def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
-    """Crear nuevo usuario"""
-    try:
-        return create_user(db, user)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error al crear usuario: {str(e)}"
-        )
-
-@router.put("/{user_id}", response_model=User)
-async def update_existing_user(
-    user_id: UUID, 
-    user_update: UserUpdate, 
-    db: Session = Depends(get_db)
+@router.get("/{user_id}", response_model=UserWithRoles)
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.get_current_active_user)
 ):
-    """Actualizar usuario existente"""
-    user = update_user(db, user_id, user_update)
+    """Get user by ID with roles"""
+    user = UserService.get_user_with_roles(db, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail="User not found"
         )
     return user
 
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.require_permission("users.write"))
+):
+    """Create a new user"""
+    return UserService.create_user(db, user_data)
+
+@router.put("/{user_id}", response_model=UserResponse)
+def update_user(
+    user_id: int,
+    user_data: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.get_current_active_user)
+):
+    """Update user information"""
+    # Users can only update their own profile unless they have admin permissions
+    if current_user.id != user_id and not current_user.has_permission("users.write"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    
+    return UserService.update_user(db, user_id, user_data)
+
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_existing_user(user_id: UUID, db: Session = Depends(get_db)):
-    """Eliminar usuario"""
-    success = delete_user(db, user_id)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.require_permission("users.delete"))
+):
+    """Delete a user"""
+    UserService.delete_user(db, user_id)
+
+@router.post("/{user_id}/roles/{role_name}")
+def assign_role(
+    user_id: int,
+    role_name: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.require_permission("users.write"))
+):
+    """Assign a role to a user"""
+    success = UserService.assign_role(db, user_id, role_name)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
-        ) 
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to assign role"
+        )
+    return {"message": "Role assigned successfully"}
+
+@router.delete("/{user_id}/roles/{role_name}")
+def remove_role(
+    user_id: int,
+    role_name: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.require_permission("users.write"))
+):
+    """Remove a role from a user"""
+    success = UserService.remove_role(db, user_id, role_name)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to remove role"
+        )
+    return {"message": "Role removed successfully"}

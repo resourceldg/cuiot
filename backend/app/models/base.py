@@ -1,14 +1,18 @@
-# Importar todos los modelos para que SQLAlchemy los reconozca
-from app.models.user import User
-from app.models.elderly_person import ElderlyPerson
-from app.models.device import Device
-from app.models.event import Event
-from app.models.alert import Alert
-from app.models.reminder import Reminder
-from app.models.device_config import DeviceConfig
+from sqlalchemy import Column, Integer, DateTime, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
+from datetime import datetime
 
-# Agregar las relaciones faltantes
-from sqlalchemy.orm import relationship
+Base = declarative_base()
 
-# Relación en User
-User.elderly_persons = relationship("ElderlyPerson", back_populates="user", cascade="all, delete-orphan") 
+class BaseModel(Base):
+    """Base model with common fields for all models"""
+    __abstract__ = True
+    
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(id={self.id})>" 

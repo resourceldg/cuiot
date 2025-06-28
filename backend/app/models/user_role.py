@@ -1,12 +1,11 @@
-from sqlalchemy import Column, ForeignKey, DateTime
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.core.database import Base
+from app.models.base import BaseModel
 import uuid
 
 
-class UserRole(Base):
+class UserRole(BaseModel):
     """
     Modelo de relación muchos a muchos entre usuarios y roles.
     
@@ -17,13 +16,17 @@ class UserRole(Base):
     """
     __tablename__ = "user_roles"
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
-    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False, index=True)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Who assigned this role
+    expires_at = Column(DateTime(timezone=True), nullable=True)  # Role expiration date
+    is_active = Column(Boolean, default=True, nullable=False)
     
-    # Relaciones
-    user = relationship("User", back_populates="roles")
-    role = relationship("Role", back_populates="users")
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id], back_populates="user_roles")
+    role = relationship("Role", back_populates="user_roles")
+    assigned_by_user = relationship("User", foreign_keys=[assigned_by])
     
     def __repr__(self):
         return f"<UserRole(user_id={self.user_id}, role_id={self.role_id})>"

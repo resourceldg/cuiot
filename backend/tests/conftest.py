@@ -39,8 +39,8 @@ async def auth_headers(async_client):
     })
     
     # Login para obtener token
-    response = await async_client.post("/api/v1/auth/login", data={
-        "username": "testuser@example.com",
+    response = await async_client.post("/api/v1/auth/login", json={
+        "email": "testuser@example.com",
         "password": "testpassword"
     })
     token = response.json()["access_token"]

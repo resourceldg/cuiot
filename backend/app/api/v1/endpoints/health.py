@@ -8,7 +8,7 @@ import os
 
 from app.core.database import get_db
 from app.models.user import User
-from app.models.elderly_person import ElderlyPerson
+from app.models.cared_person import CaredPerson
 from app.models.device import Device
 from app.models.alert import Alert
 from app.models.reminder import Reminder
@@ -155,7 +155,7 @@ async def system_statistics(db: Session = Depends(get_db)):
     try:
         # Conteos básicos
         users_count = db.query(User).count()
-        elderly_count = db.query(ElderlyPerson).count()
+        elderly_count = db.query(CaredPerson).count()
         devices_count = db.query(Device).count()
         alerts_count = db.query(Alert).count()
         reminders_count = db.query(Reminder).count()

@@ -1,30 +1,75 @@
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
+from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
-from app.core.database import Base
-import uuid
+from app.models.base import BaseModel
 
-class Device(Base):
-    """Modelo de dispositivo IoT"""
+class Device(BaseModel):
+    """Device model for IoT devices and sensors"""
     __tablename__ = "devices"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    elderly_person_id = Column(UUID(as_uuid=True), ForeignKey("elderly_persons.id"), nullable=False)
-    device_id = Column(String(100), unique=True, nullable=False, index=True)  # ID único del ESP32
-    name = Column(String(100), nullable=False)
-    location = Column(String(100))
-    is_active = Column(Boolean, default=True)
-    last_heartbeat = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    status = Column(String(20), default="ready")  # ready, offline, error, off
-    type = Column(String(50), default="unknown")  # smart_watch, panic_button, motion_sensor, etc.
+    # Device identification
+    device_id = Column(String(100), unique=True, nullable=False, index=True)  # Unique device identifier
+    device_type = Column(String(50), nullable=False, index=True)  # sensor, tracker, camera, etc.
+    model = Column(String(100), nullable=True)
+    manufacturer = Column(String(100), nullable=True)
+    serial_number = Column(String(100), nullable=True, unique=True)
     
-    # Relaciones
-    elderly_person = relationship("ElderlyPerson", back_populates="devices")
-    events = relationship("Event", back_populates="device", cascade="all, delete-orphan")
-    configs = relationship("DeviceConfig", back_populates="device", cascade="all, delete-orphan")
+    # Device status
+    status = Column(String(50), default="active", nullable=False)  # active, inactive, maintenance, error
+    battery_level = Column(Integer, nullable=True)  # 0-100
+    signal_strength = Column(Integer, nullable=True)  # 0-100
+    last_seen = Column(DateTime(timezone=True), nullable=True)
+    
+    # Location and placement
+    location_description = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    altitude = Column(Float, nullable=True)
+    
+    # Configuration
+    settings = Column(Text, nullable=True)  # JSON string with device settings
+    firmware_version = Column(String(50), nullable=True)
+    hardware_version = Column(String(50), nullable=True)
+    
+    # Relationships
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="devices")
+    cared_person = relationship("CaredPerson", back_populates="devices")
+    institution = relationship("Institution", back_populates="devices")
+    device_configs = relationship("DeviceConfig", back_populates="device", cascade="all, delete-orphan")
+    events = relationship("Event", back_populates="device")
+    alerts = relationship("Alert", back_populates="device")
+    location_tracking = relationship("LocationTracking", back_populates="device")
+    debug_events = relationship("DebugEvent", back_populates="device")
     
     def __repr__(self):
-        return f"<Device(id={self.id}, device_id='{self.device_id}', name='{self.name}')>" 
+        return f"<Device(device_id='{self.device_id}', type='{self.device_type}')>"
+    
+    @property
+    def is_online(self) -> bool:
+        """Check if device is currently online"""
+        if not self.last_seen:
+            return False
+        
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        # Consider offline if not seen in last 5 minutes
+        return (now - self.last_seen) < timedelta(minutes=5)
+    
+    @classmethod
+    def get_device_types(cls) -> list:
+        """Returns available device types"""
+        return [
+            "sensor", "tracker", "camera", "smartphone", "tablet", 
+            "wearable", "medical_device", "environmental_sensor",
+            "door_sensor", "motion_sensor", "temperature_sensor",
+            "heart_rate_monitor", "fall_detector", "gps_tracker"
+        ]
+    
+    @classmethod
+    def get_status_types(cls) -> list:
+        """Returns available status types"""
+        return ["active", "inactive", "maintenance", "error", "offline", "testing"]
