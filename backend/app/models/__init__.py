@@ -1,20 +1,45 @@
 # Database models
 from app.core.database import Base
+
+# Core models
 from .user import User
-from .elderly_person import ElderlyPerson
+from .role import Role
+from .user_role import UserRole
+from .institution import Institution
+
+# Care models
+from .cared_person import CaredPerson
+from .caregiver_assignment import CaregiverAssignment
+
+# Device models
 from .device import Device
 from .device_config import DeviceConfig
+
+# Event and monitoring models
 from .event import Event
 from .alert import Alert
 from .reminder import Reminder
 
+# Legacy models (to be deprecated)
+from .elderly_person import ElderlyPerson
+
 __all__ = [
     "Base",
-    "User", 
-    "ElderlyPerson",
+    # Core models
+    "User",
+    "Role", 
+    "UserRole",
+    "Institution",
+    # Care models
+    "CaredPerson",
+    "CaregiverAssignment",
+    # Device models
     "Device",
     "DeviceConfig",
+    # Event and monitoring models
     "Event",
-    "Alert",
-    "Reminder"
+    "Alert", 
+    "Reminder",
+    # Legacy models
+    "ElderlyPerson"
 ] 
