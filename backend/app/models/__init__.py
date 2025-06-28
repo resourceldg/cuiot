@@ -16,6 +16,11 @@ from .emergency_protocol import EmergencyProtocol
 from .service_subscription import ServiceSubscription
 from .billing_record import BillingRecord
 
+# Location and monitoring models
+from .location_tracking import LocationTracking
+from .geofence import Geofence
+from .debug_event import DebugEvent
+
 # Device models
 from .device import Device
 from .device_config import DeviceConfig
@@ -42,6 +47,10 @@ __all__ = [
     "EmergencyProtocol",
     "ServiceSubscription",
     "BillingRecord",
+    # Location and monitoring models
+    "LocationTracking",
+    "Geofence",
+    "DebugEvent",
     # Device models
     "Device",
     "DeviceConfig",
