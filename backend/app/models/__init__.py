@@ -11,6 +11,11 @@ from .institution import Institution
 from .cared_person import CaredPerson
 from .caregiver_assignment import CaregiverAssignment
 
+# Service models
+from .emergency_protocol import EmergencyProtocol
+from .service_subscription import ServiceSubscription
+from .billing_record import BillingRecord
+
 # Device models
 from .device import Device
 from .device_config import DeviceConfig
@@ -33,6 +38,10 @@ __all__ = [
     # Care models
     "CaredPerson",
     "CaregiverAssignment",
+    # Service models
+    "EmergencyProtocol",
+    "ServiceSubscription",
+    "BillingRecord",
     # Device models
     "Device",
     "DeviceConfig",
