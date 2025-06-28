@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: viejos_trapos_postgres
+    environment:
+      POSTGRES_DB: viejos_trapos_db
+      POSTGRES_USER: viejos_trapos_user
+      POSTGRES_PASSWORD: viejos_trapos_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - viejos_trapos_network
+
+  # Redis para cache y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: viejos_trapos_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - viejos_trapos_network
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: viejos_trapos_backend
+    environment:
+      - DATABASE_URL=postgresql://viejos_trapos_user:viejos_trapos_pass@postgres:5432/viejos_trapos_db
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=viejos_trapos_secret_key_dev
+      - ENVIRONMENT=development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - viejos_trapos_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Panel Web Svelte
+  web-panel:
+    build:
+      context: ./web-panel
+      dockerfile: Dockerfile.dev
+    container_name: viejos_trapos_web_panel
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web-panel:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    networks:
+      - viejos_trapos_network
+    command: npm run dev -- --host 0.0.0.0
+
+  # MQTT Broker para IoT
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    container_name: viejos_trapos_mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./docker/mosquitto/passwd:/mosquitto/config/passwd
+      - mqtt_data:/mosquitto/data
+      - mqtt_logs:/mosquitto/log
+    networks:
+      - viejos_trapos_network
+
+  # Adminer para gestionar PostgreSQL
+  adminer:
+    image: adminer:latest
+    container_name: viejos_trapos_adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks:
+      - viejos_trapos_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  mqtt_data:
+  mqtt_logs:
+
+
+networks:
+  viejos_trapos_network:
+    driver: bridge

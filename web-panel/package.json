@@ -1,0 +1,55 @@
+{
+    "name": "viejos-son-los-trapos-web-panel",
+    "version": "1.0.0",
+    "description": "Panel web para monitoreo de adultos mayores",
+    "type": "module",
+    "scripts": {
+        "dev": "vite dev",
+        "build": "vite build",
+        "preview": "vite preview",
+        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+        "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+        "lint": "prettier --plugin-search-dir . --check . && eslint .",
+        "format": "prettier --plugin-search-dir . --write .",
+        "test:e2e": "playwright test",
+        "test:ui": "vitest run",
+        "test:ui:watch": "vitest"
+    },
+    "devDependencies": {
+        "@sveltejs/adapter-auto": "^3.3.1",
+        "@sveltejs/kit": "^2.0.0",
+        "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6",
+        "@typescript-eslint/eslint-plugin": "^6.0.0",
+        "@typescript-eslint/parser": "^6.0.0",
+        "eslint": "^8.28.0",
+        "eslint-config-prettier": "^8.5.0",
+        "eslint-plugin-svelte": "^2.30.0",
+        "prettier": "^2.8.0",
+        "prettier-plugin-svelte": "^2.10.1",
+        "svelte": "^5.0.0-next.1",
+        "svelte-check": "^3.6.0",
+        "tslib": "^2.4.1",
+        "typescript": "^5.0.0",
+        "vite": "^5.0.3",
+        "@playwright/test": "^1.44.0",
+        "@testing-library/svelte": "^4.0.0",
+        "@testing-library/jest-dom": "^6.0.0",
+        "vitest": "^1.0.0",
+        "jsdom": "^24.0.0"
+    },
+    "dependencies": {
+        "@fullcalendar/core": "^6.1.17",
+        "@fullcalendar/daygrid": "^6.1.17",
+        "@fullcalendar/interaction": "^6.1.17",
+        "@fullcalendar/timegrid": "^6.1.17",
+        "@types/node": "^20.0.0",
+        "chart.js": "^4.4.0",
+        "chartjs-adapter-date-fns": "^3.0.0",
+        "date-fns": "^2.30.0",
+        "lucide-svelte": "^0.523.0",
+        "mqtt": "^5.2.5"
+    },
+    "overrides": {
+        "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6"
+    }
+}
