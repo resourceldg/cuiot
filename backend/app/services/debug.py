@@ -190,56 +190,27 @@ class DebugService:
     
     @staticmethod
     def clean_test_data(db: Session) -> Dict[str, int]:
-        """Clean all test data"""
+        """Clean all test data (robusto: borra todo lo relevante, no solo los TEST_DEVICE_*)"""
         results = {
-            "users_deleted": 0,
+            "location_tracking_deleted": 0,
+            "geofences_deleted": 0,
+            "debug_events_deleted": 0,
             "cared_persons_deleted": 0,
-            "devices_deleted": 0,
-            "events_deleted": 0,
-            "alerts_deleted": 0,
-            "debug_events_deleted": 0
+            "devices_deleted": 0
         }
-        
-        # Delete test users
-        test_users = db.query(User).filter(User.email.like("test_user_%")).all()
-        for user in test_users:
-            db.delete(user)
-            results["users_deleted"] += 1
-        
-        # Delete test cared persons
-        test_cared_persons = db.query(CaredPerson).filter(
-            CaredPerson.first_name.like("Test Person %")
-        ).all()
-        for person in test_cared_persons:
-            db.delete(person)
-            results["cared_persons_deleted"] += 1
-        
-        # Delete test devices
-        test_devices = db.query(Device).filter(Device.device_id.like("TEST_DEVICE_%")).all()
-        for device in test_devices:
-            db.delete(device)
-            results["devices_deleted"] += 1
-        
-        # Delete test events
-        test_events = db.query(Event).filter(Event.message.like("Test event message %")).all()
-        for event in test_events:
-            db.delete(event)
-            results["events_deleted"] += 1
-        
-        # Delete test alerts
-        test_alerts = db.query(Alert).filter(Alert.title.like("Test Alert %")).all()
-        for alert in test_alerts:
-            db.delete(alert)
-            results["alerts_deleted"] += 1
-        
-        # Delete test debug events
-        test_debug_events = db.query(DebugEvent).filter(
-            DebugEvent.source == "test_suite"
-        ).all()
-        for debug_event in test_debug_events:
-            db.delete(debug_event)
-            results["debug_events_deleted"] += 1
-        
+
+        # Eliminar en orden correcto para respetar claves foráneas
+        from app.models.location_tracking import LocationTracking
+        from app.models.geofence import Geofence
+        from app.models.debug_event import DebugEvent
+        from app.models.cared_person import CaredPerson
+        from app.models.device import Device
+
+        results["location_tracking_deleted"] = db.query(LocationTracking).delete()
+        results["geofences_deleted"] = db.query(Geofence).delete()
+        results["debug_events_deleted"] = db.query(DebugEvent).delete()
+        results["cared_persons_deleted"] = db.query(CaredPerson).delete()
+        results["devices_deleted"] = db.query(Device).delete()
         db.commit()
         return results
     

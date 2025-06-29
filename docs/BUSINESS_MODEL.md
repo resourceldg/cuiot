@@ -421,6 +421,25 @@ reports, report_templates, analytics_data
 - Independencia de usuarios en 60%
 - Integración de 100+ centros de cuidado
 
+## Reportes con adjuntos (imágenes, PDFs, etc.)
+
+El sistema permite a cuidadores y personas en autocuidado crear reportes asociados a personas bajo cuidado o a sí mismos. Cada reporte puede incluir archivos adjuntos (imágenes, PDFs, etc.), lo que aporta:
+
+- **Trazabilidad y respaldo:** Documentación de incidentes, evolución médica, visitas, etc.
+- **Comunicación efectiva:** Facilita compartir información relevante con familiares, médicos y la institución.
+- **Valor agregado:** Diferenciador frente a otros sistemas, útil para auditoría, seguimiento y respaldo legal.
+
+### Casos de uso
+- Reporte de incidente con fotos.
+- Evolución médica con estudios adjuntos.
+- Registro de visitas familiares con comprobantes.
+- Autocuidado: persona sube su propio control o estudio.
+
+### Reglas de negocio
+- Un reporte de cuidador debe estar asociado a una persona bajo cuidado.
+- Un reporte de autocuidado puede estar solo asociado al usuario.
+- Los adjuntos se almacenan de forma segura y accesible solo para usuarios autorizados.
+
 ---
 
 *Documento en desarrollo - Versión 2.0*

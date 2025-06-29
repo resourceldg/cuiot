@@ -33,7 +33,7 @@ class UserResponse(UserBase, BaseResponse):
     last_login: Optional[datetime] = None
 
 class UserInDB(UserBase, BaseResponse):
-    hashed_password: str
+    password_hash: str
     last_login: Optional[datetime] = None
 
 class UserWithRoles(UserResponse):

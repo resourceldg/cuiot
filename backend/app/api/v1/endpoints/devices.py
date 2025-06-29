@@ -1,109 +1,133 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from uuid import UUID
 
 from app.core.database import get_db
-from app.schemas.device import Device, DeviceCreate, DeviceUpdate
-from app.services.device import (
-    get_devices, get_device_by_id, create_device,
-    update_device, delete_device, get_devices_by_elderly_person
-)
+from app.services.auth import AuthService
+from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceResponse
+from app.models.device import Device
+from app.models.user import User
 
 router = APIRouter()
 
-@router.get("/", response_model=List[Device])
-async def get_all_devices(
-    skip: int = 0, 
-    limit: int = 100, 
-    db: Session = Depends(get_db)
+@router.post("/", response_model=DeviceResponse, status_code=status.HTTP_201_CREATED)
+def create_device(
+    device_data: DeviceCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
-    """Obtener lista de dispositivos IoT"""
-    devices = get_devices(db, skip=skip, limit=limit)
-    return devices
-
-@router.get("/elderly/{elderly_person_id}", response_model=List[Device])
-async def get_devices_by_elderly_person_id(
-    elderly_person_id: UUID, 
-    db: Session = Depends(get_db)
-):
-    """Obtener dispositivos por adulto mayor"""
-    devices = get_devices_by_elderly_person(db, elderly_person_id)
-    return devices
-
-@router.get("/{device_id}", response_model=Device)
-async def get_device(device_id: UUID, db: Session = Depends(get_db)):
-    """Obtener dispositivo por ID"""
-    device = get_device_by_id(db, device_id)
-    if not device:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dispositivo no encontrado"
-        )
-    return device
-
-@router.post("/", response_model=Device, status_code=status.HTTP_201_CREATED)
-async def create_new_device(device: DeviceCreate, db: Session = Depends(get_db)):
-    """Crear nuevo dispositivo IoT"""
+    """Create a new device"""
     try:
-        return create_device(db, device)
+        # Create device - exclude user_id from schema data
+        data_dict = device_data.dict()
+        data_dict.pop('user_id', None)  # Remove user_id if present
+        
+        device = Device(
+            **data_dict,
+            user_id=current_user.id
+        )
+        
+        db.add(device)
+        db.commit()
+        db.refresh(device)
+        return device
     except Exception as e:
+        db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error al crear dispositivo: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create device: {str(e)}"
         )
 
-@router.put("/{device_id}", response_model=Device)
-async def update_existing_device(
-    device_id: UUID, 
-    device_update: DeviceUpdate, 
-    db: Session = Depends(get_db)
+@router.get("/", response_model=List[DeviceResponse])
+def get_devices(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
-    """Actualizar dispositivo existente"""
-    device = update_device(db, device_id, device_update)
-    if not device:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dispositivo no encontrado"
-        )
-    return device
+    """Get all devices for the current user"""
+    devices = db.query(Device).filter(
+        Device.user_id == current_user.id
+    ).offset(skip).limit(limit).all()
+    return devices
 
-@router.patch("/{device_id}/activate", response_model=Device)
-async def activate_device(device_id: UUID, db: Session = Depends(get_db)):
-    """Activar dispositivo"""
-    device = get_device_by_id(db, device_id)
+@router.get("/{device_id}", response_model=DeviceResponse)
+def get_device(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(AuthService.get_current_active_user)
+):
+    """Get a specific device"""
+    device = db.query(Device).filter(
+        Device.id == device_id,
+        Device.user_id == current_user.id
+    ).first()
+    
     if not device:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dispositivo no encontrado"
+            detail="Device not found"
         )
     
-    device.is_active = True
-    db.commit()
-    db.refresh(device)
     return device
 
-@router.patch("/{device_id}/deactivate", response_model=Device)
-async def deactivate_device(device_id: UUID, db: Session = Depends(get_db)):
-    """Desactivar dispositivo"""
-    device = get_device_by_id(db, device_id)
+@router.put("/{device_id}", response_model=DeviceResponse)
+def update_device(
+    device_id: int,
+    device_data: DeviceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(AuthService.get_current_active_user)
+):
+    """Update a device"""
+    device = db.query(Device).filter(
+        Device.id == device_id,
+        Device.user_id == current_user.id
+    ).first()
+    
     if not device:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dispositivo no encontrado"
+            detail="Device not found"
         )
     
-    device.is_active = False
-    db.commit()
-    db.refresh(device)
-    return device
+    try:
+        for field, value in device_data.dict(exclude_unset=True).items():
+            setattr(device, field, value)
+        
+        db.commit()
+        db.refresh(device)
+        return device
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update device: {str(e)}"
+        )
 
 @router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_existing_device(device_id: UUID, db: Session = Depends(get_db)):
-    """Eliminar dispositivo"""
-    success = delete_device(db, device_id)
-    if not success:
+def delete_device(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(AuthService.get_current_active_user)
+):
+    """Delete a device"""
+    device = db.query(Device).filter(
+        Device.id == device_id,
+        Device.user_id == current_user.id
+    ).first()
+    
+    if not device:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dispositivo no encontrado"
+            detail="Device not found"
+        )
+    
+    try:
+        db.delete(device)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete device: {str(e)}"
         ) 

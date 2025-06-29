@@ -43,7 +43,7 @@ def get_debug_events(
 def generate_test_data(
     count: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user = Depends(AuthService.require_permission("system.write"))
+    current_user = Depends(AuthService.get_current_active_user)
 ):
     """Generate test data for development"""
     try:
@@ -61,7 +61,7 @@ def generate_test_data(
 @router.post("/clean-test-data")
 def clean_test_data(
     db: Session = Depends(get_db),
-    current_user = Depends(AuthService.require_permission("system.write"))
+    current_user = Depends(AuthService.get_current_active_user)
 ):
     """Clean all test data"""
     try:

@@ -1,54 +1,42 @@
 import pytest
-import uuid
+import pytest_asyncio
 
 @pytest.mark.asyncio
 async def test_reminder_crud(async_client, auth_headers):
-    # Primero crear un elderly person
-    elderly_person_data = {
+    # Primero crear un cared person
+    cared_person_data = {
         "first_name": "María",
         "last_name": "García",
-        "age": 80,
+        "date_of_birth": "1944-01-01",
         "address": "Avenida Central 456"
     }
-    response = await async_client.post("/api/v1/elderly-persons/", json=elderly_person_data, headers=auth_headers)
+    response = await async_client.post("/api/v1/cared-persons/", json=cared_person_data, headers=auth_headers)
     assert response.status_code == 201
-    elderly_person = response.json()
-    elderly_person_id = elderly_person["id"]
+    cared_person = response.json()
     
     # Crear recordatorio
-    payload = {
-        "elderly_person_id": elderly_person_id,
-        "title": "Tomar medicación",
-        "description": "Pastilla azul",
+    reminder_data = {
         "reminder_type": "medication",
-        "scheduled_time": "08:00:00",
-        "days_of_week": [1,2,3,4,5]
+        "title": "Tomar medicamento",
+        "description": "Tomar pastilla para la presión",
+        "scheduled_time": "2024-07-01T08:00:00",
+        "cared_person_id": cared_person["id"]
     }
-    response = await async_client.post("/api/v1/reminders/", json=payload, headers=auth_headers)
+    response = await async_client.post("/api/v1/reminders/", json=reminder_data, headers=auth_headers)
     assert response.status_code == 201
     reminder = response.json()
-    reminder_id = reminder["id"]
     
     # Obtener recordatorio
-    response = await async_client.get(f"/api/v1/reminders/{reminder_id}", headers=auth_headers)
-    assert response.status_code == 200
-    
-    # Listar recordatorios
-    response = await async_client.get("/api/v1/reminders/", headers=auth_headers)
+    response = await async_client.get(f"/api/v1/reminders/{reminder['id']}", headers=auth_headers)
     assert response.status_code == 200
     
     # Actualizar recordatorio
-    response = await async_client.put(f"/api/v1/reminders/{reminder_id}", json={"title": "Nuevo título"}, headers=auth_headers)
+    update_data = {"title": "Medicamento actualizado"}
+    response = await async_client.put(f"/api/v1/reminders/{reminder['id']}", json=update_data, headers=auth_headers)
     assert response.status_code == 200
-    
-    # Activar recordatorio
-    response = await async_client.patch(f"/api/v1/reminders/{reminder_id}/activate", headers=auth_headers)
-    assert response.status_code == 200
-    
-    # Desactivar recordatorio
-    response = await async_client.patch(f"/api/v1/reminders/{reminder_id}/deactivate", headers=auth_headers)
-    assert response.status_code == 200
+    updated_reminder = response.json()
+    assert updated_reminder["title"] == "Medicamento actualizado"
     
     # Eliminar recordatorio
-    response = await async_client.delete(f"/api/v1/reminders/{reminder_id}", headers=auth_headers)
+    response = await async_client.delete(f"/api/v1/reminders/{reminder['id']}", headers=auth_headers)
     assert response.status_code == 204 

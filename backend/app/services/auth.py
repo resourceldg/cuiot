@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from uuid import UUID
 
 from app.models.user import User
 from app.models.role import Role
@@ -61,7 +62,7 @@ class AuthService:
         user = db.query(User).filter(User.email == email).first()
         if not user:
             return None
-        if not AuthService.verify_password(password, user.hashed_password):
+        if not AuthService.verify_password(password, user.password_hash):
             return None
         return user
     
@@ -83,7 +84,7 @@ class AuthService:
         user = User(
             email=user_data.email,
             username=user_data.username,
-            hashed_password=hashed_password,
+            password_hash=hashed_password,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
             phone=user_data.phone,
@@ -104,11 +105,11 @@ class AuthService:
             db.commit()
             db.refresh(user)
             return user
-        except IntegrityError:
+        except IntegrityError as e:
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User creation failed"
+                detail=f"User creation failed: {str(e)}"
             )
     
     @staticmethod
@@ -161,7 +162,7 @@ class AuthService:
                 detail="Could not validate credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        user = db.query(User).filter(User.id == int(user_id)).first()
+        user = db.query(User).filter(User.id == UUID(user_id)).first()
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

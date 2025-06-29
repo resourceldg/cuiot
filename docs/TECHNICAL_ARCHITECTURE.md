@@ -390,6 +390,14 @@ class NotificationService {
 }
 ```
 
+### Almacenamiento de adjuntos en reportes
+
+- Los archivos adjuntos de reportes se almacenan en el directorio `uploads/reports/` del backend.
+- El modelo Report almacena metadatos de los archivos (nombre, url, tipo, tamaño).
+- Los archivos se sirven vía endpoint estático `/static/reports/`.
+- El frontend permite subir y visualizar adjuntos en la UI de reportes.
+- Seguridad: solo usuarios autenticados pueden subir/ver adjuntos.
+
 ## 3. Seguridad y Privacidad
 
 ### 3.1 Autenticación y Autorización

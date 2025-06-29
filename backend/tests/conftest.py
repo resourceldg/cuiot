@@ -19,6 +19,8 @@ def clean_db():
             END LOOP;
         END $$;
     '''))
+    # Limpia la tabla de auditoría
+    db.execute(text('TRUNCATE TABLE audit_logs RESTART IDENTITY CASCADE;'))
     db.commit()
     yield
 

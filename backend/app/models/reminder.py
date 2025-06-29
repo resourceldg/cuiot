@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Date
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from datetime import datetime, timezone
 
 class Reminder(BaseModel):
     """Reminder model for medication, appointments, and tasks"""
@@ -44,8 +45,7 @@ class Reminder(BaseModel):
     @property
     def is_overdue(self) -> bool:
         """Check if reminder is overdue"""
-        from datetime import datetime
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         return self.status == "pending" and self.scheduled_time < now
     
     @property

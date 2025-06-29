@@ -25,6 +25,11 @@ class CaredPersonBase(BaseModel):
     longitude: Optional[float] = None
     user_id: Optional[int] = None
     institution_id: Optional[int] = None
+    medical_contact_name: Optional[str] = Field(None, max_length=100)
+    medical_contact_phone: Optional[str] = Field(None, max_length=20)
+    family_contact_name: Optional[str] = Field(None, max_length=100)
+    family_contact_phone: Optional[str] = Field(None, max_length=20)
+    medical_notes: Optional[str] = None
 
 class CaredPersonCreate(CaredPersonBase, BaseCreate):
     pass

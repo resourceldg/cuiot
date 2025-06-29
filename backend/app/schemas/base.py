@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 class BaseSchema(BaseModel):
     """Base schema with common configuration"""
@@ -8,7 +9,7 @@ class BaseSchema(BaseModel):
 
 class BaseResponse(BaseSchema):
     """Base response schema with common fields"""
-    id: int
+    id: UUID
     created_at: datetime
     updated_at: datetime
     is_active: bool

@@ -5,8 +5,7 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.models.user import User
-from app.services.auth import verify_token
-from app.services.user import get_user_by_email
+from app.services.auth import AuthService
 
 # Configurar OAuth2 scheme para JWT
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -35,12 +34,16 @@ async def get_current_user(
     )
     
     # Verificar token
-    email = verify_token(token)
-    if email is None:
+    payload = AuthService.verify_token(token)
+    if payload is None:
         raise credentials_exception
     
     # Obtener usuario
-    user = get_user_by_email(db, email)
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise credentials_exception
+    
+    user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
     

@@ -10,7 +10,7 @@ class User(BaseModel):
     # Authentication
     email = Column(String(100), unique=True, nullable=False, index=True)
     username = Column(String(50), unique=True, nullable=True, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=False)
     
     # Personal info
     first_name = Column(String(100), nullable=False)

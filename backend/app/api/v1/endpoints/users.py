@@ -1,6 +1,7 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.services.auth import AuthService
@@ -109,3 +110,26 @@ def remove_role(
             detail="Failed to remove role"
         )
     return {"message": "Role removed successfully"}
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.patch("/{user_id}/password", status_code=200)
+def change_password(
+    user_id: int,
+    data: PasswordChangeRequest = Body(...),
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.get_current_active_user)
+):
+    """Change user password"""
+    if current_user.id != user_id and not current_user.has_permission("users.write"):
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    user = UserService.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not AuthService.verify_password(data.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+    user.hashed_password = AuthService.get_password_hash(data.new_password)
+    db.commit()
+    return {"ok": True, "message": "Contraseña cambiada correctamente"}

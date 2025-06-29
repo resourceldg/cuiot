@@ -272,4 +272,26 @@ Authorization: Bearer <token>
 
 ---
 
-¿Dudas? Consulta la documentación interactiva en `/docs` o `/redoc`. 
+¿Dudas? Consulta la documentación interactiva en `/docs` o `/redoc`.
+
+### Reportes (con adjuntos)
+
+**Modelo:**
+- id: int
+- title: str
+- description: str
+- report_type: str
+- attached_files: List[FileMeta]
+- is_autocuidado: bool
+- cared_person_id: int (opcional)
+- created_by_id: int
+- created_at, updated_at
+
+**Endpoints:**
+- POST `/api/v1/reports/` (multipart/form-data): crear reporte (con adjuntos)
+- GET `/api/v1/reports/`: listar reportes
+- GET `/api/v1/reports/{id}`: obtener detalle
+
+**Notas:**
+- Si `is_autocuidado` es false, `cared_person_id` es obligatorio.
+- Los adjuntos se suben como archivos y se devuelven como metadatos (filename, url, etc.). 

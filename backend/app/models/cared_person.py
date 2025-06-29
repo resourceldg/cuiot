@@ -1,10 +1,13 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, Date, Float
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from uuid import UUID
 
 class CaredPerson(BaseModel):
     """CaredPerson model for people under care (replaces elderly_person)"""
     __tablename__ = "cared_persons"
+    
+    id = Column(Integer, primary_key=True, index=True)
     
     # Personal info
     first_name = Column(String(100), nullable=False)
@@ -36,7 +39,7 @@ class CaredPerson(BaseModel):
     longitude = Column(Float, nullable=True)
     
     # Relationships
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Family member or guardian
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)  # Family member or guardian
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
     
     # Relationships
@@ -50,6 +53,14 @@ class CaredPerson(BaseModel):
     location_tracking = relationship("LocationTracking", back_populates="cared_person")
     geofences = relationship("Geofence", back_populates="cared_person")
     debug_events = relationship("DebugEvent", back_populates="cared_person")
+    reports = relationship('Report', back_populates='cared_person')
+    
+    # New fields
+    medical_contact_name = Column(String(100), nullable=True)
+    medical_contact_phone = Column(String(20), nullable=True)
+    family_contact_name = Column(String(100), nullable=True)
+    family_contact_phone = Column(String(20), nullable=True)
+    medical_notes = Column(Text, nullable=True)
     
     def __repr__(self):
         return f"<CaredPerson(name='{self.first_name} {self.last_name}')>"

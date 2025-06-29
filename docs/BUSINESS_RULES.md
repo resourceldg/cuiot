@@ -130,6 +130,14 @@
 - El sistema debe soportar escalabilidad horizontal para instituciones grandes.
 - Las integraciones deben ser configurables y no bloqueantes.
 
+### Reportes con adjuntos
+
+- Todo reporte debe tener título, tipo y autor.
+- Si el reporte es de cuidador, debe estar asociado a una persona bajo cuidado.
+- Si es de autocuidado, puede estar solo asociado al usuario.
+- Los adjuntos deben ser imágenes, PDFs u otros formatos permitidos.
+- Los reportes y adjuntos solo pueden ser accedidos por usuarios autorizados.
+
 ---
 
 ## Ejemplos de Reglas en Práctica

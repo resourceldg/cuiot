@@ -7,11 +7,13 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
+import time
 
 from app.models import (
     CaredPerson, LocationTracking, Geofence, DebugEvent,
     EmergencyProtocol, Alert, User, CaregiverAssignment
 )
+from app.models.device import Device
 
 
 class DebugUtilities:
@@ -298,6 +300,28 @@ class DebugUtilities:
         Returns:
             Dict[str, Any]: Datos generados
         """
+        # Eliminar dispositivos de prueba previos
+        self.db.query(Device).delete()
+        self.db.commit()
+        
+        # Generar un sufijo único para los device_id
+        unique_suffix = str(int(time.time()))
+        
+        # Crear dispositivos de prueba con device_id únicos
+        for i in range(4):
+            device = Device(
+                device_id=f"TEST_DEVICE_{i}_{unique_suffix}",
+                device_type=["sensor", "tracker", "camera", "wearable"][i],
+                model=f"Test Model {i}",
+                manufacturer="Test Manufacturer",
+                status="active",
+                battery_level=80 + i * 5,
+                signal_strength=90 + i * 3,
+                is_active=True
+            )
+            self.db.add(device)
+        self.db.commit()
+        
         # Crear persona bajo cuidado
         cared_person = self.create_test_cared_person(user_id)
         
@@ -401,6 +425,18 @@ class DebugUtilities:
                 "timestamp": last_event.created_at.isoformat()
             } if last_event else None
         }
+    
+    def cleanup_all_test_data(self):
+        """
+        Limpia todos los datos de prueba relevantes del sistema, incluyendo dispositivos.
+        """
+        # Eliminar en orden correcto para respetar claves foráneas
+        self.db.query(LocationTracking).delete()
+        self.db.query(Geofence).delete()
+        self.db.query(DebugEvent).delete()
+        self.db.query(CaredPerson).delete()
+        self.db.query(Device).delete()
+        self.db.commit()
 
 
 def create_debug_data_script():

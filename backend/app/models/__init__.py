@@ -18,6 +18,7 @@ from app.models.billing_record import BillingRecord
 from app.models.location_tracking import LocationTracking
 from app.models.geofence import Geofence
 from app.models.debug_event import DebugEvent
+from app.models.report import Report
 
 __all__ = [
     "Base",
@@ -40,4 +41,5 @@ __all__ = [
     "LocationTracking",
     "Geofence",
     "DebugEvent",
+    "Report",
 ]

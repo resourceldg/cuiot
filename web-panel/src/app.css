@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Estilos base mínimos - Tailwind maneja el resto */
 * {
     box-sizing: border-box;

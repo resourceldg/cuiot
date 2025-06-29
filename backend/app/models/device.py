@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Float
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 
@@ -8,7 +9,10 @@ class Device(BaseModel):
     
     # Device identification
     device_id = Column(String(100), unique=True, nullable=False, index=True)  # Unique device identifier
-    device_type = Column(String(50), nullable=False, index=True)  # sensor, tracker, camera, etc.
+    name = Column(String(255), nullable=False)  # Nombre del dispositivo
+    type = Column(String(50), nullable=False, default="unknown")  # Tipo de dispositivo (wearable, sensor, etc.)
+    location = Column(String(255), nullable=True)  # Ubicación física
+    device_type = Column(String(50), nullable=True, index=True)  # sensor, tracker, camera, etc.
     model = Column(String(100), nullable=True)
     manufacturer = Column(String(100), nullable=True)
     serial_number = Column(String(100), nullable=True, unique=True)
@@ -31,8 +35,8 @@ class Device(BaseModel):
     hardware_version = Column(String(50), nullable=True)
     
     # Relationships
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    elderly_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
     
     # Relationships
@@ -46,7 +50,7 @@ class Device(BaseModel):
     debug_events = relationship("DebugEvent", back_populates="device")
     
     def __repr__(self):
-        return f"<Device(device_id='{self.device_id}', type='{self.device_type}')>"
+        return f"<Device(device_id='{self.device_id}', name='{self.name}', type='{self.type}')>"
     
     @property
     def is_online(self) -> bool:
