@@ -1,24 +1,40 @@
 <script>
     import { goto } from "$app/navigation";
     import { authService } from "$lib/api.js";
+    import { getCurrentUser, getNavigationForRole, getRoleDisplayName, requireAuth } from "$lib/roles.js";
+    import { currentUser, userRole, initializeStores, clearStores } from "$lib/stores.js";
     import { LogOut, Settings, Shield, User } from "lucide-svelte";
+    import { onMount } from "svelte";
 
-    let sections = [
-        { path: "/dashboard/overview", label: "Vista General", icon: "📊" },
-        { path: "/dashboard/care", label: "Gestión de Cuidado", icon: "👥" },
-        { path: "/dashboard/devices", label: "Dispositivos IoT", icon: "📱" },
-        { path: "/dashboard/alerts", label: "Alertas", icon: "🚨" },
-        { path: "/dashboard/reports", label: "Reportes", icon: "📈" },
-        { path: "/dashboard/admin", label: "Administración", icon: "⚙️" },
-        { path: "/debug", label: "Debug & Testing", icon: "🧪" },
-    ];
+    let sections = [];
+    let activeSection = "";
 
-    let activeSection = sections[0].label;
-    let userInfo = {
-        name: "Usuario",
-        role: "Cuidador",
-        avatar: null,
-    };
+    onMount(() => {
+        // Verificar autenticación
+        if (!requireAuth()) return;
+        
+        // Inicializar stores
+        initializeStores();
+        
+        // Determinar sección activa basada en la URL actual
+        setActiveSection();
+        
+        // Suscribirse a cambios en el rol del usuario
+        const unsubscribe = userRole.subscribe(role => {
+            if (role) {
+                sections = getNavigationForRole(role);
+                setActiveSection();
+            }
+        });
+        
+        return unsubscribe;
+    });
+
+    function setActiveSection() {
+        const currentPath = window.location.pathname;
+        const currentSection = sections.find(section => section.path === currentPath);
+        activeSection = currentSection ? currentSection.label : sections[0]?.label || "";
+    }
 
     function navigate(path, label) {
         activeSection = label;
@@ -26,6 +42,7 @@
     }
 
     function logout() {
+        clearStores();
         authService.logout();
         goto("/");
     }
@@ -74,8 +91,8 @@
                     <User class="w-5 h-5" />
                 </div>
                 <div class="user-details">
-                    <span class="user-name">{userInfo.name}</span>
-                    <span class="user-role">{userInfo.role}</span>
+                    <span class="user-name">{$currentUser?.name || 'Usuario'}</span>
+                    <span class="user-role">{$currentUser ? getRoleDisplayName($currentUser.role) : 'Usuario'}</span>
                 </div>
             </div>
 

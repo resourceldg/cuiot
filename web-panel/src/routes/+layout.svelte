@@ -4,6 +4,7 @@
     import { onMount } from "svelte";
     import "../app.css";
     import Toast from "../components/Toast.svelte";
+    import NotificationToast from "../components/NotificationToast.svelte";
 
     let sessionToastVisible = false;
     let sessionToastMessage = "";
@@ -55,3 +56,5 @@
         </div>
     {/if}
 </main>
+
+<NotificationToast />
