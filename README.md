@@ -7,10 +7,12 @@ Un sistema completo de monitoreo y cuidado para adultos mayores que incluye disp
 ✅ **Funcionando correctamente**
 - Backend FastAPI con PostgreSQL
 - Frontend SvelteKit con TypeScript
-- Base de datos PostgreSQL
+- Base de datos PostgreSQL con migraciones completas
 - Redis para cache
 - MQTT Broker para IoT
 - Docker Compose para desarrollo
+- Sistema de debug y testing completo
+- Panel de administración avanzado
 
 ## 🏗️ Arquitectura
 
@@ -32,11 +34,12 @@ Un sistema completo de monitoreo y cuidado para adultos mayores que incluye disp
 
 ### Backend
 - **FastAPI** - Framework web moderno y rápido
-- **PostgreSQL** - Base de datos principal
+- **PostgreSQL** - Base de datos principal con JSONB
 - **Redis** - Cache y sesiones
-- **SQLAlchemy** - ORM
+- **SQLAlchemy** - ORM avanzado
 - **Alembic** - Migraciones de base de datos
 - **Pydantic** - Validación de datos
+- **JWT** - Autenticación segura
 
 ### Frontend
 - **SvelteKit** - Framework web reactivo
@@ -45,6 +48,7 @@ Un sistema completo de monitoreo y cuidado para adultos mayores que incluye disp
 - **Vite** - Build tool y dev server
 - **Chart.js** - Gráficos
 - **FullCalendar** - Calendario de eventos
+- **Lucide Icons** - Iconografía moderna
 
 ### DevOps
 - **Docker** - Containerización
@@ -81,6 +85,7 @@ Un sistema completo de monitoreo y cuidado para adultos mayores que incluye disp
    - Backend API: http://localhost:8000
    - Documentación API: http://localhost:8000/docs
    - Adminer (DB): http://localhost:8080
+   - Panel Debug: http://localhost:3000/debug
 
 ## 📁 Estructura del Proyecto
 
@@ -142,37 +147,84 @@ docker-compose exec web-panel npm run test
 
 ## 📊 Funcionalidades
 
-### Gestión de Adultos Mayores
-- Registro y edición de perfiles
-- Información médica y de contacto
-- Estado de actividad en tiempo real
+### 🏥 Gestión de Personas Bajo Cuidado
+- Registro y edición de perfiles completos
+- Información médica detallada (condiciones, medicamentos, alergias)
+- Contactos de emergencia (médicos y familiares)
+- Niveles de cuidado y movilidad
+- Geolocalización y tracking en tiempo real
 
-### Dispositivos IoT
-- Registro y configuración de dispositivos
+### 📱 Dispositivos IoT
+- Registro y configuración avanzada de dispositivos
 - Monitoreo de estado y conectividad
-- Configuración de alertas
+- Configuración de alertas personalizadas
+- Soporte para múltiples tipos de sensores
+- Firmware y configuración remota
 
-### Sistema de Alertas
-- Alertas en tiempo real
-- Diferentes niveles de severidad
+### 🚨 Sistema de Alertas Avanzado
+- Alertas en tiempo real con diferentes niveles de severidad
+- Protocolos de emergencia configurables
 - Notificaciones push y sonoras
+- Escalamiento automático de alertas
+- Integración con servicios de emergencia
 
-### Eventos y Calendario
-- Programación de eventos médicos
-- Recordatorios de medicación
+### 📅 Eventos y Calendario
+- Programación de eventos médicos y sociales
+- Recordatorios de medicación inteligentes
 - Visitas familiares y actividades
+- Calendario integrado con FullCalendar
+- Notificaciones automáticas
 
-### Dashboard
-- Vista general del sistema
-- Métricas en tiempo real
-- Gráficos y estadísticas
+### 📈 Dashboard y Reportes
+- Vista general del sistema con métricas en tiempo real
+- Gráficos y estadísticas avanzadas
+- Reportes personalizados con adjuntos (PDF, imágenes)
+- Sistema de auditoría completo
+- Exportación de datos
+
+### 🧪 Sistema de Debug y Testing
+- Panel de debug completo en `/debug`
+- Generación automática de datos de prueba
+- Simulación de eventos y alertas
+- Testing de geolocalización y geofences
+- Limpieza automática de datos de prueba
+
+### 💰 Sistema de Facturación
+- Gestión de suscripciones y servicios
+- Registros de facturación completos
+- Múltiples métodos de pago
+- Estados de pago y vencimientos
+- Números de factura únicos
+
+### 🗺️ Geolocalización y Geofencing
+- Tracking de ubicación en tiempo real
+- Zonas de seguridad configurables (geofences)
+- Alertas automáticas de ubicación
+- Historial de movimientos
+- Múltiples fuentes de ubicación (GPS, WiFi, manual)
+
+### 👥 Gestión de Usuarios y Roles
+- Sistema de roles flexible (admin, family, employee, caregiver)
+- Usuarios freelance con tarifas por hora
+- Gestión de instituciones y centros de cuidado
+- Permisos granulares por funcionalidad
+- Autenticación JWT segura
+
+### 🏢 Gestión Institucional
+- Centros de cuidado y residencias
+- Personal médico y administrativo
+- Protocolos institucionales
+- Reportes institucionales
+- Integración con sistemas externos
 
 ## 🔒 Seguridad
 
-- Autenticación JWT
+- Autenticación JWT con refresh tokens
 - Validación de datos con Pydantic
 - CORS configurado
 - Variables de entorno para configuración
+- Sistema de auditoría completo
+- Roles y permisos granulares
 
 ## 🧪 Testing
 
@@ -183,6 +235,9 @@ docker-compose exec backend python -m pytest
 # Tests del frontend
 docker-compose exec web-panel npm run test:ui
 docker-compose exec web-panel npm run test:e2e
+
+# Panel de debug para testing manual
+# Acceder a: http://localhost:3000/debug
 ```
 
 ## 📝 API Documentation
@@ -190,6 +245,42 @@ docker-compose exec web-panel npm run test:e2e
 La documentación completa de la API está disponible en:
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
+
+### Endpoints Principales
+
+#### Autenticación
+- `POST /api/v1/auth/register` - Registro de usuarios
+- `POST /api/v1/auth/login` - Login con JWT
+- `POST /api/v1/auth/refresh` - Refresh de tokens
+
+#### Gestión de Personas
+- `GET /api/v1/cared-persons/` - Listar personas bajo cuidado
+- `POST /api/v1/cared-persons/` - Crear nueva persona
+- `PUT /api/v1/cared-persons/{id}` - Actualizar persona
+- `DELETE /api/v1/cared-persons/{id}` - Eliminar persona
+
+#### Dispositivos IoT
+- `GET /api/v1/devices/` - Listar dispositivos
+- `POST /api/v1/devices/` - Registrar dispositivo
+- `PUT /api/v1/devices/{id}` - Actualizar dispositivo
+- `DELETE /api/v1/devices/{id}` - Eliminar dispositivo
+
+#### Alertas y Eventos
+- `GET /api/v1/alerts/` - Listar alertas
+- `POST /api/v1/alerts/` - Crear alerta
+- `GET /api/v1/events/` - Listar eventos
+- `POST /api/v1/events/` - Crear evento
+
+#### Reportes
+- `GET /api/v1/reports/` - Listar reportes
+- `POST /api/v1/reports/` - Crear reporte con adjuntos
+- `PUT /api/v1/reports/{id}` - Actualizar reporte
+- `DELETE /api/v1/reports/{id}` - Eliminar reporte
+
+#### Debug y Testing
+- `GET /api/v1/debug/summary` - Resumen de datos de debug
+- `POST /api/v1/debug/generate-test-data` - Generar datos de prueba
+- `POST /api/v1/debug/clean-test-data` - Limpiar datos de prueba
 
 ## 🤝 Contribución
 
@@ -199,25 +290,29 @@ La documentación completa de la API está disponible en:
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📄 Licencia
+## 📋 Roadmap
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+### ✅ Completado
+- [x] Backend FastAPI completo
+- [x] Frontend SvelteKit funcional
+- [x] Sistema de autenticación JWT
+- [x] Gestión de personas bajo cuidado
+- [x] Sistema de alertas básico
+- [x] Panel de debug y testing
+- [x] Sistema de reportes con adjuntos
+- [x] Geolocalización y geofencing
+- [x] Sistema de facturación
+- [x] Protocolos de emergencia
 
-## 🆘 Soporte
+### 🔄 En Desarrollo
+- [ ] App móvil Flutter
+- [ ] Integración con servicios de emergencia
+- [ ] Análisis de IA para detección de patrones
+- [ ] Notificaciones push avanzadas
 
-Si encuentras algún problema:
-
-1. Verifica que Docker esté ejecutándose
-2. Revisa los logs: `docker-compose logs`
-3. Reconstruye los contenedores: `docker-compose up --build -d`
-4. Abre un issue en el repositorio
-
-## 🎯 Roadmap
-
-- [ ] Aplicación móvil React Native
-- [ ] Integración con wearables
-- [ ] Machine Learning para detección de anomalías
-- [ ] Integración con servicios médicos
-- [ ] Sistema de reportes avanzados
-- [ ] Multi-tenancy
-- [ ] API pública para desarrolladores 
+### 📅 Próximas Funcionalidades
+- [ ] Integración con dispositivos IoT físicos
+- [ ] Sistema de videovigilancia
+- [ ] Análisis de comportamiento avanzado
+- [ ] Integración con sistemas de salud
+- [ ] Certificaciones de accesibilidad 

@@ -31,6 +31,7 @@ docker-compose up --build -d
 - Panel Web: http://localhost:3000
 - Adminer (DB): http://localhost:8080
 - Documentación API: http://localhost:8000/docs
+- Panel Debug: http://localhost:3000/debug
 
 ## 🏗️ Arquitectura del Proyecto
 
@@ -39,10 +40,47 @@ docker-compose up --build -d
 backend/
 ├── app/
 │   ├── api/           # Endpoints de la API
+│   │   └── v1/
+│   │       └── endpoints/
+│   │           ├── auth.py              # Autenticación JWT
+│   │           ├── users.py             # Gestión de usuarios
+│   │           ├── cared_persons.py     # Personas bajo cuidado
+│   │           ├── devices.py           # Dispositivos IoT
+│   │           ├── alerts.py            # Sistema de alertas
+│   │           ├── events.py            # Eventos del sistema
+│   │           ├── reminders.py         # Recordatorios
+│   │           ├── reports.py           # Reportes con adjuntos
+│   │           ├── debug.py             # Sistema de debug
+│   │           ├── health.py            # Health checks
+│   │           └── admin.py             # Administración
 │   ├── core/          # Configuración y utilidades
+│   │   ├── config.py      # Configuración de la aplicación
+│   │   ├── database.py    # Conexión a base de datos
+│   │   ├── auth.py        # Autenticación y autorización
+│   │   └── exceptions.py  # Manejo de excepciones
 │   ├── models/        # Modelos de SQLAlchemy
+│   │   ├── user.py                    # Usuarios y roles
+│   │   ├── cared_person.py            # Personas bajo cuidado
+│   │   ├── device.py                  # Dispositivos IoT
+│   │   ├── alert.py                   # Alertas del sistema
+│   │   ├── event.py                   # Eventos
+│   │   ├── reminder.py                # Recordatorios
+│   │   ├── report.py                  # Reportes con adjuntos
+│   │   ├── emergency_protocol.py      # Protocolos de emergencia
+│   │   ├── service_subscription.py    # Suscripciones de servicio
+│   │   ├── billing_record.py          # Registros de facturación
+│   │   ├── location_tracking.py       # Geolocalización
+│   │   ├── geofence.py                # Geofencing
+│   │   ├── debug_event.py             # Eventos de debug
+│   │   └── audit_log.py               # Log de auditoría
 │   ├── schemas/       # Esquemas Pydantic
 │   └── services/      # Lógica de negocio
+│       ├── auth.py        # Servicio de autenticación
+│       ├── user.py        # Servicio de usuarios
+│       ├── device.py      # Servicio de dispositivos
+│       ├── alert.py       # Servicio de alertas
+│       ├── debug.py       # Servicio de debug
+│       └── audit_log.py   # Servicio de auditoría
 ├── alembic/           # Migraciones de base de datos
 ├── tests/             # Tests unitarios
 └── main.py           # Punto de entrada
@@ -53,9 +91,34 @@ backend/
 web-panel/
 ├── src/
 │   ├── components/    # Componentes reutilizables
-│   ├── pages/         # Páginas de la aplicación
-│   ├── stores/        # Stores de Svelte
-│   └── lib/           # Utilidades y configuraciones
+│   │   ├── Toast.svelte               # Notificaciones
+│   │   ├── ProfileCard.svelte         # Tarjeta de perfil
+│   │   ├── DeviceForm.svelte          # Formulario de dispositivos
+│   │   ├── EventForm.svelte           # Formulario de eventos
+│   │   ├── ElderlyPersonForm.svelte   # Formulario de personas
+│   │   └── PreferencesSection.svelte  # Sección de preferencias
+│   ├── routes/        # Páginas de la aplicación
+│   │   ├── +layout.svelte             # Layout principal
+│   │   ├── +page.svelte               # Página de inicio
+│   │   ├── login/                     # Autenticación
+│   │   ├── register/                  # Registro
+│   │   ├── debug/                     # Panel de debug
+│   │   └── dashboard/                 # Dashboard principal
+│   │       ├── +layout.svelte         # Layout del dashboard
+│   │       ├── overview/              # Vista general
+│   │       ├── human/                 # Gestión de personas
+│   │       ├── devices/               # Dispositivos IoT
+│   │       ├── alerts/                # Sistema de alertas
+│   │       ├── events/                # Eventos
+│   │       ├── reminders/             # Recordatorios
+│   │       ├── reports/               # Reportes con adjuntos
+│   │       ├── calendar/              # Calendario
+│   │       ├── profile/               # Perfil de usuario
+│   │       └── admin/                 # Administración
+│   ├── lib/           # Utilidades y configuraciones
+│   │   ├── api.js                     # Servicios de API
+│   │   └── types/                     # Tipos TypeScript
+│   └── app.css        # Estilos globales
 ├── static/            # Archivos estáticos
 └── package.json
 ```
@@ -139,12 +202,23 @@ flutter run
 - **Contraseña**: viejos_trapos_pass
 
 ### Tablas Principales
-- `users` - Usuarios (familiares)
-- `elderly_persons` - Adultos mayores
+- `users` - Usuarios del sistema
+- `roles` - Roles y permisos
+- `user_roles` - Asignación de roles a usuarios
+- `institutions` - Centros de cuidado
+- `cared_persons` - Personas bajo cuidado
 - `devices` - Dispositivos IoT
-- `events` - Eventos de sensores
+- `events` - Eventos del sistema
 - `alerts` - Alertas del sistema
 - `reminders` - Recordatorios
+- `reports` - Reportes con adjuntos
+- `emergency_protocols` - Protocolos de emergencia
+- `service_subscriptions` - Suscripciones de servicio
+- `billing_records` - Registros de facturación
+- `location_tracking` - Geolocalización
+- `geofences` - Zonas de seguridad
+- `debug_events` - Eventos de debug
+- `audit_logs` - Log de auditoría
 
 ## 🔌 MQTT
 
@@ -155,6 +229,7 @@ flutter run
   - `viejos_trapos/+/events` - Eventos de dispositivos
   - `viejos_trapos/+/heartbeat` - Heartbeat de dispositivos
   - `viejos_trapos/+/config` - Configuración de dispositivos
+  - `viejos_trapos/+/location` - Datos de geolocalización
 
 ### Ejemplo de mensaje
 ```json
@@ -190,6 +265,14 @@ cd mobile-app
 flutter test
 ```
 
+### Panel de Debug
+El sistema incluye un panel de debug completo en `/debug` que permite:
+- Generar datos de prueba automáticamente
+- Simular eventos y alertas
+- Probar geolocalización y geofences
+- Limpiar datos de prueba
+- Ver estadísticas del sistema
+
 ## 📝 Convenciones de Código
 
 ### Python (Backend)
@@ -198,21 +281,80 @@ flutter test
 - Usar **flake8** para linting
 - Documentar funciones con docstrings
 
-### JavaScript/TypeScript (Panel Web)
+```python
+def create_user(db: Session, user_data: UserCreate) -> User:
+    """
+    Crear un nuevo usuario en el sistema.
+    
+    Args:
+        db: Sesión de base de datos
+        user_data: Datos del usuario a crear
+        
+    Returns:
+        User: Usuario creado
+        
+    Raises:
+        HTTPException: Si el email ya existe
+    """
+    # Implementación
+    pass
+```
+
+### JavaScript/TypeScript (Frontend)
 - Usar **Prettier** para formateo
 - Usar **ESLint** para linting
-- Usar **TypeScript** estrictamente
+- Usar **Svelte** con TypeScript
+- Documentar componentes con comentarios
 
-### Dart (App Móvil)
-- Seguir las convenciones de Flutter
-- Usar **flutter_lints**
-- Documentar clases y métodos
+```typescript
+/**
+ * Componente para mostrar información de una persona bajo cuidado
+ * @param {Object} person - Datos de la persona
+ * @param {string} person.name - Nombre completo
+ * @param {number} person.age - Edad
+ */
+```
 
-## 🚀 Deploy
+## 🔒 Seguridad
+
+### Autenticación
+- JWT tokens con refresh
+- Tokens expiran en 30 minutos
+- Refresh tokens expiran en 7 días
+- Logout invalida tokens
+
+### Autorización
+- Roles granulares (admin, family, employee, caregiver)
+- Permisos por funcionalidad
+- Validación en endpoints y servicios
+
+### Validación de Datos
+- Pydantic schemas en backend
+- Validación en frontend
+- Sanitización de inputs
+
+## 📊 Monitoreo y Logs
+
+### Logs del Sistema
+- **Backend**: Structlog con formato JSON
+- **Frontend**: Console logs en desarrollo
+- **Docker**: Logs de contenedores
+
+### Métricas
+- Health checks automáticos
+- Métricas de base de datos
+- Estadísticas de uso
+
+## 🚀 Deployment
 
 ### Desarrollo
 ```bash
 ./start-dev.sh
+```
+
+### Staging
+```bash
+docker-compose -f docker-compose.staging.yml up -d
 ```
 
 ### Producción
@@ -220,27 +362,90 @@ flutter test
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## 🐛 Debugging
+## 🔧 Configuración
 
-### Backend
-- Logs en `docker-compose logs -f backend`
-- Debugger en VS Code con configuración Python
+### Variables de Entorno
+```bash
+# Backend
+DATABASE_URL=postgresql://user:pass@host:port/db
+REDIS_URL=redis://host:port
+SECRET_KEY=your-secret-key
+ENVIRONMENT=development
 
-### Panel Web
-- DevTools del navegador
-- Logs en consola del navegador
+# Frontend
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
 
-### App Móvil
-- Flutter Inspector
-- Logs en `flutter logs`
+### Configuración de Base de Datos
+- PostgreSQL 15+
+- Extensión JSONB habilitada
+- Índices en campos de búsqueda
+- Backup automático configurado
 
-## 📚 Recursos
+## 📚 Recursos Adicionales
 
+### Documentación
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Svelte Documentation](https://svelte.dev/docs)
-- [Flutter Documentation](https://flutter.dev/docs)
+- [SvelteKit Documentation](https://kit.svelte.dev/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Docker Documentation](https://docs.docker.com/)
-- [MQTT Documentation](https://mqtt.org/documentation)
+
+### Herramientas
+- [Adminer](http://localhost:8080) - Gestión de base de datos
+- [Swagger UI](http://localhost:8000/docs) - Documentación de API
+- [Panel Debug](http://localhost:3000/debug) - Testing y debug
+
+## 🆘 Solución de Problemas
+
+### Problemas Comunes
+
+#### Backend no inicia
+```bash
+# Verificar logs
+docker-compose logs backend
+
+# Reconstruir contenedor
+docker-compose up --build backend
+```
+
+#### Base de datos no conecta
+```bash
+# Verificar estado de PostgreSQL
+docker-compose ps postgres
+
+# Reiniciar base de datos
+docker-compose restart postgres
+```
+
+#### Frontend no carga
+```bash
+# Verificar logs
+docker-compose logs web-panel
+
+# Limpiar cache
+docker-compose exec web-panel npm run build
+```
+
+### Debug y Testing
+- Usar el panel de debug en `/debug`
+- Generar datos de prueba automáticamente
+- Simular diferentes escenarios
+- Limpiar datos cuando sea necesario
+
+## 🤝 Contribución
+
+### Flujo de Trabajo
+1. Crear rama desde `main`
+2. Desarrollar funcionalidad
+3. Agregar tests
+4. Actualizar documentación
+5. Crear Pull Request
+
+### Estándares de Código
+- Seguir convenciones establecidas
+- Agregar tests para nuevas funcionalidades
+- Documentar cambios importantes
+- Mantener compatibilidad con APIs existentes
 
 ## Workflows de desarrollo optimizados
 

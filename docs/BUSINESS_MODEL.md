@@ -31,8 +31,9 @@
 - Alertas automáticas en tiempo real
 - Botón/mando de emergencia con llamada directa
 - Panel web para familiares y cuidadores
-- Reportes de actividad y salud
+- Reportes de actividad y salud con adjuntos
 - Gestión de medicamentos y recordatorios
+- Sistema de debug y testing completo
 
 #### Avanzados
 - Videovigilancia bajo demanda
@@ -44,6 +45,8 @@
 - Sistema de geolocalización para personas con tendencia a deambular
 - Monitoreo de patrones de sueño y actividad
 - Detección de convulsiones o episodios médicos
+- Protocolos de emergencia configurables
+- Sistema de facturación y suscripciones
 
 #### Especializados por Tipo de Usuario
 - **Para personas con autismo**: Detección de crisis, monitoreo de rutinas
@@ -72,12 +75,13 @@
 - **Escuela Especial**: ARS 25,000/mes (incluye módulos educativos)
 
 #### Servicios Adicionales
-- Reportes médicos personalizados
+- Reportes médicos personalizados con adjuntos
 - Integración con seguros o servicios sociales
 - Servicios de emergencia premium
 - Consultoría y capacitación
 - Desarrollo de protocolos específicos por tipo de centro
 - Integración con sistemas de gestión institucional
+- Sistema de debug y testing para desarrolladores
 
 ### Mercado Objetivo - Costa Atlántica y Provincia de Buenos Aires
 
@@ -146,6 +150,9 @@
 - Personalización por tipo de necesidad
 - Integración con sistemas institucionales
 - Cumplimiento de normativas de accesibilidad
+- Sistema de debug y testing completo
+- Reportes con adjuntos avanzados
+- Protocolos de emergencia configurables
 
 ## 2. Arquitectura Técnica
 
@@ -198,65 +205,54 @@
 ├── event-service/            # Procesamiento de eventos en tiempo real
 ├── alert-service/            # Gestión de alertas y notificaciones
 ├── video-service/            # Streaming y procesamiento de video
-├── notification-service/     # Notificaciones multi-canal
-├── emergency-service/        # Llamadas/SMS de emergencia
-├── health-service/           # Monitoreo de salud y reportes
-├── location-service/         # Geolocalización y tracking
-├── ai-service/               # Procesamiento con IA
-├── center-service/           # Gestión de centros de cuidado
-├── report-service/           # Generación de reportes
-└── integration-service/      # Integraciones externas
+├── debug-service/            # Sistema de debug y testing
+├── billing-service/          # Gestión de facturación
+├── location-service/         # Geolocalización y geofencing
+└── report-service/           # Reportes con adjuntos
 ```
 
-#### Base de Datos Expandida
-```sql
--- Usuarios y roles expandidos
-users, roles, user_roles, user_permissions
+#### Nuevas Funcionalidades Implementadas
 
--- Personas bajo cuidado (no solo adultos mayores)
-cared_persons, care_types, medical_conditions, medications
+##### Sistema de Debug y Testing
+- **Panel de debug completo**: Interfaz web en `/debug`
+- **Generación automática de datos**: Creación de datos de prueba realistas
+- **Simulación de eventos**: Eventos de caída, emergencias médicas, deambulación
+- **Testing de geolocalización**: Ubicaciones simuladas con trayectorias realistas
+- **Geofences de debug**: Zonas de seguridad para testing
+- **Limpieza automática**: Eliminación de datos de prueba
+- **Resúmenes detallados**: Estadísticas de datos generados
 
--- Dispositivos y configuraciones avanzadas
-devices, device_types, device_configs, device_maintenance
+##### Reportes con Adjuntos
+- **Soporte para múltiples formatos**: PDF, imágenes, documentos
+- **Almacenamiento seguro**: Archivos con UUIDs únicos
+- **Metadatos completos**: Información de archivo, tamaño, tipo MIME
+- **Acceso controlado**: Permisos por usuario y tipo de reporte
+- **Categorización**: Tipos de reporte (médico, incidente, general)
+- **Autocuidado**: Reportes personales sin asociación a persona bajo cuidado
 
--- Eventos y alertas especializados
-events, alerts, alert_rules, alert_escalations
+##### Protocolos de Emergencia
+- **Activación automática**: Basada en condiciones configurables
+- **Escalación inteligente**: Pasos secuenciales con retrasos
+- **Tipos de crisis**: Médica, caída, deambulación, abuso, etc.
+- **Niveles de severidad**: Baja, media, alta, crítica
+- **Evaluación de condiciones**: Operadores lógicos complejos
+- **Contactos de emergencia**: Lista configurable por protocolo
 
--- Monitoreo de salud y actividad
-health_records, activity_logs, sleep_patterns, vital_signs
+##### Sistema de Facturación
+- **Ciclos flexibles**: Mensual, trimestral, anual
+- **Métodos de pago**: Tarjeta, transferencia, efectivo, cripto
+- **Gestión de vencimientos**: Alertas automáticas
+- **Reembolsos**: Procesamiento completo
+- **Números únicos**: Generación automática de facturas
+- **Estados de pago**: Pendiente, pagado, fallido, reembolsado
 
--- Configuración de emergencia y contactos
-emergency_contacts, emergency_configs, emergency_protocols
-
--- Centros de cuidado
-care_centers, center_types, center_staff, center_patients
-
--- Video y multimedia
-video_streams, video_events, video_recordings, video_analytics
-
--- Geolocalización
-location_tracking, geofences, location_alerts
-
--- Reportes y analytics
-reports, report_templates, analytics_data
-```
-
-#### APIs Principales Expandidas
-```
-/api/v1/users/               # CRUD usuarios con roles
-/api/v1/cared-persons/       # CRUD personas bajo cuidado
-/api/v1/devices/             # CRUD dispositivos IoT
-/api/v1/events/              # Eventos en tiempo real
-/api/v1/alerts/              # Gestión alertas
-/api/v1/video/               # Streaming/snapshots/recordings
-/api/v1/emergency/           # Llamadas emergencia
-/api/v1/health/              # Monitoreo de salud
-/api/v1/location/            # Geolocalización
-/api/v1/reports/             # Reportes y analytics
-/api/v1/centers/             # Gestión de centros
-/api/v1/ai/                  # Servicios de IA
-/api/v1/integrations/        # Integraciones externas
-```
+##### Geolocalización y Geofencing
+- **Tracking en tiempo real**: Múltiples fuentes (GPS, WiFi, manual)
+- **Zonas de seguridad**: Geofences circulares y poligonales
+- **Alertas automáticas**: Entrada/salida de zonas
+- **Historial de movimientos**: Trayectorias y patrones
+- **Configuración horaria**: Geofences activos por horarios
+- **Múltiples usuarios**: Geofences compartidos por familia
 
 ### Frontend (SvelteKit)
 
@@ -271,6 +267,7 @@ reports, report_templates, analytics_data
 - **Centros**: Gestión para administradores de centros
 - **Analytics**: Datos y estadísticas avanzadas
 - **Accesibilidad**: Configuración de accesibilidad
+- **Debug**: Panel completo de testing y debug
 
 #### Características de Accesibilidad Avanzadas
 - Interfaz adaptable según tipo de discapacidad
@@ -338,25 +335,37 @@ reports, report_templates, analytics_data
 2. Botón de emergencia manual disponible
 3. Llamada directa a servicios específicos
 4. Seguimiento hasta resolución
-5. Reporte post-evento
+5. Reporte post-evento con adjuntos
+
+### Sistema de Debug y Testing
+1. Panel de debug accesible en `/debug`
+2. Generación automática de datos de prueba
+3. Simulación de diferentes escenarios
+4. Testing de funcionalidades sin dispositivos IoT
+5. Limpieza automática de datos de prueba
 
 ## 4. Roadmap de Desarrollo Expandido
 
-### Fase 1 (MVP Ampliado) - 4 meses
-- [ ] Backend expandido con nuevos modelos
-- [ ] Frontend con gestión de personas (no solo adultos mayores)
-- [ ] Integración básica de múltiples tipos de sensores
-- [ ] Sistema de alertas personalizado
-- [ ] Pruebas con diferentes tipos de usuarios
-- [ ] Integración con centros de cuidado básicos
+### Fase 1 (MVP Ampliado) - 4 meses ✅ COMPLETADO
+- [x] Backend expandido con nuevos modelos
+- [x] Frontend con gestión de personas (no solo adultos mayores)
+- [x] Integración básica de múltiples tipos de sensores
+- [x] Sistema de alertas personalizado
+- [x] Pruebas con diferentes tipos de usuarios
+- [x] Integración con centros de cuidado básicos
+- [x] Sistema de debug y testing completo
+- [x] Reportes con adjuntos
+- [x] Protocolos de emergencia
+- [x] Sistema de facturación
+- [x] Geolocalización y geofencing
 
-### Fase 2 (Servicios Avanzados) - 8 meses
+### Fase 2 (Servicios Avanzados) - 8 meses 🔄 EN DESARROLLO
 - [ ] Integración de cámaras con IA
 - [ ] App móvil especializada
 - [ ] Sistema de reportes institucionales
 - [ ] Integración con servicios de emergencia regionales
-- [ ] Geolocalización y tracking
-- [ ] Pruebas con centros de cuidado
+- [ ] Geolocalización avanzada con geofences
+- [ ] Pruebas con centros de día y escuelas especiales
 
 ### Fase 3 (Producción Regional) - 12 meses
 - [ ] Mando físico accesible
@@ -427,18 +436,51 @@ El sistema permite a cuidadores y personas en autocuidado crear reportes asociad
 
 - **Trazabilidad y respaldo:** Documentación de incidentes, evolución médica, visitas, etc.
 - **Comunicación efectiva:** Facilita compartir información relevante con familiares, médicos y la institución.
-- **Valor agregado:** Diferenciador frente a otros sistemas, útil para auditoría, seguimiento y respaldo legal.
+- **Historial médico:** Almacenamiento de análisis, recetas, certificados médicos.
+- **Evidencia visual:** Fotos de lesiones, cambios en el estado, etc.
+- **Reportes institucionales:** Documentación para centros de cuidado y autoridades.
 
-### Casos de uso
-- Reporte de incidente con fotos.
-- Evolución médica con estudios adjuntos.
-- Registro de visitas familiares con comprobantes.
-- Autocuidado: persona sube su propio control o estudio.
+### Características de los Reportes
+- **Múltiples formatos:** PDF, JPG, PNG, DOC, etc.
+- **Metadatos completos:** Tamaño, tipo MIME, fecha de subida
+- **Almacenamiento seguro:** Archivos con UUIDs únicos
+- **Acceso controlado:** Permisos por usuario y tipo de reporte
+- **Categorización:** Tipos de reporte configurables
+- **Búsqueda avanzada:** Filtros por fecha, tipo, persona, etc.
 
-### Reglas de negocio
-- Un reporte de cuidador debe estar asociado a una persona bajo cuidado.
-- Un reporte de autocuidado puede estar solo asociado al usuario.
-- Los adjuntos se almacenan de forma segura y accesible solo para usuarios autorizados.
+## Sistema de Debug y Testing
+
+### Funcionalidades del Panel de Debug
+- **Generación automática de datos:** Crea personas, dispositivos, eventos y alertas de prueba
+- **Simulación de escenarios:** Eventos de caída, emergencias médicas, deambulación
+- **Testing de geolocalización:** Ubicaciones simuladas con trayectorias realistas
+- **Geofences de debug:** Zonas de seguridad para testing
+- **Limpieza automática:** Eliminación completa de datos de prueba
+- **Resúmenes detallados:** Estadísticas de datos generados
+
+### Beneficios para el Desarrollo
+- **Testing sin dispositivos IoT:** Permite probar funcionalidades sin hardware
+- **Datos realistas:** Genera datos que simulan el comportamiento real del sistema
+- **Desarrollo rápido:** Acelera el ciclo de desarrollo y testing
+- **Debugging eficiente:** Herramientas para identificar y resolver problemas
+- **Demostraciones:** Facilita mostrar el sistema a clientes potenciales
+
+## Protocolos de Emergencia
+
+### Características de los Protocolos
+- **Activación automática:** Basada en condiciones configurables
+- **Escalación inteligente:** Pasos secuenciales con retrasos
+- **Tipos de crisis:** Médica, caída, deambulación, abuso, etc.
+- **Niveles de severidad:** Baja, media, alta, crítica
+- **Contactos configurables:** Lista de emergencia por protocolo
+- **Pasos personalizables:** Secuencia de acciones específicas
+
+### Beneficios para la Seguridad
+- **Respuesta rápida:** Activación automática de protocolos
+- **Escalación apropiada:** Contacto progresivo de servicios de emergencia
+- **Documentación completa:** Registro de todas las acciones tomadas
+- **Personalización:** Protocolos específicos por tipo de institución
+- **Cumplimiento:** Adherencia a normativas de seguridad
 
 ---
 
