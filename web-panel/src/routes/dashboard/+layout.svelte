@@ -2,19 +2,23 @@
     import { goto } from "$app/navigation";
     import { authService } from "$lib/api.js";
     import { getCurrentUser, getNavigationForRole, getRoleDisplayName, requireAuth } from "$lib/roles.js";
-    import { currentUser, userRole, initializeStores, clearStores } from "$lib/stores.js";
+    import { currentUser, userRole, initializeStores, clearStores, refreshCurrentUserFromBackend } from "$lib/stores.js";
     import { LogOut, Settings, Shield, User } from "lucide-svelte";
     import { onMount } from "svelte";
+    import ProfileDropdown from "../../components/ProfileDropdown.svelte";
 
     let sections = [];
     let activeSection = "";
 
-    onMount(() => {
+    onMount(async () => {
         // Verificar autenticación
         if (!requireAuth()) return;
         
         // Inicializar stores
         initializeStores();
+        
+        // Refrescar usuario desde backend para nombre real
+        await refreshCurrentUserFromBackend();
         
         // Determinar sección activa basada en la URL actual
         setActiveSection();
@@ -135,6 +139,9 @@
                     <div class="status-indicator online"></div>
                     <span>Sistema Online</span>
                 </div>
+                {#if $currentUser}
+                    <ProfileDropdown user={$currentUser} onLogout={logout} />
+                {/if}
             </div>
         </header>
 

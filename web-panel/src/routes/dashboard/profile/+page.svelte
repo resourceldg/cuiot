@@ -2,7 +2,7 @@
     import { goto } from "$app/navigation";
     import { userService } from "$lib/api.js";
     import { onMount } from "svelte";
-    import AvailabilitySection from "../../../components/AvailabilitySection.svelte";
+    import { refreshCurrentUserFromBackend } from "$lib/stores.js";
     import ChangePasswordSection from "../../../components/ChangePasswordSection.svelte";
     import PreferencesSection from "../../../components/PreferencesSection.svelte";
     import ProfileCard from "../../../components/ProfileCard.svelte";
@@ -29,11 +29,7 @@
         const token = localStorage.getItem("authToken");
         if (token) {
             try {
-                const payload = parseJwt(token);
-                userId = payload.sub ? parseInt(payload.sub) : null;
-                if (!userId)
-                    throw new Error("No se pudo obtener el ID de usuario");
-                user = await userService.getById(userId);
+                user = await userService.getById('me');
             } catch (e) {
                 feedback.error = e.message || "Error al cargar usuario.";
                 user = null;
@@ -50,10 +46,10 @@
     async function handleSave(e) {
         feedback = { success: null, error: null };
         try {
-            if (!userId) throw new Error("No se pudo obtener el ID de usuario");
-            await userService.update(userId, e.detail);
+            await userService.update('me', e.detail);
             feedback.success = "Datos actualizados correctamente.";
-            await loadUser(); // Refresca los datos
+            await loadUser(); // Refresca los datos locales
+            await refreshCurrentUserFromBackend(); // Refresca el store global
         } catch (err) {
             feedback.error = err.message || "Error al actualizar los datos.";
         }
@@ -98,8 +94,6 @@
         <ChangePasswordSection />
         <!-- Sección de preferencias -->
         <PreferencesSection />
-        <!-- Sección de disponibilidad -->
-        <AvailabilitySection />
     {:else}
         <div class="text-red-600 mt-8">
             No se pudo cargar el perfil del usuario.

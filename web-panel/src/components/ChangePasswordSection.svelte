@@ -37,8 +37,7 @@
         }
         loading = true;
         try {
-            if (!userId) throw new Error("No se pudo obtener el ID de usuario");
-            await userService.changePassword(userId, current, password);
+            await userService.changePassword('me', current, password);
             success = "Contraseña cambiada correctamente.";
             current = password = confirm = "";
         } catch (e) {
@@ -203,16 +202,88 @@
 </div>
 
 <style>
-    .btn {
-        @apply px-4 py-2 rounded font-semibold;
+.card {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px 0 rgba(37, 99, 235, 0.07);
+    padding: 2rem 2rem 1.5rem 2rem;
+    border: 1px solid #e5e7eb;
+    max-width: 420px;
+    margin: 0 auto 2rem auto;
+}
+.card-header {
+    margin-bottom: 1.5rem;
+}
+.card-header h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.3rem;
+}
+.card-header p {
+    color: #64748b;
+    font-size: 0.98rem;
+}
+.form-group {
+    margin-bottom: 1.2rem;
+}
+.form-label {
+    font-size: 0.98rem;
+    color: #64748b;
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+    display: block;
+}
+.form-input {
+    width: 100%;
+    padding: 0.5rem 0.8rem;
+    border-radius: 0.4rem;
+    border: 1px solid #e5e7eb;
+    font-size: 1rem;
+    color: #222;
+    background: #f8fafc;
+    margin-top: 0.2rem;
+}
+.btn-primary {
+    display: inline-block;
+    padding: 0.5rem 1.2rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    background: #2563eb;
+    color: #fff;
+    transition: background 0.2s, color 0.2s;
+}
+.btn-primary:hover {
+    background: #1e40af;
+}
+.flex {
+    display: flex;
+}
+.justify-end {
+    justify-content: flex-end;
+}
+.pt-6 {
+    padding-top: 1.5rem;
+}
+.border-t {
+    border-top: 1px solid #e5e7eb;
+}
+.space-x-4 > * + * {
+    margin-left: 1rem;
+}
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+@media (max-width: 900px) {
+    .card {
+        padding: 1.2rem 0.7rem 1rem 0.7rem;
     }
-    .btn-primary {
-        @apply bg-blue-500 text-white hover:bg-green-500 transition;
-    }
-    .input {
-        @apply border rounded px-3 py-2;
-    }
-    .input-bordered {
-        @apply border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200;
-    }
+}
 </style>

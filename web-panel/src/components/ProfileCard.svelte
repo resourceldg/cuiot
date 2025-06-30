@@ -5,184 +5,161 @@
         last_name: "",
         email: "",
         phone: "",
-        role: "Cuidador",
+        specialization: "",
         is_verified: false,
-        username: "",
-        date_of_birth: "",
+        role: "Cuidador",
     };
     export let editable = false;
     export let loading = false;
     const dispatch = createEventDispatcher();
-
-    let editMode = false;
-    let form = { ...user };
-
-    // Definición de campos para fácil extensión
-    const fields = [
-        { key: "first_name", label: "Nombre", type: "text", required: true },
-        { key: "last_name", label: "Apellido", type: "text", required: false },
-        { key: "username", label: "Usuario", type: "text", required: false },
-        { key: "email", label: "Email", type: "email", required: true },
-        { key: "phone", label: "Teléfono", type: "tel", required: false },
-        {
-            key: "date_of_birth",
-            label: "Fecha de nacimiento",
-            type: "date",
-            required: false,
-        },
-        // Agregar más campos aquí si se desea
-    ];
-
-    function startEdit() {
-        editMode = true;
-        form = { ...user };
-    }
-    function cancelEdit() {
-        editMode = false;
-        form = { ...user };
-    }
-    function save() {
-        dispatch("save", { ...form });
-        editMode = false;
-    }
 
     function handleEdit() {
         dispatch("edit");
     }
 </script>
 
-<div
-    class="w-full max-w-2xl bg-white rounded-xl shadow-md border border-gray-100 p-8 mb-8"
->
-    <div
-        class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-2"
-    >
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900">Perfil de Cuidador</h2>
-            <p class="text-gray-500 text-sm">
-                Información personal y profesional
-            </p>
-        </div>
-        <button
-            on:click={handleEdit}
-            class="btn-primary flex items-center gap-2"
-            disabled={loading}
-        >
-            <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                ></path>
-            </svg>
-            Editar Perfil
-        </button>
-    </div>
-    {#if loading}
-        <div class="flex justify-center items-center py-8">
-            <div
-                class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
-            ></div>
-        </div>
-    {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div>
-                <div class="text-xs text-gray-500 mb-1">Nombre Completo</div>
-                <div
-                    class="font-semibold text-gray-900 bg-gray-50 rounded px-3 py-2"
-                >
-                    {user.first_name}
-                    {user.last_name}
-                </div>
-            </div>
-            <div>
-                <div class="text-xs text-gray-500 mb-1">Email</div>
-                <div
-                    class="font-semibold text-gray-900 bg-gray-50 rounded px-3 py-2"
-                >
-                    {user.email}
-                </div>
-            </div>
-            <div>
-                <div class="text-xs text-gray-500 mb-1">Teléfono</div>
-                <div class="text-gray-900 bg-gray-50 rounded px-3 py-2">
-                    {user.phone}
-                </div>
-            </div>
-            <div>
-                <div class="text-xs text-gray-500 mb-1">
-                    Fecha de Nacimiento
-                </div>
-                <div class="text-gray-900 bg-gray-50 rounded px-3 py-2">
-                    {user.date_of_birth
-                        ? new Date(user.date_of_birth).toLocaleDateString(
-                              "es-ES",
-                          )
-                        : "No especificado"}
-                </div>
-            </div>
-        </div>
-        <div class="border-t pt-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                Información Profesional
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <div class="text-xs text-gray-500 mb-1">Especialidad</div>
-                    <div class="text-gray-900 bg-gray-50 rounded px-3 py-2">
-                        {user.role}
-                    </div>
-                </div>
-                <div>
-                    <div class="text-xs text-gray-500 mb-1">
-                        Años de Experiencia
-                    </div>
-                    <div class="text-gray-900 bg-gray-50 rounded px-3 py-2">
-                        {user.is_verified ? "✔ Verificado" : "No verificado"}
-                    </div>
-                </div>
-                <div>
-                    <div class="text-xs text-gray-500 mb-1">
-                        Certificaciones
-                    </div>
-                    <div class="text-gray-900 bg-gray-50 rounded px-3 py-2">
-                        {user.certifications || "-"}
-                    </div>
-                </div>
-                <div>
-                    <div class="text-xs text-gray-500 mb-1">Estado</div>
-                    <div class="text-gray-900 bg-gray-50 rounded px-3 py-2">
-                        <span
-                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {user.is_verified
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'}"
-                        >
-                            {user.is_verified ? "Activo" : "Inactivo"}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="profile-card">
+    <h2 class="profile-title">Perfil de Cuidador</h2>
+    {#if editable}
+        <button class="edit-profile-btn" on:click={handleEdit} title="Editar perfil">Editar perfil</button>
     {/if}
+    <div class="profile-info-grid">
+        <div>
+            <div class="label">Nombre completo</div>
+            <div class="info-block">{user.first_name} {user.last_name}</div>
+        </div>
+        <div>
+            <div class="label">Email</div>
+            <div class="info-block">{user.email}</div>
+        </div>
+        <div>
+            <div class="label">Teléfono</div>
+            <div class="info-block">{user.phone || '-'}</div>
+        </div>
+        {#if user.specialization}
+        <div>
+            <div class="label">Especialidad</div>
+            <div class="info-block">{user.specialization}</div>
+        </div>
+        {/if}
+        <div>
+            <div class="label">Estado</div>
+            <div class="info-block">
+                <span class="badge {user.is_verified ? 'active' : 'inactive'}">
+                    {user.is_verified ? 'Activo' : 'Inactivo'}
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-    .bg-green-100 {
-        background-color: #d1fae5;
+.profile-card {
+    position: relative;
+    max-width: 420px;
+    margin: 0 auto 2rem auto;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px 0 rgba(37, 99, 235, 0.07);
+    padding: 2rem 2rem 1.5rem 2rem;
+    border: 1px solid #e5e7eb;
+}
+@media (max-width: 900px) {
+    .profile-card {
+        padding: 1.2rem 0.7rem 1rem 0.7rem;
+        max-width: 98vw;
     }
-    .text-green-700 {
-        color: #047857;
+}
+@media (max-width: 600px) {
+    .profile-card {
+        padding: 0.7rem 0.3rem 0.7rem 0.3rem;
+        max-width: 100vw;
     }
-    .bg-yellow-100 {
-        background-color: #fef9c3;
+    .profile-title {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
     }
-    .text-yellow-700 {
-        color: #b45309;
+    .profile-info-grid {
+        grid-template-columns: 1fr;
+        gap: 0.7rem 0;
     }
+    .label {
+        font-size: 0.95rem;
+    }
+    .info-block {
+        font-size: 1rem;
+        padding: 0.4rem 0.5rem;
+    }
+    .edit-profile-btn {
+        font-size: 0.98rem;
+        margin-bottom: 0.7rem;
+    }
+}
+.profile-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+.profile-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem 2rem;
+}
+.label {
+    font-size: 0.92rem;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+    font-weight: 500;
+}
+.info-block {
+    font-size: 1.08rem;
+    font-weight: 500;
+    color: #222;
+    background: #f3f6fa;
+    border-radius: 0.6rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 4px rgba(37,99,235,0.04);
+    word-break: break-word;
+    min-height: 2.2em;
+    display: flex;
+    align-items: center;
+}
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.8em;
+    border-radius: 999px;
+    font-size: 0.98em;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border: 1px solid #e5e7eb;
+}
+.badge.active {
+    background: #d1fae5;
+    color: #047857;
+}
+.badge.inactive {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.edit-profile-btn {
+    display: inline-block;
+    margin-bottom: 1.2rem;
+    background: #2563eb;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.45rem 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(37,99,235,0.07);
+    transition: background 0.2s, color 0.2s;
+}
+.edit-profile-btn:hover {
+    background: #1e40af;
+    color: #fff;
+}
 </style>
