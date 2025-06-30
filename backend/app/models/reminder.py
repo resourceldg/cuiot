@@ -1,11 +1,16 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Date
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 from datetime import datetime, timezone
+import uuid
 
 class Reminder(BaseModel):
     """Reminder model for medication, appointments, and tasks"""
     __tablename__ = "reminders"
+    
+    # Override id to use UUID
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Reminder identification
     reminder_type = Column(String(50), nullable=False, index=True)  # medication, appointment, task, etc.
@@ -20,7 +25,7 @@ class Reminder(BaseModel):
     # Status and completion
     status = Column(String(20), default="pending", nullable=False)  # pending, completed, missed, cancelled
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    completed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    completed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     
     # Priority and importance
     priority = Column(Integer, default=5, nullable=False)  # 1-10, higher is more important
@@ -31,8 +36,8 @@ class Reminder(BaseModel):
     notes = Column(Text, nullable=True)
     
     # Relationships
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id], back_populates="reminders")

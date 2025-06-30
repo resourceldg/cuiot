@@ -1,10 +1,15 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Float
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+import uuid
 
 class Event(BaseModel):
     """Event model for sensor events, system events, and user activities"""
     __tablename__ = "events"
+    
+    # Override id to use UUID
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Event identification
     event_type = Column(String(50), nullable=False, index=True)  # sensor_event, system_event, user_action, etc.
@@ -26,9 +31,9 @@ class Event(BaseModel):
     processed_at = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
-    device_id = Column(Integer, ForeignKey("devices.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
+    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="events")

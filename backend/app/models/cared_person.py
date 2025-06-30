@@ -1,13 +1,14 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, Date, Float
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
-from uuid import UUID
+import uuid
 
 class CaredPerson(BaseModel):
     """CaredPerson model for people under care (replaces elderly_person)"""
     __tablename__ = "cared_persons"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Personal info
     first_name = Column(String(100), nullable=False)
@@ -39,7 +40,7 @@ class CaredPerson(BaseModel):
     longitude = Column(Float, nullable=True)
     
     # Relationships
-    user_id = Column(String, ForeignKey("users.id"), nullable=True)  # Family member or guardian
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # Family member or guardian
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
     
     # Relationships

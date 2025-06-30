@@ -1,13 +1,15 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 class DeviceConfig(BaseModel):
     """DeviceConfig model for device configuration and settings"""
     __tablename__ = "device_configs"
     
     # Configuration identification
-    device_id = Column(Integer, ForeignKey("devices.id"), nullable=False, index=True)
+    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=False, index=True)
     config_type = Column(String(50), nullable=False, index=True)  # sensor_config, alert_config, etc.
     config_name = Column(String(100), nullable=False)
     
@@ -22,7 +24,7 @@ class DeviceConfig(BaseModel):
     # Version control
     version = Column(String(20), nullable=True)
     applied_at = Column(DateTime(timezone=True), nullable=True)
-    applied_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    applied_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     
     # Relationships
     device = relationship("Device", back_populates="device_configs")

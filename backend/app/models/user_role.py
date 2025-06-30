@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
 import uuid
+from sqlalchemy.dialects.postgresql import UUID
 
 
 class UserRole(BaseModel):
@@ -16,10 +17,10 @@ class UserRole(BaseModel):
     """
     __tablename__ = "user_roles"
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False, index=True)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Who assigned this role
+    assigned_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # Who assigned this role
     expires_at = Column(DateTime(timezone=True), nullable=True)  # Role expiration date
     is_active = Column(Boolean, default=True, nullable=False)
     

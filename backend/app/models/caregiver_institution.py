@@ -2,13 +2,14 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
+from sqlalchemy.dialects.postgresql import UUID
 
 class CaregiverInstitution(BaseModel):
     """CaregiverInstitution model for freelance caregivers with multiple institutions"""
     __tablename__ = "caregiver_institutions"
     
     # Relationship info
-    caregiver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
     
     # Contract details
@@ -31,7 +32,7 @@ class CaregiverInstitution(BaseModel):
     is_primary = Column(Boolean, default=False, nullable=False)  # Primary institution for the caregiver
     
     # Admin info
-    hired_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    hired_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     hired_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     notes = Column(Text, nullable=True)
     

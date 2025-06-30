@@ -2,14 +2,15 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
+from sqlalchemy.dialects.postgresql import UUID
 
 class CaregiverAssignment(BaseModel):
     """CaregiverAssignment model for assigning caregivers to cared persons"""
     __tablename__ = "caregiver_assignments"
     
     # Assignment info
-    caregiver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=False, index=True)
+    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=False, index=True)
     
     # Schedule
     start_date = Column(Date, nullable=False)
@@ -23,7 +24,7 @@ class CaregiverAssignment(BaseModel):
     
     # Status
     status = Column(String(50), default="active", nullable=False)  # active, paused, completed, terminated
-    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     # Relationships

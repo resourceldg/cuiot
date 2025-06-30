@@ -2,11 +2,14 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 class User(BaseModel):
     """User model with roles, institution, and freelance support"""
     __tablename__ = "users"
     
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     # Authentication
     email = Column(String(100), unique=True, nullable=False, index=True)
     username = Column(String(50), unique=True, nullable=True, index=True)

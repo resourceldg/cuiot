@@ -73,36 +73,26 @@ def get_alert(
 
 @router.put("/{alert_id}", response_model=AlertResponse)
 def update_alert(
-    alert_id: int,
+    alert_id: str,
     alert_data: AlertUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
-    """Update an alert"""
+    """Actualizar una alerta existente"""
     alert = db.query(Alert).filter(
         Alert.id == alert_id,
         Alert.user_id == current_user.id
     ).first()
-    
     if not alert:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Alert not found"
         )
-    
-    try:
-        for field, value in alert_data.dict(exclude_unset=True).items():
-            setattr(alert, field, value)
-        
-        db.commit()
-        db.refresh(alert)
-        return alert
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update alert: {str(e)}"
-        )
+    for field, value in alert_data.dict(exclude_unset=True).items():
+        setattr(alert, field, value)
+    db.commit()
+    db.refresh(alert)
+    return alert
 
 @router.delete("/{alert_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_alert(

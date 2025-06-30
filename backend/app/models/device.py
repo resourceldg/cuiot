@@ -2,10 +2,14 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+import uuid
 
 class Device(BaseModel):
     """Device model for IoT devices and sensors"""
     __tablename__ = "devices"
+    
+    # Override id to use UUID
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Device identification
     device_id = Column(String(100), unique=True, nullable=False, index=True)  # Unique device identifier
@@ -36,7 +40,7 @@ class Device(BaseModel):
     
     # Relationships
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    elderly_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
+    cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
     
     # Relationships

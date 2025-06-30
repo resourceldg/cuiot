@@ -1,22 +1,40 @@
-from sqlalchemy import Column, String, Text, Boolean
+from sqlalchemy import Column, String, Text, Boolean, DateTime
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+import uuid
 
 class Role(BaseModel):
-    """Role model for user permissions and access control"""
+    """Role model for user roles and permissions"""
     __tablename__ = "roles"
-    
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(String(50), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
-    permissions = Column(Text, nullable=True)  # JSON string of permissions
-    is_system = Column(Boolean, default=False, nullable=False)  # System roles cannot be deleted
-    
+    permissions = Column(Text, nullable=True)  # JSON string with permissions
+    is_system = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
     # Relationships
-    user_roles = relationship("UserRole", back_populates="role", cascade="all, delete-orphan")
-    
+    user_roles = relationship("UserRole", back_populates="role")
+
     def __repr__(self):
         return f"<Role(name='{self.name}')>"
-    
+
+    @classmethod
+    def get_system_roles(cls) -> list:
+        return ["admin", "caregiver", "family", "patient", "institution_admin"]
+
+    @classmethod
+    def get_permissions(cls) -> list:
+        return [
+            "view_dashboard", "manage_users", "manage_devices", "view_reports",
+            "edit_profile", "manage_alerts", "manage_reminders", "manage_billing",
+            "manage_protocols", "manage_institutions", "view_audit_log"
+        ]
+
     def has_permission(self, permission: str) -> bool:
         """
         Verifica si el rol tiene un permiso específico.

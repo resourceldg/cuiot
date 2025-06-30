@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from sqlalchemy.dialects.postgresql import UUID
 
 class LocationTracking(BaseModel):
     """LocationTracking model for GPS and location data"""
@@ -29,9 +30,9 @@ class LocationTracking(BaseModel):
     received_at = Column(DateTime(timezone=True), nullable=False)
     
     # Relationships
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
-    device_id = Column(Integer, ForeignKey("devices.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
+    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="location_tracking")

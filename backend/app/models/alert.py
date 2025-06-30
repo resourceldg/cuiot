@@ -1,10 +1,15 @@
 from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+import uuid
 
 class Alert(BaseModel):
     """Alert model for notifications and alerts"""
     __tablename__ = "alerts"
+    
+    # Override id to use UUID
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Alert identification
     alert_type = Column(String(50), nullable=False, index=True)  # health_alert, security_alert, etc.
@@ -26,10 +31,10 @@ class Alert(BaseModel):
     escalation_level = Column(Integer, default=0, nullable=False)  # 0-5, escalation steps
     
     # Relationships
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    cared_person_id = Column(Integer, ForeignKey("cared_persons.id"), nullable=True)
-    device_id = Column(Integer, ForeignKey("devices.id"), nullable=True)
-    event_id = Column(Integer, ForeignKey("events.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
+    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=True)
+    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="alerts")

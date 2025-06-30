@@ -9,6 +9,7 @@ class BaseModel(Base):
     """Base model with common fields for all models"""
     __abstract__ = True
     
+    # Note: Individual models can override the id field to use UUID instead of Integer
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
