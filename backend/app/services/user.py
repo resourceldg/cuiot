@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
+from uuid import UUID
 
 from app.models.user import User
 from app.models.role import Role
@@ -31,7 +32,7 @@ class UserService:
         return query.offset(skip).limit(limit).all()
     
     @staticmethod
-    def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+    def get_user_by_id(db: Session, user_id: UUID) -> Optional[User]:
         """Get user by ID"""
         return db.query(User).filter(User.id == user_id).first()
     
@@ -89,7 +90,7 @@ class UserService:
             )
     
     @staticmethod
-    def update_user(db: Session, user_id: int, user_data: UserUpdate) -> Optional[User]:
+    def update_user(db: Session, user_id: UUID, user_data: UserUpdate) -> Optional[User]:
         """Update user information"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
@@ -121,7 +122,7 @@ class UserService:
             )
     
     @staticmethod
-    def delete_user(db: Session, user_id: int) -> bool:
+    def delete_user(db: Session, user_id: UUID) -> bool:
         """Delete a user"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
@@ -142,7 +143,7 @@ class UserService:
             )
     
     @staticmethod
-    def assign_role(db: Session, user_id: int, role_name: str) -> bool:
+    def assign_role(db: Session, user_id: UUID, role_name: str) -> bool:
         """Assign a role to a user"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
@@ -161,7 +162,7 @@ class UserService:
         return UserRole.assign_role_to_user(db, user_id, role_name)
     
     @staticmethod
-    def remove_role(db: Session, user_id: int, role_name: str) -> bool:
+    def remove_role(db: Session, user_id: UUID, role_name: str) -> bool:
         """Remove a role from a user"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
@@ -173,7 +174,7 @@ class UserService:
         return UserRole.remove_role_from_user(db, user_id, role_name)
     
     @staticmethod
-    def get_user_with_roles(db: Session, user_id: int) -> Optional[UserWithRoles]:
+    def get_user_with_roles(db: Session, user_id: UUID) -> Optional[UserWithRoles]:
         """Get user with role information"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:

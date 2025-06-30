@@ -2,6 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from uuid import UUID
 
 from app.core.database import get_db
 from app.services.auth import AuthService
@@ -31,7 +32,7 @@ def get_users(
 
 @router.get("/{user_id}", response_model=UserWithRoles)
 def get_user(
-    user_id: int,
+    user_id: UUID,
     db: Session = Depends(get_db),
     current_user = Depends(AuthService.get_current_active_user)
 ):
@@ -55,7 +56,7 @@ def create_user(
 
 @router.put("/{user_id}", response_model=UserResponse)
 def update_user(
-    user_id: int,
+    user_id: UUID,
     user_data: UserUpdate,
     db: Session = Depends(get_db),
     current_user = Depends(AuthService.get_current_active_user)
@@ -72,7 +73,7 @@ def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
-    user_id: int,
+    user_id: UUID,
     db: Session = Depends(get_db),
     current_user = Depends(AuthService.require_permission("users.delete"))
 ):
@@ -81,7 +82,7 @@ def delete_user(
 
 @router.post("/{user_id}/roles/{role_name}")
 def assign_role(
-    user_id: int,
+    user_id: UUID,
     role_name: str,
     db: Session = Depends(get_db),
     current_user = Depends(AuthService.require_permission("users.write"))
@@ -97,7 +98,7 @@ def assign_role(
 
 @router.delete("/{user_id}/roles/{role_name}")
 def remove_role(
-    user_id: int,
+    user_id: UUID,
     role_name: str,
     db: Session = Depends(get_db),
     current_user = Depends(AuthService.require_permission("users.write"))
