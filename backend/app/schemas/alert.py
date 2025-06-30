@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class AlertBase(BaseModel):
@@ -15,10 +16,10 @@ class AlertBase(BaseModel):
     resolved_at: Optional[datetime] = None
     priority: int = Field(default=5, ge=1, le=10)
     escalation_level: int = Field(default=0, ge=0, le=5)
-    user_id: Optional[int] = None
-    cared_person_id: Optional[int] = None
-    device_id: Optional[int] = None
-    event_id: Optional[int] = None
+    user_id: Optional[UUID] = None
+    cared_person_id: Optional[UUID] = None
+    device_id: Optional[UUID] = None
+    event_id: Optional[UUID] = None
 
 class AlertCreate(AlertBase, BaseCreate):
     pass

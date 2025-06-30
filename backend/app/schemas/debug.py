@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class DebugEventBase(BaseModel):
@@ -15,9 +16,9 @@ class DebugEventBase(BaseModel):
     environment: Optional[str] = Field(None, max_length=50)
     event_time: datetime
     processed_at: Optional[datetime] = None
-    user_id: Optional[int] = None
-    cared_person_id: Optional[int] = None
-    device_id: Optional[int] = None
+    user_id: Optional[UUID] = None
+    cared_person_id: Optional[UUID] = None
+    device_id: Optional[UUID] = None
 
 class DebugEventCreate(DebugEventBase, BaseCreate):
     pass

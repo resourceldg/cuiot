@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from datetime import datetime
 from app.schemas.cared_person import CaredPersonResponse
+from uuid import UUID
+from .base import BaseResponse
 
 class FileMeta(BaseModel):
     filename: str
@@ -23,11 +25,11 @@ class ReportCreate(ReportBase):
 class ReportUpdate(ReportBase):
     pass
 
-class ReportResponse(ReportBase):
-    id: int
+class ReportResponse(BaseResponse):
+    id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
-    created_by_id: int
+    created_by_id: UUID
     cared_person: Optional[CaredPersonResponse] = None
 
     class Config:

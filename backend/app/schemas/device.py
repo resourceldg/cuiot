@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class DeviceBase(BaseModel):
@@ -20,9 +21,9 @@ class DeviceBase(BaseModel):
     settings: Optional[str] = None  # JSON string
     firmware_version: Optional[str] = Field(None, max_length=50)
     hardware_version: Optional[str] = Field(None, max_length=50)
-    user_id: Optional[int] = None
-    cared_person_id: Optional[int] = None
-    institution_id: Optional[int] = None
+    user_id: Optional[UUID] = None
+    cared_person_id: Optional[UUID] = None
+    institution_id: Optional[UUID] = None
 
 class DeviceCreate(DeviceBase, BaseCreate):
     pass

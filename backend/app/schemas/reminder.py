@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, date
+from uuid import UUID
 from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class ReminderBase(BaseModel):
@@ -12,13 +13,13 @@ class ReminderBase(BaseModel):
     repeat_pattern: Optional[str] = Field(None, max_length=100)
     status: str = Field(default="pending", max_length=20)
     completed_at: Optional[datetime] = None
-    completed_by: Optional[int] = None
+    completed_by: Optional[UUID] = None
     priority: int = Field(default=5, ge=1, le=10)
     is_important: bool = False
     reminder_data: Optional[str] = None  # JSON string
     notes: Optional[str] = None
-    user_id: Optional[int] = None
-    cared_person_id: Optional[int] = None
+    user_id: Optional[UUID] = None
+    cared_person_id: Optional[UUID] = None
 
 class ReminderCreate(ReminderBase, BaseCreate):
     pass

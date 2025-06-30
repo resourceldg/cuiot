@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 from datetime import date
+from uuid import UUID
 from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class CaredPersonBase(BaseModel):
@@ -23,8 +24,8 @@ class CaredPersonBase(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    user_id: Optional[int] = None
-    institution_id: Optional[int] = None
+    user_id: Optional[UUID] = None
+    institution_id: Optional[UUID] = None
     medical_contact_name: Optional[str] = Field(None, max_length=100)
     medical_contact_phone: Optional[str] = Field(None, max_length=20)
     family_contact_name: Optional[str] = Field(None, max_length=100)
