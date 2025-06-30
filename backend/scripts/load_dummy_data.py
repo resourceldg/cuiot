@@ -88,7 +88,7 @@ def create_dummy_users(db: Session) -> List[User]:
             continue
         user = User(
             email=user_data["email"],
-            hashed_password=AuthService.get_password_hash(user_data["password"]),
+            password_hash=AuthService.get_password_hash(user_data["password"]),
             first_name=user_data["first_name"],
             last_name=user_data["last_name"],
             phone=user_data["phone"]
@@ -173,14 +173,29 @@ def create_dummy_elderly_persons(db: Session, users: List[User]) -> List[CaredPe
         edad = elderly_data_item.get("age", 80)
         today = date.today()
         date_of_birth = today - timedelta(days=edad*365)
+        
+        # Obtener contactos de emergencia
+        emergency_contacts = elderly_data_item.get("emergency_contacts", [])
+        family_contact = next((c for c in emergency_contacts if c["relationship"] in ["Hija", "Hijo", "Hijo/a"]), None)
+        medical_contact = next((c for c in emergency_contacts if c["relationship"] == "Médico"), None)
+        
         elderly = CaredPerson(
             user_id=user.id,
             first_name=elderly_data_item["first_name"],
             last_name=elderly_data_item["last_name"],
             date_of_birth=date_of_birth,
             address=elderly_data_item["address"],
-            emergency_contact=elderly_data_item["emergency_contacts"][0]["name"] if elderly_data_item.get("emergency_contacts") else None,
-            emergency_phone=elderly_data_item["emergency_contacts"][0]["phone"] if elderly_data_item.get("emergency_contacts") else None,
+            care_type="delegated",  # Campo obligatorio
+            care_level="medium",
+            mobility_level="independent",
+            # Contactos de emergencia
+            emergency_contact=family_contact["name"] if family_contact else None,
+            emergency_phone=family_contact["phone"] if family_contact else None,
+            family_contact_name=family_contact["name"] if family_contact else None,
+            family_contact_phone=family_contact["phone"] if family_contact else None,
+            medical_contact_name=medical_contact["name"] if medical_contact else None,
+            medical_contact_phone=medical_contact["phone"] if medical_contact else None,
+            # Información médica
             medical_conditions=str(elderly_data_item.get("medical_conditions", [])),
             medications=str(elderly_data_item.get("medications", [])),
             is_active=True
@@ -206,15 +221,17 @@ def create_dummy_devices(db: Session, elderly_persons: List[CaredPerson]) -> Lis
             location = random.choice(locations)
             
             device = Device(
-                device_id=str(uuid.uuid4()),
-                device_type=random.choice(device_types),
+                device_id=f"DEV_{uuid.uuid4().hex[:8].upper()}",
+                name=f"Dispositivo {device_type.replace('_', ' ').title()}",
+                type=device_type,
+                device_type="sensor",
                 model="Model X",
                 manufacturer="Acme Corp",
-                serial_number=str(uuid.uuid4()),
+                serial_number=f"SN{uuid.uuid4().hex[:12].upper()}",
                 status="active",
                 battery_level=random.randint(50, 100),
                 signal_strength=random.randint(50, 100),
-                location_description=random.choice(locations),
+                location_description=location,
                 cared_person_id=elderly.id,
                 user_id=elderly.user_id
             )
@@ -227,7 +244,7 @@ def create_dummy_devices(db: Session, elderly_persons: List[CaredPerson]) -> Lis
 
 def create_dummy_events(db: Session, elderly_persons: List[CaredPerson], devices: List[Device], users: List[User]) -> List[Event]:
     """Crear eventos dummy"""
-    event_types = ["medical", "family", "medication", "sensor", "kinesiologia", "nutrition", "other"]
+    event_types = ["sensor_event", "system_event", "user_action", "health_event"]
     
     events = []
     
@@ -237,8 +254,8 @@ def create_dummy_events(db: Session, elderly_persons: List[CaredPerson], devices
         for i in range(random.randint(2, 4)):
             event = Event(
                 cared_person_id=elderly.id,
-                event_type="medical",
-                event_subtype="checkup",
+                event_type="health_event",
+                event_subtype="medical_checkup",
                 severity="info",
                 message=f"Consulta médica rutinaria para {elderly.first_name}",
                 event_data=json.dumps({"doctor": "Dr. Martínez"}),
@@ -251,8 +268,8 @@ def create_dummy_events(db: Session, elderly_persons: List[CaredPerson], devices
         for i in range(random.randint(1, 3)):
             event = Event(
                 cared_person_id=elderly.id,
-                event_type="family",
-                event_subtype="visit",
+                event_type="user_action",
+                event_subtype="family_visit",
                 severity="info",
                 message=f"Visita familiar para {elderly.first_name}",
                 event_data=json.dumps({"visitor": "Familiar"}),
@@ -265,8 +282,8 @@ def create_dummy_events(db: Session, elderly_persons: List[CaredPerson], devices
         for i in range(random.randint(3, 6)):
             event = Event(
                 cared_person_id=elderly.id,
-                event_type="medication",
-                event_subtype="reminder",
+                event_type="health_event",
+                event_subtype="medication_reminder",
                 severity="info",
                 message=f"Recordatorio de medicación para {elderly.first_name}",
                 event_data=json.dumps({"medication": "Medicación prescrita"}),
@@ -277,48 +294,23 @@ def create_dummy_events(db: Session, elderly_persons: List[CaredPerson], devices
     
     # Crear eventos de sensores (pasados)
     for device in devices:
-        # Eventos de movimiento
-        if device.device_type in ["motion_sensor", "temperature_sensor", "fall_detector"]:
-            for i in range(random.randint(5, 15)):
-                event = Event(
-                    cared_person_id=device.cared_person_id,
-                    device_id=device.id,
-                    event_type="sensor_event",
-                    event_subtype="motion_detected",
-                    severity="info",
-                    message=f"Actividad detectada por {device.device_type}",
-                    event_data=json.dumps({
-                        "sensor_type": device.device_type,
-                        "location": device.location_description,
-                        "battery_level": device.battery_level
-                    }),
-                    source=device.device_id,
-                    event_time=datetime.now() - timedelta(hours=random.randint(1, 72))
-                )
-                db.add(event)
-                events.append(event)
-        
-        # Eventos de temperatura
-        if device.device_type == "temperature_sensor":
-            for i in range(random.randint(3, 8)):
-                temperature = random.uniform(18.0, 28.0)
-                event = Event(
-                    cared_person_id=device.cared_person_id,
-                    device_id=device.id,
-                    event_type="sensor_event",
-                    event_subtype="temperature_reading",
-                    severity="info",
-                    message=f"Lectura de temperatura: {temperature:.1f}°C",
-                    event_data=json.dumps({
-                        "temperature": temperature,
-                        "location": device.location_description,
-                        "unit": "celsius"
-                    }),
-                    source=device.device_id,
-                    event_time=datetime.now() - timedelta(hours=random.randint(1, 72))
-                )
-                db.add(event)
-                events.append(event)
+        for i in range(random.randint(5, 10)):
+            event = Event(
+                device_id=device.id,
+                cared_person_id=device.cared_person_id,
+                event_type="sensor_event",
+                event_subtype="data_collection",
+                severity="info",
+                message=f"Datos del sensor {device.name}",
+                event_data=json.dumps({
+                    "battery_level": device.battery_level,
+                    "signal_strength": device.signal_strength,
+                    "location": device.location_description
+                }),
+                event_time=datetime.now() - timedelta(hours=random.randint(1, 168))
+            )
+            db.add(event)
+            events.append(event)
     
     db.commit()
     print(f"✅ Creados {len(events)} eventos")

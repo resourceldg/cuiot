@@ -16,6 +16,7 @@ async def test_device_crud(async_client, auth_headers):
     # Crear dispositivo
     device_data = {
         "device_id": "TEST_DEVICE_001",
+        "name": "Test Device",
         "device_type": "sensor",
         "model": "Test Model",
         "manufacturer": "Test Manufacturer",

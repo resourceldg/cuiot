@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 import uuid
+import json
 
 class Role(BaseModel):
     """Role model for user roles and permissions"""
@@ -48,9 +49,14 @@ class Role(BaseModel):
         if not self.permissions:
             return False
         
+        try:
+            permissions_dict = json.loads(self.permissions)
+        except (json.JSONDecodeError, TypeError):
+            return False
+        
         # Buscar en permisos anidados usando notación de punto
         parts = permission.split('.')
-        current = self.permissions
+        current = permissions_dict
         
         for part in parts:
             if isinstance(current, dict) and part in current:

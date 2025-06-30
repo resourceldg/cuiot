@@ -6,6 +6,7 @@ from app.core.config import settings
 # Crear engine de base de datos
 engine = create_engine(
     settings.database_url,
+    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
     pool_pre_ping=True,
     pool_recycle=300,
     echo=settings.environment == "development"

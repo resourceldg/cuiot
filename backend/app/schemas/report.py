@@ -33,4 +33,4 @@ class ReportResponse(BaseResponse):
     cared_person: Optional[CaredPersonResponse] = None
 
     class Config:
-        orm_mode = True 
+        from_attributes = True 

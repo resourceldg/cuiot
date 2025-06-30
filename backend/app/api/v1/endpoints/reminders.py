@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from uuid import UUID
 
 from app.core.database import get_db
 from app.services.auth import AuthService
@@ -53,7 +54,7 @@ def get_reminders(
 
 @router.get("/{reminder_id}", response_model=ReminderResponse)
 def get_reminder(
-    reminder_id: int,
+    reminder_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
@@ -73,7 +74,7 @@ def get_reminder(
 
 @router.put("/{reminder_id}", response_model=ReminderResponse)
 def update_reminder(
-    reminder_id: int,
+    reminder_id: UUID,
     reminder_data: ReminderUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
@@ -106,7 +107,7 @@ def update_reminder(
 
 @router.delete("/{reminder_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_reminder(
-    reminder_id: int,
+    reminder_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):

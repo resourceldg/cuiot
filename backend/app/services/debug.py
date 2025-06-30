@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
 import json
+import uuid
 
 from app.models.debug_event import DebugEvent
 from app.models.event import Event
@@ -106,8 +107,10 @@ class DebugService:
         # Create test devices
         for i in range(min(count, 4)):
             try:
+                unique_id = str(uuid.uuid4())[:8]
                 device_data = {
-                    "device_id": f"TEST_DEVICE_{i:03d}",
+                    "device_id": f"TEST_DEVICE_{unique_id}_{i:03d}",
+                    "name": f"Test Device {i}",
                     "device_type": ["sensor", "tracker", "camera", "wearable"][i % 4],
                     "model": f"Test Model {i}",
                     "manufacturer": "Test Manufacturer",

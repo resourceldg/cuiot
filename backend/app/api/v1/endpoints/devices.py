@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from uuid import UUID
 
 from app.core.database import get_db
 from app.services.auth import AuthService
@@ -53,7 +54,7 @@ def get_devices(
 
 @router.get("/{device_id}", response_model=DeviceResponse)
 def get_device(
-    device_id: int,
+    device_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
@@ -73,7 +74,7 @@ def get_device(
 
 @router.put("/{device_id}", response_model=DeviceResponse)
 def update_device(
-    device_id: int,
+    device_id: UUID,
     device_data: DeviceUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
@@ -106,7 +107,7 @@ def update_device(
 
 @router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_device(
-    device_id: int,
+    device_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):

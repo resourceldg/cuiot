@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from uuid import UUID
 
 from app.core.database import get_db
 from app.services.auth import AuthService
@@ -53,7 +54,7 @@ def get_cared_persons(
 
 @router.get("/{cared_person_id}", response_model=CaredPersonResponse)
 def get_cared_person(
-    cared_person_id: int,
+    cared_person_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
@@ -73,7 +74,7 @@ def get_cared_person(
 
 @router.put("/{cared_person_id}", response_model=CaredPersonResponse)
 def update_cared_person(
-    cared_person_id: int,
+    cared_person_id: UUID,
     cared_person_data: CaredPersonUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
@@ -106,7 +107,7 @@ def update_cared_person(
 
 @router.delete("/{cared_person_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_cared_person(
-    cared_person_id: int,
+    cared_person_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):

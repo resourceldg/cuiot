@@ -118,7 +118,7 @@ class PasswordChangeRequest(BaseModel):
 
 @router.patch("/{user_id}/password", status_code=200)
 def change_password(
-    user_id: int,
+    user_id: UUID,
     data: PasswordChangeRequest = Body(...),
     db: Session = Depends(get_db),
     current_user = Depends(AuthService.get_current_active_user)
@@ -129,8 +129,8 @@ def change_password(
     user = UserService.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if not AuthService.verify_password(data.current_password, user.hashed_password):
+    if not AuthService.verify_password(data.current_password, user.password_hash):
         raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
-    user.hashed_password = AuthService.get_password_hash(data.new_password)
+    user.password_hash = AuthService.get_password_hash(data.new_password)
     db.commit()
     return {"ok": True, "message": "Contraseña cambiada correctamente"}

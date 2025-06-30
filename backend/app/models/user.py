@@ -1,9 +1,11 @@
-from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateTime, Float
+from sqlalchemy.orm import relationship, joinedload
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from app.core.database import get_db
+from app.models.user_role import UserRole
 
 class User(BaseModel):
     """User model with roles, institution, and freelance support"""
@@ -56,6 +58,12 @@ class User(BaseModel):
     geofences = relationship("Geofence", back_populates="user")
     debug_events = relationship("DebugEvent", back_populates="user")
     
+    # Scoring relationships
+    caregiver_score = relationship("CaregiverScore", back_populates="caregiver", uselist=False)
+    received_reviews = relationship("CaregiverReview", foreign_keys="[CaregiverReview.caregiver_id]", back_populates="caregiver")
+    given_reviews = relationship("CaregiverReview", foreign_keys="[CaregiverReview.reviewer_id]", back_populates="reviewer")
+    institution_reviews = relationship("InstitutionReview", foreign_keys="[InstitutionReview.reviewer_id]", back_populates="reviewer")
+    
     def __repr__(self):
         return f"<User(email='{self.email}', name='{self.first_name} {self.last_name}')>"
     
@@ -74,7 +82,47 @@ class User(BaseModel):
     
     def has_permission(self, permission: str) -> bool:
         """Check if user has specific permission"""
-        for role in self.roles:
-            if role.has_permission(permission):
+        # Use a more efficient query to avoid lazy loading deadlocks
+        db = next(get_db())
+        
+        # Query user roles with permissions in a single query
+        user_with_roles = db.query(User).options(
+            joinedload(User.user_roles).joinedload(UserRole.role)
+        ).filter(User.id == self.id).first()
+        
+        if not user_with_roles or not user_with_roles.user_roles:
+            return False
+        
+        for user_role in user_with_roles.user_roles:
+            if user_role.is_active and user_role.role and user_role.role.has_permission(permission):
                 return True
+        
         return False
+    
+    @property
+    def is_caregiver(self) -> bool:
+        """Check if user is a caregiver"""
+        return self.has_role("caregiver") or self.is_freelance
+    
+    @property
+    def average_rating(self) -> float:
+        """Get average rating from received reviews"""
+        if not self.received_reviews:
+            return 0.0
+        
+        total_rating = sum(review.rating for review in self.received_reviews)
+        return round(total_rating / len(self.received_reviews), 2)
+    
+    @property
+    def total_reviews(self) -> int:
+        """Get total number of received reviews"""
+        return len(self.received_reviews)
+    
+    @property
+    def recommendation_rate(self) -> float:
+        """Get percentage of reviews that recommend"""
+        if not self.received_reviews:
+            return 0.0
+        
+        recommended = sum(1 for review in self.received_reviews if review.is_recommended)
+        return round((recommended / len(self.received_reviews)) * 100, 1)

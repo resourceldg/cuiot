@@ -18,6 +18,7 @@ class CaredPersonBase(BaseModel):
     medications: Optional[str] = None
     allergies: Optional[str] = None
     blood_type: Optional[str] = Field(None, max_length=10)
+    care_type: Optional[str] = Field("delegated", max_length=20)  # "self_care" or "delegated"
     care_level: Optional[str] = Field(None, max_length=50)
     special_needs: Optional[str] = None
     mobility_level: Optional[str] = Field(None, max_length=50)

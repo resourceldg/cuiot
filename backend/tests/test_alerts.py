@@ -41,7 +41,8 @@ async def test_alert_crud(async_client, auth_headers):
     response = await async_client.delete(f"/api/v1/alerts/{alert['id']}", headers=auth_headers)
     assert response.status_code == 204
 
-def test_alert_audit_log(async_client, auth_headers):
+@pytest.mark.asyncio
+async def test_alert_audit_log(async_client, auth_headers):
     # Crear cared person
     cared_person_data = {
         "first_name": "Audit",

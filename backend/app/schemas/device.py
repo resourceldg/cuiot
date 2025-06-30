@@ -6,6 +6,7 @@ from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class DeviceBase(BaseModel):
     device_id: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., max_length=100)
     device_type: str = Field(..., max_length=50)
     model: Optional[str] = Field(None, max_length=100)
     manufacturer: Optional[str] = Field(None, max_length=100)
@@ -28,10 +29,27 @@ class DeviceBase(BaseModel):
 class DeviceCreate(DeviceBase, BaseCreate):
     pass
 
-class DeviceUpdate(DeviceBase, BaseUpdate):
+class DeviceUpdate(BaseUpdate):
     device_id: Optional[str] = Field(None, min_length=1, max_length=100)
+    name: Optional[str] = Field(None, max_length=100)
     device_type: Optional[str] = Field(None, max_length=50)
+    model: Optional[str] = Field(None, max_length=100)
+    manufacturer: Optional[str] = Field(None, max_length=100)
+    serial_number: Optional[str] = Field(None, max_length=100)
     status: Optional[str] = Field(None, max_length=50)
+    battery_level: Optional[int] = Field(None, ge=0, le=100)
+    signal_strength: Optional[int] = Field(None, ge=0, le=100)
+    last_seen: Optional[datetime] = None
+    location_description: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude: Optional[float] = None
+    settings: Optional[str] = None  # JSON string
+    firmware_version: Optional[str] = Field(None, max_length=50)
+    hardware_version: Optional[str] = Field(None, max_length=50)
+    user_id: Optional[UUID] = None
+    cared_person_id: Optional[UUID] = None
+    institution_id: Optional[UUID] = None
 
 class DeviceResponse(DeviceBase, BaseResponse):
     is_online: bool

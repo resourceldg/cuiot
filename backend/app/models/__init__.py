@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.cared_person import CaredPerson
 from app.models.caregiver_assignment import CaregiverAssignment
 from app.models.caregiver_institution import CaregiverInstitution
+from app.models.cared_person_institution import CaredPersonInstitution
 from app.models.device import Device
 from app.models.device_config import DeviceConfig
 from app.models.event import Event
@@ -20,6 +21,15 @@ from app.models.geofence import Geofence
 from app.models.debug_event import DebugEvent
 from app.models.report import Report
 
+# Scoring models
+from app.models.caregiver_score import CaregiverScore
+from app.models.caregiver_review import CaregiverReview
+from app.models.institution_score import InstitutionScore
+from app.models.institution_review import InstitutionReview
+
+# Referral models
+from app.models.referral import Referral, ReferralCommission
+
 __all__ = [
     "Base",
     "BaseModel", 
@@ -30,6 +40,7 @@ __all__ = [
     "CaredPerson",
     "CaregiverAssignment",
     "CaregiverInstitution",
+    "CaredPersonInstitution",
     "Device",
     "DeviceConfig",
     "Event",
@@ -42,4 +53,12 @@ __all__ = [
     "Geofence",
     "DebugEvent",
     "Report",
+    # Scoring models
+    "CaregiverScore",
+    "CaregiverReview", 
+    "InstitutionScore",
+    "InstitutionReview",
+    # Referral models
+    "Referral",
+    "ReferralCommission",
 ]

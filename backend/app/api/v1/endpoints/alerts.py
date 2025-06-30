@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from uuid import UUID
 
 from app.core.database import get_db
 from app.services.auth import AuthService
@@ -53,7 +54,7 @@ def get_alerts(
 
 @router.get("/{alert_id}", response_model=AlertResponse)
 def get_alert(
-    alert_id: int,
+    alert_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
@@ -73,7 +74,7 @@ def get_alert(
 
 @router.put("/{alert_id}", response_model=AlertResponse)
 def update_alert(
-    alert_id: str,
+    alert_id: UUID,
     alert_data: AlertUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
@@ -96,7 +97,7 @@ def update_alert(
 
 @router.delete("/{alert_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_alert(
-    alert_id: int,
+    alert_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
