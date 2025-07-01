@@ -83,4 +83,77 @@
 
 ---
 
-*Para reglas completas y actualizadas, consulta el documento central.* 
+## 1. Diagnóstico Centralizado
+- El diagnóstico de cada persona bajo cuidado debe estar registrado, actualizado y accesible para todos los actores autorizados (familiares, cuidadores, profesionales, instituciones).
+- El diagnóstico incluye: condiciones médicas, características relevantes, síntomas de alarma configurables, niveles de riesgo y necesidades especiales.
+- El diagnóstico debe poder ser actualizado por profesionales y notificar a los actores relevantes.
+
+## 2. Gestión de Medicación
+- Toda medicación prescrita debe estar registrada y visible para los actores autorizados.
+- El sistema debe permitir configurar alertas para la toma de medicación e inyecciones.
+- Debe existir confirmación y registro de la toma efectiva de la medicación (por el usuario, cuidador o profesional).
+- La trazabilidad de la medicación (quién la tomó, cuándo, quién confirmó) es obligatoria.
+
+## 3. Protocolos de Emergencia y Prevención
+- Cada persona bajo cuidado debe tener protocolos de emergencia personalizables (contactos, acciones a seguir, sensores asociados).
+- El sistema debe anticipar y registrar caídas/incidentes mediante sensores y alertas automáticas.
+- Debe poder configurarse a quién notificar y qué acciones tomar en cada caso.
+
+## 4. Reportes y Observaciones Diarias
+- Los cuidadores y profesionales deben registrar reportes diarios de higiene, alimentación, evacuación, conducta y estado de ánimo.
+- Los reportes deben estar asociados a turnos y ser accesibles para los actores relevantes.
+- La trazabilidad y comunicación entre turnos es fundamental.
+
+## 5. Protocolos de Sujeción y Prevención de Incidentes
+- Deben registrarse protocolos de sujeción y sensores asociados (sillas de ruedas, etc.).
+- El sistema debe alertar y prevenir caídas o incidentes relacionados.
+
+## 6. Seguimiento de Condiciones Específicas
+- El sistema debe permitir el registro y seguimiento de condiciones como deterioro cognitivo, incontinencia, inestabilidad y otras relevantes.
+- Debe poder configurarse la periodicidad y responsables del seguimiento.
+
+## 7. Roles y Permisos
+- El acceso a información sensible (diagnóstico, medicación, reportes) debe estar controlado por roles y permisos.
+- Familiares, cuidadores, profesionales e instituciones tienen diferentes niveles de acceso y edición.
+- Toda acción relevante debe quedar registrada para trazabilidad y auditoría.
+
+## 8. Integración y Personalización
+- El sistema debe ser interoperable con sensores IoT y dispositivos médicos.
+- La personalización de síntomas de alarma, protocolos y reportes es clave para la calidad del cuidado.
+
+*Para reglas completas y actualizadas, consulta el documento central.*
+
+---
+
+## Diagrama de Casos de Uso (Visual)
+
+```mermaid
+usecase
+  actor Family as Familiar
+  actor Caregiver as Cuidador
+  actor Institution as Institucion
+  actor CaredPerson as PersonaBajoCuidado
+
+  Family --> (Ver diagnóstico)
+  Family --> (Ver medicación)
+  Family --> (Recibir alertas)
+  Family --> (Ver reportes diarios)
+
+  Caregiver --> (Registrar diagnóstico)
+  Caregiver --> (Actualizar diagnóstico)
+  Caregiver --> (Registrar toma de medicación)
+  Caregiver --> (Recibir alertas)
+  Caregiver --> (Registrar reportes diarios)
+  Caregiver --> (Registrar incidentes/caídas)
+  Caregiver --> (Configurar protocolos de emergencia)
+  Caregiver --> (Registrar observaciones de turno)
+
+  Institution --> (Ver y auditar toda la información)
+  Institution --> (Configurar roles y permisos)
+  Institution --> (Gestionar protocolos de sujeción)
+  Institution --> (Gestionar integración con sensores)
+
+  CaredPerson --> (Ver diagnóstico propio)
+  CaredPerson --> (Ver medicación propia)
+  CaredPerson --> (Confirmar toma de medicación)
+``` 
