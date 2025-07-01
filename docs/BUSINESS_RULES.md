@@ -127,6 +127,51 @@
 
 ## Diagrama de Casos de Uso (Visual)
 
+### Código Mermaid (para copiar en [Mermaid Live Editor](https://mermaid.live/))
+
+```mermaid
+usecaseDiagram
+  actor Familiar
+  actor Cuidador
+  actor Institucion
+  actor PersonaBajoCuidado
+
+  Familiar --> (Ver diagnóstico)
+  Familiar --> (Ver medicación)
+  Familiar --> (Recibir alertas)
+  Familiar --> (Ver reportes diarios)
+
+  Cuidador --> (Registrar diagnóstico)
+  Cuidador --> (Actualizar diagnóstico)
+  Cuidador --> (Registrar toma de medicación)
+  Cuidador --> (Recibir alertas)
+  Cuidador --> (Registrar reportes diarios)
+  Cuidador --> (Registrar incidentes/caídas)
+  Cuidador --> (Configurar protocolos de emergencia)
+  Cuidador --> (Registrar observaciones de turno)
+
+  Institucion --> (Ver y auditar toda la información)
+  Institucion --> (Configurar roles y permisos)
+  Institucion --> (Gestionar protocolos de sujeción)
+  Institucion --> (Gestionar integración con sensores)
+
+  PersonaBajoCuidado --> (Ver diagnóstico propio)
+  PersonaBajoCuidado --> (Ver medicación propia)
+  PersonaBajoCuidado --> (Confirmar toma de medicación)
+```
+
+### Tabla de Casos de Uso (compatible con GitHub)
+
+| Actor                  | Casos de Uso principales                                                                 |
+|------------------------|----------------------------------------------------------------------------------------|
+| Familiar/Representante | Ver diagnóstico, Ver medicación, Recibir alertas, Ver reportes diarios                  |
+| Cuidador/Profesional   | Registrar/Actualizar diagnóstico, Registrar/Confirmar medicación, Recibir alertas,      |
+|                        | Registrar reportes diarios, Registrar incidentes/caídas, Configurar protocolos,         |
+|                        | Registrar observaciones de turno                                                        |
+| Institución            | Ver y auditar información, Configurar roles y permisos, Protocolos de sujeción,         |
+|                        | Integración con sensores                                                                |
+| Persona Bajo Cuidado   | Ver diagnóstico propio, Ver medicación propia, Confirmar toma de medicación             |
+
 ```mermaid
 usecase
   actor Family as Familiar

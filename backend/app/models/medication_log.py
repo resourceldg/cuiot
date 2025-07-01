@@ -16,6 +16,8 @@ class MedicationLog(BaseModel):
     is_missed = Column(Boolean, default=False)
     side_effects = Column(Text, nullable=True)
     effectiveness_rating = Column(String(20), nullable=True)  # excelente, bueno, regular, malo
+    dosage_given = Column(String(100), nullable=True)
+    additional_data = Column(JSONB, nullable=True)
 
     medication_schedule = relationship('MedicationSchedule', back_populates='medication_logs')
     confirmed_by_user = relationship('User') 

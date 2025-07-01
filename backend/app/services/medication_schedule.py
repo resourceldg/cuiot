@@ -2,6 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
+from datetime import date
 
 from app.models.medication_schedule import MedicationSchedule
 from app.schemas.medication_schedule import MedicationScheduleCreate, MedicationScheduleUpdate
@@ -23,7 +24,7 @@ class MedicationScheduleService:
         return db.query(MedicationSchedule).filter(
             and_(
                 MedicationSchedule.id == schedule_id,
-                MedicationSchedule.is_active == 'active'
+                MedicationSchedule.is_active == True
             )
         ).first()
 
@@ -33,20 +34,19 @@ class MedicationScheduleService:
         return db.query(MedicationSchedule).filter(
             and_(
                 MedicationSchedule.cared_person_id == cared_person_id,
-                MedicationSchedule.is_active == 'active'
+                MedicationSchedule.is_active == True
             )
         ).all()
 
     @staticmethod
     def get_active_schedules(db: Session, cared_person_id: UUID) -> List[MedicationSchedule]:
         """Get active medication schedules for a cared person"""
-        from datetime import date
         today = date.today()
         
         return db.query(MedicationSchedule).filter(
             and_(
                 MedicationSchedule.cared_person_id == cared_person_id,
-                MedicationSchedule.is_active == 'active',
+                MedicationSchedule.is_active == True,
                 MedicationSchedule.start_date <= today,
                 (MedicationSchedule.end_date.is_(None) | (MedicationSchedule.end_date >= today))
             )
@@ -56,7 +56,7 @@ class MedicationScheduleService:
     def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[MedicationSchedule]:
         """Get all active medication schedules"""
         return db.query(MedicationSchedule).filter(
-            MedicationSchedule.is_active == 'active'
+            MedicationSchedule.is_active == True
         ).offset(skip).limit(limit).all()
 
     @staticmethod
@@ -81,6 +81,6 @@ class MedicationScheduleService:
         if not db_medication_schedule:
             raise NotFoundException(f"Medication schedule with id {schedule_id} not found")
         
-        db_medication_schedule.is_active = 'inactive'
+        db_medication_schedule.is_active = False
         db.commit()
         return True 

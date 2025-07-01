@@ -27,7 +27,7 @@ class MedicationLogService:
         """Get all medication logs for a specific schedule"""
         return db.query(MedicationLog).filter(
             MedicationLog.medication_schedule_id == schedule_id
-        ).order_by(MedicationLog.administered_at.desc()).all()
+        ).order_by(MedicationLog.taken_at.desc()).all()
 
     @staticmethod
     def get_by_cared_person_id(db: Session, cared_person_id: UUID, limit: int = 100) -> List[MedicationLog]:
@@ -36,7 +36,7 @@ class MedicationLogService:
         
         return db.query(MedicationLog).join(MedicationSchedule).filter(
             MedicationSchedule.cared_person_id == cared_person_id
-        ).order_by(MedicationLog.administered_at.desc()).limit(limit).all()
+        ).order_by(MedicationLog.taken_at.desc()).limit(limit).all()
 
     @staticmethod
     def get_recent_logs(db: Session, cared_person_id: UUID, days: int = 7) -> List[MedicationLog]:
@@ -49,9 +49,9 @@ class MedicationLogService:
         return db.query(MedicationLog).join(MedicationSchedule).filter(
             and_(
                 MedicationSchedule.cared_person_id == cared_person_id,
-                MedicationLog.administered_at >= cutoff_date
+                MedicationLog.taken_at >= cutoff_date
             )
-        ).order_by(MedicationLog.administered_at.desc()).all()
+        ).order_by(MedicationLog.taken_at.desc()).all()
 
     @staticmethod
     def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[MedicationLog]:

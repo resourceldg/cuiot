@@ -24,6 +24,7 @@ from .diagnosis import Diagnosis
 from .medical_profile import MedicalProfile
 from .medication_schedule import MedicationSchedule
 from .medication_log import MedicationLog
+from .restraint_protocol import RestraintProtocol
 
 # Package models
 from app.models.package import Package, UserPackage, PackageAddOn, UserPackageAddOn

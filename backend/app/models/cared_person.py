@@ -61,6 +61,7 @@ class CaredPerson(BaseModel):
     diagnoses = relationship('Diagnosis', back_populates='cared_person', cascade='all, delete-orphan')
     medical_profile = relationship('MedicalProfile', back_populates='cared_person', uselist=False, cascade='all, delete-orphan')
     medication_schedules = relationship('MedicationSchedule', back_populates='cared_person', cascade='all, delete-orphan')
+    restraint_protocols = relationship('RestraintProtocol', back_populates='cared_person', cascade='all, delete-orphan')
     
     # Scoring relationships
     caregiver_reviews = relationship("CaregiverReview", foreign_keys="[CaregiverReview.cared_person_id]", back_populates="cared_person")

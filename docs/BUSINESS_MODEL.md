@@ -1,6 +1,47 @@
-# Modelo de Negocio y Arquitectura - Sistema de Monitoreo IoT para Cuidado Humano
+# Modelo de Negocio y Arquitectura - Sistema Integral de Monitoreo y Cuidado Personalizable
 
-## 1. Modelo de Negocio
+## 1. Visión y Propósito
+
+El sistema es una plataforma integral y personalizable para el monitoreo y cuidado de personas bajo cuidado, adaptable a instituciones, familias y usuarios individuales. Permite registrar y gestionar información médica, protocolos de emergencia, síntomas de alarma configurables, gestión de medicación, reportes diarios de higiene, alimentación, conducta y estado de ánimo, así como protocolos de sujeción y seguimiento de condiciones como deterioro cognitivo, incontinencia e inestabilidad. El sistema prioriza la personalización, la interoperabilidad con sensores IoT y la trazabilidad de la información para mejorar la calidad del cuidado y la toma de decisiones.
+
+## 2. Usuarios Principales
+- Personas bajo cuidado (mayores, personas con discapacidad, condiciones crónicas, etc.)
+- Familiares y representantes
+- Cuidadores profesionales y personal de instituciones
+- Instituciones de cuidado (geriátricos, centros de día, clínicas, etc.)
+
+## 3. Servicios Ofrecidos (actualizados)
+
+### Personalización y Diagnóstico
+- Registro de diagnóstico inicial, características y necesidades de cada persona.
+- Configuración de síntomas de alarma y niveles de riesgo por usuario.
+
+### Protocolos de Emergencia y Prevención
+- Protocolos de emergencia personalizables (contactos, acciones a seguir).
+- Registro y anticipación de caídas mediante sensores y alertas automáticas.
+- Evaluación y monitoreo de oxigenación, saturación, pulsación y otros signos vitales.
+
+### Gestión de Medicación y Alertas
+- Recordatorios y alertas para toma de medicación e inyecciones.
+- Confirmación y registro de la toma efectiva de la medicación.
+
+### Protocolos de Sujeción y Prevención de Incidentes
+- Registro de protocolos de sujeción y sensores asociados (sillas de ruedas, etc.).
+- Alertas y prevención de caídas o incidentes.
+
+### Reportes y Observaciones Diarias
+- Reportes diarios de higiene, alimentación, evacuación, conducta y estado de ánimo.
+- Observaciones por turno y registro de incidentes.
+- Trazabilidad y comunicación entre cuidadores y profesionales.
+
+### Seguimiento de Condiciones Específicas
+- Registro y seguimiento de deterioro cognitivo, incontinencia, inestabilidad y otras condiciones relevantes.
+
+### Interoperabilidad y Trazabilidad
+- Integración con sensores IoT y dispositivos médicos.
+- Trazabilidad completa de la información y reportes para instituciones y familias.
+
+## 4. Modelo de Negocio
 
 ### Usuarios Principales
 - **Personas con necesidades de cuidado**
@@ -154,7 +195,7 @@
 - Reportes con adjuntos avanzados
 - Protocolos de emergencia configurables
 
-## 2. Arquitectura Técnica
+## 5. Arquitectura Técnica
 
 ### Dispositivos IoT
 
@@ -314,7 +355,7 @@
 - **Telegram**: Bot personalizado
 - **Llamadas**: IVR personalizado
 
-## 3. Flujo de Servicio Expandido
+## 6. Flujo de Servicio Expandido
 
 ### Evento Detectado
 1. Sensor detecta anomalía o evento
@@ -344,7 +385,7 @@
 4. Testing de funcionalidades sin dispositivos IoT
 5. Limpieza automática de datos de prueba
 
-## 4. Roadmap de Desarrollo Expandido
+## 7. Roadmap de Desarrollo Expandido
 
 ### Fase 1 (MVP Ampliado) - 4 meses ✅ COMPLETADO
 - [x] Backend expandido con nuevos modelos
@@ -383,7 +424,7 @@
 - [ ] Certificaciones de accesibilidad
 - [ ] Integración con sistemas públicos
 
-## 5. Consideraciones Legales y de Privacidad
+## 8. Consideraciones Legales y de Privacidad
 
 ### RGPD/Ley de Protección de Datos
 - Consentimiento explícito del usuario o tutor legal
@@ -407,7 +448,7 @@
 - Backup y recuperación automática
 - Cumplimiento HIPAA (estándar médico)
 
-## 6. Métricas de Éxito Expandidas
+## 9. Métricas de Éxito Expandidas
 
 ### Técnicas
 - Tiempo de respuesta < 15 segundos

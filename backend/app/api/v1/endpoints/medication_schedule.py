@@ -7,13 +7,16 @@ from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.models.user import User
 from app.schemas.medication_schedule import (
-    MedicationScheduleCreate, MedicationScheduleUpdate, MedicationScheduleResponse
+    MedicationScheduleBase,
+    MedicationScheduleCreate,
+    MedicationScheduleUpdate,
+    MedicationSchedule
 )
 from app.services.medication_schedule import MedicationScheduleService
 
 router = APIRouter()
 
-@router.post("/", response_model=MedicationScheduleResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=MedicationSchedule, status_code=status.HTTP_201_CREATED)
 def create_medication_schedule(
     medication_schedule: MedicationScheduleCreate,
     db: Session = Depends(get_db),
@@ -22,7 +25,7 @@ def create_medication_schedule(
     """Create a new medication schedule"""
     return MedicationScheduleService.create(db, medication_schedule)
 
-@router.get("/{schedule_id}", response_model=MedicationScheduleResponse)
+@router.get("/{schedule_id}", response_model=MedicationSchedule)
 def get_medication_schedule(
     schedule_id: UUID,
     db: Session = Depends(get_db),
@@ -37,7 +40,7 @@ def get_medication_schedule(
         )
     return medication_schedule
 
-@router.get("/cared-person/{cared_person_id}", response_model=List[MedicationScheduleResponse])
+@router.get("/cared-person/{cared_person_id}", response_model=List[MedicationSchedule])
 def get_medication_schedules_by_cared_person(
     cared_person_id: UUID,
     db: Session = Depends(get_db),
@@ -46,7 +49,7 @@ def get_medication_schedules_by_cared_person(
     """Get all medication schedules for a cared person"""
     return MedicationScheduleService.get_by_cared_person_id(db, cared_person_id)
 
-@router.get("/cared-person/{cared_person_id}/active", response_model=List[MedicationScheduleResponse])
+@router.get("/cared-person/{cared_person_id}/active", response_model=List[MedicationSchedule])
 def get_active_medication_schedules(
     cared_person_id: UUID,
     db: Session = Depends(get_db),
@@ -55,7 +58,7 @@ def get_active_medication_schedules(
     """Get active medication schedules for a cared person"""
     return MedicationScheduleService.get_active_schedules(db, cared_person_id)
 
-@router.get("/", response_model=List[MedicationScheduleResponse])
+@router.get("/", response_model=List[MedicationSchedule])
 def get_all_medication_schedules(
     skip: int = 0,
     limit: int = 100,
@@ -65,7 +68,7 @@ def get_all_medication_schedules(
     """Get all medication schedules"""
     return MedicationScheduleService.get_all(db, skip=skip, limit=limit)
 
-@router.put("/{schedule_id}", response_model=MedicationScheduleResponse)
+@router.put("/{schedule_id}", response_model=MedicationSchedule)
 def update_medication_schedule(
     schedule_id: UUID,
     medication_schedule: MedicationScheduleUpdate,

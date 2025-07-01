@@ -33,6 +33,7 @@ class Institution(BaseModel):
     service_subscriptions = relationship("ServiceSubscription", back_populates="institution")
     billing_records = relationship("BillingRecord", back_populates="institution")
     geofences = relationship("Geofence", back_populates="institution")
+    restraint_protocols = relationship("RestraintProtocol", back_populates="institution")
     
     # Scoring relationships
     institution_score = relationship("InstitutionScore", back_populates="institution", uselist=False)

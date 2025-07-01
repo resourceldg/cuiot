@@ -23,7 +23,7 @@ class MedicalProfileService:
         return db.query(MedicalProfile).filter(
             and_(
                 MedicalProfile.id == medical_profile_id,
-                MedicalProfile.is_active == 'active'
+                MedicalProfile.is_active == True
             )
         ).first()
 
@@ -33,7 +33,7 @@ class MedicalProfileService:
         return db.query(MedicalProfile).filter(
             and_(
                 MedicalProfile.cared_person_id == cared_person_id,
-                MedicalProfile.is_active == 'active'
+                MedicalProfile.is_active == True
             )
         ).first()
 
@@ -41,7 +41,7 @@ class MedicalProfileService:
     def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[MedicalProfile]:
         """Get all active medical profiles"""
         return db.query(MedicalProfile).filter(
-            MedicalProfile.is_active == 'active'
+            MedicalProfile.is_active == True
         ).offset(skip).limit(limit).all()
 
     @staticmethod
@@ -66,6 +66,6 @@ class MedicalProfileService:
         if not db_medical_profile:
             raise NotFoundException(f"Medical profile with id {medical_profile_id} not found")
         
-        db_medical_profile.is_active = 'inactive'
+        db_medical_profile.is_active = False
         db.commit()
         return True 
