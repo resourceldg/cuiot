@@ -4,7 +4,7 @@
 
 ## Resumen Ejecutivo
 
-Este documento presenta el modelo de datos completo para el sistema de monitoreo de cuidado humano, diseñado para soportar todos los tipos de usuarios, servicios, dispositivos, protocolos y funcionalidades definidas en las reglas de negocio. **Actualizado para incluir Sistema de Paquetes como unidad central del negocio.**
+Este documento presenta el modelo de datos completo para el sistema de monitoreo de cuidado humano, diseñado para soportar todos los tipos de usuarios, servicios, dispositivos, protocolos y funcionalidades definidas en las reglas de negocio. **Actualizado para incluir Sistema de Paquetes como unidad central del negocio y entidades médicas avanzadas.**
 
 ---
 
@@ -32,6 +32,9 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Un usuario puede tener múltiples paquetes (PACKAGES)
 - Un usuario puede hacer múltiples referidos (REFERRALS)
 - Un usuario puede recibir múltiples comisiones (REFERRAL_COMMISSIONS)
+- Un usuario puede crear múltiples diagnósticos (DIAGNOSES)
+- Un usuario puede crear múltiples protocolos de sujeción (RESTRAINT_PROTOCOLS)
+- Un usuario puede verificar múltiples observaciones de turno (SHIFT_OBSERVATIONS)
 
 ### 1.2 ROLES (Roles)
 **Descripción**: Roles disponibles en el sistema.
@@ -64,8 +67,188 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Una persona puede pertenecer a múltiples instituciones (CARED_PERSON_INSTITUTIONS)
 - Una persona puede tener múltiples paquetes (PACKAGES) - solo si es autocuidado
 - Una persona puede hacer referidos (REFERRALS) - solo si es autocuidado
+- Una persona puede tener un perfil médico (MEDICAL_PROFILES)
+- Una persona puede tener múltiples diagnósticos (DIAGNOSES)
+- Una persona puede tener múltiples programas de medicación (MEDICATION_SCHEDULES)
+- Una persona puede tener múltiples registros de medicación (MEDICATION_LOGS)
+- Una persona puede tener múltiples protocolos de sujeción (RESTRAINT_PROTOCOLS)
+- Una persona puede tener múltiples observaciones de turno (SHIFT_OBSERVATIONS)
 
-### 1.4 PACKAGES (Paquetes - NUEVA ENTIDAD CENTRAL)
+### 1.4 MEDICAL_PROFILES (Perfiles Médicos)
+**Descripción**: Perfil médico completo de cada persona bajo cuidado.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `cared_person_id` (UUID, FK): Persona bajo cuidado
+- `blood_type` (VARCHAR(10)): Tipo de sangre
+- `allergies` (JSONB): Lista de alergias
+- `chronic_conditions` (JSONB): Condiciones crónicas
+- `emergency_contacts` (JSONB): Contactos médicos de emergencia
+- `special_needs` (JSONB): Necesidades especiales
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Un perfil médico pertenece a una persona bajo cuidado (CARED_PERSONS)
+
+### 1.5 DIAGNOSES (Diagnósticos)
+**Descripción**: Diagnósticos médicos de cada persona bajo cuidado.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `cared_person_id` (UUID, FK): Persona bajo cuidado
+- `diagnosis_type` (VARCHAR(50)): Tipo de diagnóstico (medical, psychological, etc.)
+- `diagnosis_date` (DATE): Fecha del diagnóstico
+- `diagnosis_code` (VARCHAR(20)): Código de diagnóstico (CIE-10)
+- `diagnosis_name` (VARCHAR(200)): Nombre del diagnóstico
+- `description` (TEXT): Descripción detallada
+- `severity` (VARCHAR(20)): Severidad (mild, moderate, severe)
+- `symptoms` (JSONB): Síntomas asociados
+- `treatments` (JSONB): Tratamientos prescritos
+- `notes` (TEXT): Notas adicionales
+- `attached_files` (JSONB): Archivos adjuntos
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Un diagnóstico pertenece a una persona bajo cuidado (CARED_PERSONS)
+- Un diagnóstico puede ser creado por un usuario (USERS)
+
+### 1.6 MEDICATION_SCHEDULES (Programas de Medicación)
+**Descripción**: Programas de medicación prescritos para cada persona.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `cared_person_id` (UUID, FK): Persona bajo cuidado
+- `medication_name` (VARCHAR(100)): Nombre del medicamento
+- `dosage` (VARCHAR(50)): Dosis prescrita
+- `frequency` (VARCHAR(20)): Frecuencia (daily, twice_daily, etc.)
+- `time_slots` (JSONB): Horarios de administración
+- `start_date` (DATE): Fecha de inicio
+- `end_date` (DATE): Fecha de fin
+- `instructions` (TEXT): Instrucciones de administración
+- `side_effects` (JSONB): Efectos secundarios
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Un programa de medicación pertenece a una persona bajo cuidado (CARED_PERSONS)
+- Un programa de medicación puede tener múltiples registros (MEDICATION_LOGS)
+
+### 1.7 MEDICATION_LOGS (Registros de Medicación)
+**Descripción**: Registro de cada administración de medicación.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `medication_schedule_id` (UUID, FK): Programa de medicación
+- `cared_person_id` (UUID, FK): Persona bajo cuidado
+- `administered_at` (TIMESTAMP): Fecha y hora de administración
+- `dosage_given` (VARCHAR(50)): Dosis administrada
+- `status` (VARCHAR(20)): Estado (taken, missed, refused)
+- `administered_by` (UUID, FK): Usuario que administró
+- `notes` (TEXT): Notas adicionales
+- `side_effects_observed` (JSONB): Efectos secundarios observados
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Un registro de medicación pertenece a un programa de medicación (MEDICATION_SCHEDULES)
+- Un registro de medicación pertenece a una persona bajo cuidado (CARED_PERSONS)
+- Un registro de medicación puede ser administrado por un usuario (USERS)
+
+### 1.8 RESTRAINT_PROTOCOLS (Protocolos de Sujeción)
+**Descripción**: Protocolos de sujeción para prevención de incidentes.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `cared_person_id` (UUID, FK): Persona bajo cuidado
+- `protocol_type` (VARCHAR(50)): Tipo de protocolo (physical, chemical, environmental)
+- `name` (VARCHAR(200)): Nombre del protocolo
+- `description` (TEXT): Descripción detallada
+- `indications` (JSONB): Indicaciones para uso
+- `contraindications` (JSONB): Contraindicaciones
+- `procedures` (JSONB): Procedimientos paso a paso
+- `monitoring_requirements` (JSONB): Requisitos de monitoreo
+- `emergency_procedures` (JSONB): Procedimientos de emergencia
+- `authorized_by` (VARCHAR(100)): Autorizado por
+- `authorization_date` (DATE): Fecha de autorización
+- `review_date` (DATE): Fecha de revisión
+- `attached_files` (JSONB): Archivos adjuntos
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Un protocolo de sujeción pertenece a una persona bajo cuidado (CARED_PERSONS)
+- Un protocolo de sujeción puede ser creado por un usuario (USERS)
+
+### 1.9 SHIFT_OBSERVATIONS (Observaciones de Turno)
+**Descripción**: Observaciones clínicas detalladas por turno de cuidado.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `cared_person_id` (UUID, FK): Persona bajo cuidado
+- `caregiver_id` (UUID, FK): Cuidador responsable
+- `shift_type` (VARCHAR(20)): Tipo de turno (morning, afternoon, night)
+- `shift_start` (TIMESTAMP): Inicio del turno
+- `shift_end` (TIMESTAMP): Fin del turno
+- `observation_date` (TIMESTAMP): Fecha de observación
+- `physical_condition` (VARCHAR(20)): Condición física
+- `mobility_level` (VARCHAR(20)): Nivel de movilidad
+- `pain_level` (INTEGER): Nivel de dolor (0-10)
+- `vital_signs` (JSONB): Signos vitales
+- `skin_condition` (VARCHAR(50)): Condición de la piel
+- `hygiene_status` (VARCHAR(50)): Estado de higiene
+- `mental_state` (VARCHAR(50)): Estado mental
+- `mood` (VARCHAR(50)): Estado de ánimo
+- `behavior_notes` (TEXT): Notas de comportamiento
+- `cognitive_function` (VARCHAR(50)): Función cognitiva
+- `communication_ability` (VARCHAR(50)): Capacidad de comunicación
+- `appetite` (VARCHAR(50)): Apetito
+- `food_intake` (JSONB): Ingesta de alimentos
+- `fluid_intake` (JSONB): Ingesta de líquidos
+- `swallowing_difficulty` (BOOLEAN): Dificultad para tragar
+- `special_diet_notes` (TEXT): Notas de dieta especial
+- `bowel_movement` (VARCHAR(50)): Movimiento intestinal
+- `urinary_output` (VARCHAR(50)): Producción urinaria
+- `incontinence_episodes` (INTEGER): Episodios de incontinencia
+- `catheter_status` (VARCHAR(50)): Estado de catéter
+- `medications_taken` (JSONB): Medicamentos tomados
+- `medications_missed` (JSONB): Medicamentos omitidos
+- `side_effects_observed` (TEXT): Efectos secundarios observados
+- `medication_notes` (TEXT): Notas de medicación
+- `activities_participated` (JSONB): Actividades en las que participó
+- `social_interaction` (VARCHAR(50)): Interacción social
+- `exercise_performed` (BOOLEAN): Ejercicio realizado
+- `exercise_details` (TEXT): Detalles del ejercicio
+- `safety_concerns` (TEXT): Preocupaciones de seguridad
+- `incidents_occurred` (BOOLEAN): Incidentes ocurridos
+- `incident_details` (TEXT): Detalles de incidentes
+- `fall_risk_assessment` (VARCHAR(20)): Evaluación de riesgo de caída
+- `restraint_used` (BOOLEAN): Sujeción utilizada
+- `restraint_details` (TEXT): Detalles de sujeción
+- `family_contact` (BOOLEAN): Contacto con familia
+- `family_notes` (TEXT): Notas de contacto familiar
+- `doctor_contact` (BOOLEAN): Contacto con médico
+- `doctor_notes` (TEXT): Notas de contacto médico
+- `handover_notes` (TEXT): Notas de entrega de turno
+- `attached_files` (JSONB): Archivos adjuntos
+- `status` (VARCHAR(20)): Estado (draft, completed, verified)
+- `is_verified` (BOOLEAN): Verificado
+- `verified_by` (UUID, FK): Verificado por
+- `verified_at` (TIMESTAMP): Fecha de verificación
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Una observación de turno pertenece a una persona bajo cuidado (CARED_PERSONS)
+- Una observación de turno es realizada por un cuidador (USERS)
+- Una observación de turno puede ser verificada por un usuario (USERS)
+
+### 1.10 PACKAGES (Paquetes - NUEVA ENTIDAD CENTRAL)
 **Descripción**: Unidad central del negocio. Paquetes de servicios que pueden ser contratados por usuarios.
 
 **Atributos Clave**:
@@ -89,7 +272,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Un paquete puede ser contratado por múltiples instituciones (INSTITUTION_PACKAGES)
 - Un paquete puede generar múltiples facturas (BILLING_RECORDS)
 
-### 1.5 USER_PACKAGES (Paquetes de Usuarios)
+### 1.11 USER_PACKAGES (Paquetes de Usuarios)
 **Descripción**: Relación entre usuarios y paquetes contratados.
 
 **Atributos Clave**:
@@ -103,7 +286,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `payment_method` (VARCHAR(50)): Método de pago
 - `created_at` (TIMESTAMP): Fecha de contratación
 
-### 1.6 INSTITUTIONS (Instituciones)
+### 1.12 INSTITUTIONS (Instituciones)
 **Descripción**: Centros de cuidado, escuelas especiales, geriátricos, etc.
 
 **Atributos Clave**:
@@ -128,7 +311,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Una institución puede hacer referidos (REFERRALS)
 - Una institución puede recibir comisiones (REFERRAL_COMMISSIONS)
 
-### 1.7 INSTITUTION_PACKAGES (Paquetes de Instituciones)
+### 1.13 INSTITUTION_PACKAGES (Paquetes de Instituciones)
 **Descripción**: Relación entre instituciones y paquetes contratados.
 
 **Atributos Clave**:
@@ -143,7 +326,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `max_patients` (INTEGER): Máximo número de pacientes
 - `created_at` (TIMESTAMP): Fecha de contratación
 
-### 1.8 REFERRALS (Referidos)
+### 1.14 REFERRALS (Referidos)
 **Descripción**: Sistema de referidos para crecimiento orgánico.
 
 **Atributos Clave**:
@@ -167,7 +350,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 **Relaciones**:
 - Un referido puede generar múltiples comisiones (REFERRAL_COMMISSIONS)
 
-### 1.9 REFERRAL_COMMISSIONS (Comisiones de Referidos)
+### 1.15 REFERRAL_COMMISSIONS (Comisiones de Referidos)
 **Descripción**: Tracking de comisiones por referidos.
 
 **Atributos Clave**:
@@ -181,7 +364,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `status` (VARCHAR(20)): Estado (pending, paid, cancelled)
 - `paid_at` (TIMESTAMP): Fecha de pago
 
-### 1.10 CAREGIVER_SCORES (Puntuaciones de Cuidadores)
+### 1.16 CAREGIVER_SCORES (Puntuaciones de Cuidadores)
 **Descripción**: Sistema de scoring para cuidadores.
 
 **Atributos Clave**:
@@ -196,7 +379,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `total_reviews` (INTEGER): Total de reviews
 - `last_calculated` (TIMESTAMP): Última fecha de cálculo
 
-### 1.11 CAREGIVER_REVIEWS (Reviews de Cuidadores)
+### 1.17 CAREGIVER_REVIEWS (Reviews de Cuidadores)
 **Descripción**: Reviews y calificaciones de cuidadores.
 
 **Atributos Clave**:
@@ -214,7 +397,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `is_verified` (BOOLEAN): Si está verificado
 - `is_public` (BOOLEAN): Si es público
 
-### 1.12 INSTITUTION_SCORES (Puntuaciones de Instituciones)
+### 1.18 INSTITUTION_SCORES (Puntuaciones de Instituciones)
 **Descripción**: Sistema de scoring para instituciones.
 
 **Atributos Clave**:
@@ -229,7 +412,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `total_reviews` (INTEGER): Total de reviews
 - `last_calculated` (TIMESTAMP): Última fecha de cálculo
 
-### 1.13 INSTITUTION_REVIEWS (Reviews de Instituciones)
+### 1.19 INSTITUTION_REVIEWS (Reviews de Instituciones)
 **Descripción**: Reviews y calificaciones de instituciones.
 
 **Atributos Clave**:
@@ -246,7 +429,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `is_verified` (BOOLEAN): Si está verificado
 - `is_public` (BOOLEAN): Si es público
 
-### 1.14 DEVICES (Dispositivos)
+### 1.20 DEVICES (Dispositivos)
 **Descripción**: Dispositivos IoT y sensores del sistema.
 
 **Atributos Clave**:
@@ -270,7 +453,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Un dispositivo puede estar asociado a una persona (CARED_PERSONS) o institución (INSTITUTIONS)
 - Un dispositivo puede generar múltiples eventos (EVENTS)
 
-### 1.15 EVENTS (Eventos)
+### 1.21 EVENTS (Eventos)
 **Descripción**: Eventos generados por dispositivos o usuarios.
 
 **Atributos Clave**:
@@ -289,7 +472,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Un evento puede generar múltiples alertas (ALERTS)
 - Un evento está asociado a una persona bajo cuidado (CARED_PERSONS)
 
-### 1.16 ALERTS (Alertas)
+### 1.22 ALERTS (Alertas)
 **Descripción**: Alertas generadas por eventos según protocolos.
 
 **Atributos Clave**:
@@ -308,7 +491,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Una alerta está asociada a un evento (EVENTS)
 - Una alerta puede tener múltiples notificaciones (NOTIFICATIONS)
 
-### 1.17 BILLING_RECORDS (Registros de Facturación)
+### 1.23 BILLING_RECORDS (Registros de Facturación)
 **Descripción**: Registros de facturación y pagos.
 
 **Atributos Clave**:

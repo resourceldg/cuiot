@@ -65,6 +65,10 @@ class User(BaseModel):
     given_reviews = relationship("CaregiverReview", foreign_keys="[CaregiverReview.reviewer_id]", back_populates="reviewer")
     institution_reviews = relationship("InstitutionReview", foreign_keys="[InstitutionReview.reviewer_id]", back_populates="reviewer")
     
+    # Relaciones con otras entidades
+    shift_observations = relationship("ShiftObservation", back_populates="caregiver", foreign_keys="ShiftObservation.caregiver_id")
+    verified_shift_observations = relationship("ShiftObservation", back_populates="verifier", foreign_keys="ShiftObservation.verified_by")
+    
     def __repr__(self):
         return f"<User(email='{self.email}', name='{self.first_name} {self.last_name}')>"
     

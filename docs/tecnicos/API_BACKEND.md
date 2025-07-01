@@ -73,6 +73,211 @@
 
 ---
 
+## Sistema Médico Avanzado
+
+### Diagnósticos
+
+#### Listar diagnósticos
+**GET** `/api/v1/diagnoses/`
+- Query: `cared_person_id`, `diagnosis_type`, `is_active`, `skip`, `limit`
+- **Protegido:** Sí (JWT)
+
+#### Crear diagnóstico
+**POST** `/api/v1/diagnoses/`
+- **Content-Type:** `multipart/form-data`
+```json
+{
+  "cared_person_id": "uuid",
+  "diagnosis_type": "medical",
+  "diagnosis_date": "2024-01-15",
+  "diagnosis_code": "E11.9",
+  "diagnosis_name": "Diabetes mellitus tipo 2 sin complicaciones",
+  "description": "Diagnóstico de diabetes mellitus tipo 2",
+  "severity": "moderate",
+  "symptoms": ["sed excesiva", "fatiga", "visión borrosa"],
+  "treatments": ["dieta", "ejercicio", "metformina"],
+  "notes": "Paciente requiere monitoreo de glucosa",
+  "is_active": true,
+  "file": "archivo.pdf" // opcional
+}
+```
+
+#### Actualizar diagnóstico
+**PUT** `/api/v1/diagnoses/{diagnosis_id}`
+
+#### Eliminar diagnóstico
+**DELETE** `/api/v1/diagnoses/{diagnosis_id}`
+
+### Perfiles Médicos
+
+#### Listar perfiles médicos
+**GET** `/api/v1/medical-profiles/`
+- Query: `cared_person_id`, `is_active`, `skip`, `limit`
+
+#### Crear perfil médico
+**POST** `/api/v1/medical-profiles/`
+```json
+{
+  "cared_person_id": "uuid",
+  "blood_type": "O+",
+  "allergies": ["penicilina", "sulfas"],
+  "chronic_conditions": ["diabetes", "hipertensión"],
+  "emergency_contacts": [
+    {
+      "name": "Dr. García",
+      "phone": "123456789",
+      "specialty": "Cardiología"
+    }
+  ],
+  "special_needs": ["dieta sin sal", "monitoreo de glucosa"],
+  "is_active": true
+}
+```
+
+#### Actualizar perfil médico
+**PUT** `/api/v1/medical-profiles/{profile_id}`
+
+#### Eliminar perfil médico
+**DELETE** `/api/v1/medical-profiles/{profile_id}`
+
+### Programas de Medicación
+
+#### Listar programas de medicación
+**GET** `/api/v1/medication-schedules/`
+- Query: `cared_person_id`, `medication_name`, `is_active`, `skip`, `limit`
+
+#### Crear programa de medicación
+**POST** `/api/v1/medication-schedules/`
+```json
+{
+  "cared_person_id": "uuid",
+  "medication_name": "Metformina",
+  "dosage": "500mg",
+  "frequency": "twice_daily",
+  "time_slots": ["08:00", "20:00"],
+  "start_date": "2024-01-15",
+  "end_date": "2024-12-31",
+  "instructions": "Tomar con las comidas",
+  "side_effects": ["náuseas", "diarrea"],
+  "is_active": true
+}
+```
+
+#### Actualizar programa de medicación
+**PUT** `/api/v1/medication-schedules/{schedule_id}`
+
+#### Eliminar programa de medicación
+**DELETE** `/api/v1/medication-schedules/{schedule_id}`
+
+### Registros de Medicación
+
+#### Listar registros de medicación
+**GET** `/api/v1/medication-logs/`
+- Query: `cared_person_id`, `medication_schedule_id`, `status`, `date_from`, `date_to`, `skip`, `limit`
+
+#### Registrar toma de medicación
+**POST** `/api/v1/medication-logs/`
+```json
+{
+  "medication_schedule_id": "uuid",
+  "cared_person_id": "uuid",
+  "administered_at": "2024-01-15T08:00:00Z",
+  "dosage_given": "500mg",
+  "status": "taken",
+  "administered_by": "uuid",
+  "notes": "Paciente tomó la medicación sin problemas"
+}
+```
+
+#### Actualizar registro de medicación
+**PUT** `/api/v1/medication-logs/{log_id}`
+
+#### Eliminar registro de medicación
+**DELETE** `/api/v1/medication-logs/{log_id}`
+
+### Protocolos de Sujeción
+
+#### Listar protocolos de sujeción
+**GET** `/api/v1/restraint-protocols/`
+- Query: `cared_person_id`, `protocol_type`, `is_active`, `skip`, `limit`
+
+#### Crear protocolo de sujeción
+**POST** `/api/v1/restraint-protocols/`
+- **Content-Type:** `multipart/form-data`
+```json
+{
+  "cared_person_id": "uuid",
+  "protocol_type": "physical",
+  "name": "Protocolo de sujeción para prevención de caídas",
+  "description": "Protocolo para prevenir caídas durante la noche",
+  "indications": ["confusión nocturna", "riesgo de caída alto"],
+  "contraindications": ["úlceras por presión", "problemas circulatorios"],
+  "procedures": [
+    {
+      "step": 1,
+      "description": "Evaluar necesidad de sujeción",
+      "duration": "5 minutos"
+    }
+  ],
+  "monitoring_requirements": ["cada 2 horas", "evaluar piel"],
+  "emergency_procedures": ["liberar inmediatamente si hay complicaciones"],
+  "authorized_by": "Dr. García",
+  "authorization_date": "2024-01-15",
+  "review_date": "2024-02-15",
+  "is_active": true,
+  "attached_files": ["archivo.pdf"] // opcional
+}
+```
+
+#### Actualizar protocolo de sujeción
+**PUT** `/api/v1/restraint-protocols/{protocol_id}`
+
+#### Eliminar protocolo de sujeción
+**DELETE** `/api/v1/restraint-protocols/{protocol_id}`
+
+### Observaciones de Turno
+
+#### Listar observaciones de turno
+**GET** `/api/v1/shift-observations/`
+- Query: `cared_person_id`, `caregiver_id`, `shift_type`, `status`, `start_date`, `end_date`, `incidents_only`, `skip`, `limit`
+
+#### Crear observación de turno
+**POST** `/api/v1/shift-observations/`
+```json
+{
+  "cared_person_id": "uuid",
+  "caregiver_id": "uuid",
+  "shift_type": "night",
+  "shift_start": "2024-01-15T20:00:00Z",
+  "shift_end": "2024-01-16T08:00:00Z",
+  "observation_date": "2024-01-15T20:00:00Z",
+  "physical_condition": "fair",
+  "mental_state": "confused",
+  "safety_concerns": "Paciente presenta confusión nocturna",
+  "incidents_occurred": true,
+  "incident_details": "Paciente intentó levantarse de la cama sin asistencia a las 02:30",
+  "fall_risk_assessment": "high",
+  "status": "draft"
+}
+```
+
+#### Actualizar observación de turno
+**PUT** `/api/v1/shift-observations/{observation_id}`
+
+#### Eliminar observación de turno
+**DELETE** `/api/v1/shift-observations/{observation_id}`
+
+#### Verificar observación de turno
+**PATCH** `/api/v1/shift-observations/{observation_id}/verify`
+```json
+{
+  "verified_by": "uuid",
+  "verification_notes": "Observación verificada y aprobada"
+}
+```
+
+---
+
 ## Sistema de Paquetes (NUEVA ENTIDAD CENTRAL)
 
 ### Listar paquetes disponibles

@@ -74,6 +74,9 @@ class CaredPerson(BaseModel):
     family_contact_phone = Column(String(20), nullable=True)
     medical_notes = Column(Text, nullable=True)
     
+    # Relaciones con otras entidades
+    shift_observations = relationship("ShiftObservation", back_populates="cared_person")
+    
     def __repr__(self):
         return f"<CaredPerson(name='{self.first_name} {self.last_name}', care_type='{self.care_type}')>"
     

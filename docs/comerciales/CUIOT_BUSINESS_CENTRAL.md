@@ -15,21 +15,21 @@
 - **[CAREGIVER_FREELANCE_RULES.md](./CAREGIVER_FREELANCE_RULES.md)** - Sistema de scoring y freelance para cuidadores
 
 ### 🏗️ **Documentación Técnica**
-- **[TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md)** - Arquitectura técnica del sistema
-- **[API_BACKEND.md](./API_BACKEND.md)** - Documentación de APIs y endpoints
-- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Guías de desarrollo y setup
-- **[UML.md](./UML.md)** - Diagramas UML del sistema
-- **[DER.md](./DER.md)** - Diagrama Entidad-Relación
+- **[TECHNICAL_ARCHITECTURE.md](../tecnicos/TECHNICAL_ARCHITECTURE.md)** - Arquitectura técnica del sistema
+- **[API_BACKEND.md](../tecnicos/API_BACKEND.md)** - Documentación de APIs y endpoints
+- **[DEVELOPMENT.md](../tecnicos/DEVELOPMENT.md)** - Guías de desarrollo y setup
+- **[UML.md](../tecnicos/UML.md)** - Diagramas UML del sistema
+- **[DER.md](../tecnicos/DER.md)** - Diagrama Entidad-Relación
 
 ### 🎨 **UX/UI y Diseño**
-- **[UX_UI_DESIGN_SYSTEM.md](./UX_UI_DESIGN_SYSTEM.md)** - Sistema de diseño y experiencia de usuario
+- **[../tecnicos/UX_UI_DESIGN_SYSTEM.md](../tecnicos/UX_UI_DESIGN_SYSTEM.md)** - Sistema de diseño y experiencia de usuario
 
 ### 📊 **Análisis y Planificación**
-- **[ARCHITECTURE_ANALYSIS.md](./ARCHITECTURE_ANALYSIS.md)** - Análisis de arquitectura
-- **[ARCHITECTURE_FIRST_STAGE.md](./ARCHITECTURE_FIRST_STAGE.md)** - Primera etapa de arquitectura
-- **[BACKEND_REFACTORING_FEEDBACK.md](./BACKEND_REFACTORING_FEEDBACK.md)** - Feedback del refactor del backend
-- **[TECHNICAL_BACKEND_REFACTOR_PLAN.md](./TECHNICAL_BACKEND_REFACTOR_PLAN.md)** - Plan de refactor técnico
-- **[INTEGRATION_SUMMARY.md](./INTEGRATION_SUMMARY.md)** - Resumen de integraciones
+- **[../tecnicos/ARCHITECTURE_ANALYSIS.md](../tecnicos/ARCHITECTURE_ANALYSIS.md)** - Análisis de arquitectura
+- **[../tecnicos/ARCHITECTURE_FIRST_STAGE.md](../tecnicos/ARCHITECTURE_FIRST_STAGE.md)** - Primera etapa de arquitectura
+- **[../tecnicos/BACKEND_REFACTORING_FEEDBACK.md](../tecnicos/BACKEND_REFACTORING_FEEDBACK.md)** - Feedback del refactor del backend
+- **[../tecnicos/TECHNICAL_BACKEND_REFACTOR_PLAN.md](../tecnicos/TECHNICAL_BACKEND_REFACTOR_PLAN.md)** - Plan de refactor técnico
+- **[../tecnicos/INTEGRATION_SUMMARY.md](../tecnicos/INTEGRATION_SUMMARY.md)** - Resumen de integraciones
 
 ---
 

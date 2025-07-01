@@ -34,6 +34,7 @@ class Institution(BaseModel):
     billing_records = relationship("BillingRecord", back_populates="institution")
     geofences = relationship("Geofence", back_populates="institution")
     restraint_protocols = relationship("RestraintProtocol", back_populates="institution")
+    shift_observations = relationship("ShiftObservation", back_populates="institution")
     
     # Scoring relationships
     institution_score = relationship("InstitutionScore", back_populates="institution", uselist=False)
