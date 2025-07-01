@@ -68,6 +68,14 @@ async def test_user_id(async_client, test_user_token):
                 return user["id"]
     return None
 
+@pytest_asyncio.fixture
+def admin_auth(admin_user_token):
+    return {"Authorization": f"Bearer {admin_user_token}"}
+
+@pytest_asyncio.fixture
+def auth_headers(test_user_token):
+    return {"Authorization": f"Bearer {test_user_token}"}
+
 class TestUserAuthentication:
     """Test user authentication and registration"""
     
@@ -295,7 +303,7 @@ class TestUserRoleManagement:
         create_resp = await async_client.post("/api/v1/users/", json=user_data, headers=admin_auth)
         assert create_resp.status_code == 201
         user_id = create_resp.json()["id"]
-        # Crear rol test_role si no existe
+        # Crear rol test_role si no existe (siempre con admin)
         role_data = {
             "name": "test_role",
             "description": "Rol de prueba para test minimal",
@@ -303,7 +311,13 @@ class TestUserRoleManagement:
             "is_system": False
         }
         create_role_resp = await async_client.post("/api/v1/users/roles", json=role_data, headers=admin_auth)
-        assert create_role_resp.status_code in (200, 201)
+        if create_role_resp.status_code not in (200, 201):
+            # Si el error es por rol duplicado, continuar
+            if create_role_resp.status_code == 400 and ("ya existe" in create_role_resp.text or "already exists" in create_role_resp.text):
+                pass
+            else:
+                print(f"Error creando rol: {create_role_resp.status_code}, {create_role_resp.text}")
+                assert False, f"Error creando rol: {create_role_resp.status_code}, {create_role_resp.text}"
         # Intentar asignar rol sin permisos admin
         data = {"role_name": "test_role"}
         response = await async_client.post(f"/api/v1/users/{user_id}/assign-role", json=data, headers=auth_headers)
