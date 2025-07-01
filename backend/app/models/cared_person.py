@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, Date,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from app.models.diagnosis import Diagnosis
 import uuid
 
 class CaredPerson(BaseModel):
@@ -56,7 +57,10 @@ class CaredPerson(BaseModel):
     location_tracking = relationship("LocationTracking", back_populates="cared_person")
     geofences = relationship("Geofence", back_populates="cared_person")
     debug_events = relationship("DebugEvent", back_populates="cared_person")
-    reports = relationship('Report', back_populates='cared_person')
+    reports = relationship('Report', back_populates='cared_person', cascade='all, delete-orphan')
+    diagnoses = relationship('Diagnosis', back_populates='cared_person', cascade='all, delete-orphan')
+    medical_profile = relationship('MedicalProfile', back_populates='cared_person', uselist=False, cascade='all, delete-orphan')
+    medication_schedules = relationship('MedicationSchedule', back_populates='cared_person', cascade='all, delete-orphan')
     
     # Scoring relationships
     caregiver_reviews = relationship("CaregiverReview", foreign_keys="[CaregiverReview.cared_person_id]", back_populates="cared_person")

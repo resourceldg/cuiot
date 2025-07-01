@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals, packages
+from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals, packages, diagnoses_router, medical_profile, medication_schedule, medication_log
 
 api_router = APIRouter()
 
@@ -17,3 +17,7 @@ api_router.include_router(reminders.router, prefix="/reminders", tags=["reminder
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(referrals.router, prefix="/referrals", tags=["referrals"])
 api_router.include_router(packages.router, prefix="/packages", tags=["packages"])
+api_router.include_router(diagnoses_router, prefix="/diagnoses", tags=["diagnoses"])
+api_router.include_router(medical_profile.router, prefix="/medical-profiles", tags=["medical-profiles"])
+api_router.include_router(medication_schedule.router, prefix="/medication-schedules", tags=["medication-schedules"])
+api_router.include_router(medication_log.router, prefix="/medication-logs", tags=["medication-logs"])

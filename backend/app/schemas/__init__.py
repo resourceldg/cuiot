@@ -16,6 +16,10 @@ from .event import EventCreate, EventUpdate, EventResponse, EventInDB
 from .alert import AlertCreate, AlertUpdate, AlertResponse, AlertInDB
 from .reminder import ReminderCreate, ReminderUpdate, ReminderResponse, ReminderInDB
 from .debug import DebugEventCreate, DebugEventUpdate, DebugEventResponse, DebugEventInDB, DebugSummary
+from .diagnosis import DiagnosisBase, DiagnosisCreate, DiagnosisUpdate, DiagnosisResponse
+from .medical_profile import MedicalProfileBase, MedicalProfileCreate, MedicalProfileUpdate, MedicalProfileResponse
+from .medication_schedule import MedicationScheduleBase, MedicationScheduleCreate, MedicationScheduleUpdate, MedicationScheduleResponse
+from .medication_log import MedicationLogBase, MedicationLogCreate, MedicationLogUpdate, MedicationLogResponse
 
 # Scoring schemas
 from .caregiver_score import (
@@ -49,6 +53,10 @@ __all__ = [
     "AlertCreate", "AlertUpdate", "AlertResponse", "AlertInDB",
     "ReminderCreate", "ReminderUpdate", "ReminderResponse", "ReminderInDB",
     "DebugEventCreate", "DebugEventUpdate", "DebugEventResponse", "DebugEventInDB", "DebugSummary",
+    "DiagnosisBase", "DiagnosisCreate", "DiagnosisUpdate", "DiagnosisResponse",
+    "MedicalProfileBase", "MedicalProfileCreate", "MedicalProfileUpdate", "MedicalProfileResponse",
+    "MedicationScheduleBase", "MedicationScheduleCreate", "MedicationScheduleUpdate", "MedicationScheduleResponse",
+    "MedicationLogBase", "MedicationLogCreate", "MedicationLogUpdate", "MedicationLogResponse",
     # Scoring schemas
     "CaregiverScoreBase", "CaregiverScoreCreate", "CaregiverScoreUpdate", 
     "CaregiverScore", "CaregiverScoreWithLevel",

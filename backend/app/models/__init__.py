@@ -20,6 +20,10 @@ from app.models.location_tracking import LocationTracking
 from app.models.geofence import Geofence
 from app.models.debug_event import DebugEvent
 from app.models.report import Report
+from .diagnosis import Diagnosis
+from .medical_profile import MedicalProfile
+from .medication_schedule import MedicationSchedule
+from .medication_log import MedicationLog
 
 # Package models
 from app.models.package import Package, UserPackage, PackageAddOn, UserPackageAddOn
