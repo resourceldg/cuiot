@@ -26,56 +26,6 @@ ADMIN_USER_DATA = {
     "is_freelance": False
 }
 
-@pytest_asyncio.fixture
-async def test_user_token(async_client):
-    """Create a test user and return authentication token"""
-    # Register user
-    response = await async_client.post("/api/v1/auth/register", json=TEST_USER_DATA)
-    assert response.status_code == 201
-    
-    # Login to get token
-    response = await async_client.post("/api/v1/auth/login", json={
-        "email": TEST_USER_DATA["email"],
-        "password": TEST_USER_DATA["password"]
-    })
-    assert response.status_code == 200
-    return response.json()["access_token"]
-
-@pytest_asyncio.fixture
-async def admin_user_token(async_client):
-    """Create an admin user and return authentication token"""
-    # Register admin user
-    response = await async_client.post("/api/v1/auth/register", json=ADMIN_USER_DATA)
-    assert response.status_code == 201
-    
-    # Login to get token
-    response = await async_client.post("/api/v1/auth/login", json={
-        "email": ADMIN_USER_DATA["email"],
-        "password": ADMIN_USER_DATA["password"]
-    })
-    assert response.status_code == 200
-    return response.json()["access_token"]
-
-@pytest_asyncio.fixture
-async def test_user_id(async_client, test_user_token):
-    """Get the test user ID"""
-    headers = {"Authorization": f"Bearer {test_user_token}"}
-    response = await async_client.get("/api/v1/users/", headers=headers)
-    if response.status_code == 200:
-        users = response.json()
-        for user in users:
-            if user["email"] == TEST_USER_DATA["email"]:
-                return user["id"]
-    return None
-
-@pytest_asyncio.fixture
-def admin_auth(admin_user_token):
-    return {"Authorization": f"Bearer {admin_user_token}"}
-
-@pytest_asyncio.fixture
-def auth_headers(test_user_token):
-    return {"Authorization": f"Bearer {test_user_token}"}
-
 class TestUserAuthentication:
     """Test user authentication and registration"""
     
@@ -148,10 +98,9 @@ class TestUserCRUD:
     """Test user CRUD operations"""
     
     @pytest.mark.asyncio
-    async def test_get_users_list(self, async_client, test_user_token):
+    async def test_get_users_list(self, async_client, auth_headers):
         """Test getting list of users"""
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.get("/api/v1/users/", headers=headers)
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
         
         # Should return 200 or 403 depending on permissions
         assert response.status_code in [200, 403]
@@ -161,13 +110,12 @@ class TestUserCRUD:
             assert isinstance(users, list)
             # Should contain at least our test user
             user_emails = [user["email"] for user in users]
-            assert TEST_USER_DATA["email"] in user_emails
+            assert "testuser@example.com" in user_emails
     
     @pytest.mark.asyncio
-    async def test_get_users_with_pagination(self, async_client, test_user_token):
+    async def test_get_users_with_pagination(self, async_client, auth_headers):
         """Test getting users with pagination parameters"""
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.get("/api/v1/users/?skip=0&limit=10", headers=headers)
+        response = await async_client.get("/api/v1/users/?skip=0&limit=10", headers=auth_headers)
         
         assert response.status_code in [200, 403]
         
@@ -177,47 +125,56 @@ class TestUserCRUD:
             assert len(users) <= 10
     
     @pytest.mark.asyncio
-    async def test_get_user_by_id(self, async_client, test_user_token, test_user_id):
+    async def test_get_user_by_id(self, async_client, auth_headers):
         """Test getting a specific user by ID"""
-        if not test_user_id:
+        # Get user ID from authenticated user
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
+        if response.status_code != 200:
+            pytest.skip("Could not get users list")
+        
+        user_id = next((u["id"] for u in response.json() if u["email"] == "testuser@example.com"), None)
+        if not user_id:
             pytest.skip("Could not get test user ID")
         
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.get(f"/api/v1/users/{test_user_id}", headers=headers)
+        response = await async_client.get(f"/api/v1/users/{user_id}", headers=auth_headers)
         
         assert response.status_code == 200
         
         user = response.json()
-        assert user["id"] == test_user_id
-        assert user["email"] == TEST_USER_DATA["email"]
-        assert user["first_name"] == TEST_USER_DATA["first_name"]
+        assert user["id"] == user_id
+        assert user["email"] == "testuser@example.com"
+        assert user["first_name"] == "Test"
         assert "roles" in user  # Should include roles field
     
     @pytest.mark.asyncio
-    async def test_get_nonexistent_user(self, async_client, test_user_token):
+    async def test_get_nonexistent_user(self, async_client, auth_headers):
         """Test getting a user that doesn't exist"""
         fake_id = str(uuid4())
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.get(f"/api/v1/users/{fake_id}", headers=headers)
+        response = await async_client.get(f"/api/v1/users/{fake_id}", headers=auth_headers)
         
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
     
     @pytest.mark.asyncio
-    async def test_update_own_profile(self, async_client, test_user_token, test_user_id):
+    async def test_update_own_profile(self, async_client, auth_headers):
         """Test updating own user profile"""
-        if not test_user_id:
+        # Get user ID from authenticated user
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
+        if response.status_code != 200:
+            pytest.skip("Could not get users list")
+        
+        user_id = next((u["id"] for u in response.json() if u["email"] == "testuser@example.com"), None)
+        if not user_id:
             pytest.skip("Could not get test user ID")
         
-        headers = {"Authorization": f"Bearer {test_user_token}"}
         update_data = {
             "first_name": "Updated",
             "phone": "999888777",
             "last_name": "UpdatedUser"
         }
         
-        response = await async_client.put(f"/api/v1/users/{test_user_id}", 
-                                        json=update_data, headers=headers)
+        response = await async_client.put(f"/api/v1/users/{user_id}", 
+                                        json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         
@@ -227,19 +184,24 @@ class TestUserCRUD:
         assert user["last_name"] == update_data["last_name"]
     
     @pytest.mark.asyncio
-    async def test_update_user_invalid_data(self, async_client, test_user_token, test_user_id):
+    async def test_update_user_invalid_data(self, async_client, auth_headers):
         """Test updating user with invalid data"""
-        if not test_user_id:
+        # Get user ID from authenticated user
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
+        if response.status_code != 200:
+            pytest.skip("Could not get users list")
+        
+        user_id = next((u["id"] for u in response.json() if u["email"] == "testuser@example.com"), None)
+        if not user_id:
             pytest.skip("Could not get test user ID")
         
-        headers = {"Authorization": f"Bearer {test_user_token}"}
         invalid_data = {
             "email": "invalid-email",  # Invalid email format
             "first_name": ""  # Empty first name
         }
         
-        response = await async_client.put(f"/api/v1/users/{test_user_id}", 
-                                        json=invalid_data, headers=headers)
+        response = await async_client.put(f"/api/v1/users/{user_id}", 
+                                        json=invalid_data, headers=auth_headers)
         
         assert response.status_code == 422  # Validation error
 
@@ -247,19 +209,24 @@ class TestUserPasswordManagement:
     """Test password change functionality"""
     
     @pytest.mark.asyncio
-    async def test_change_password_success(self, async_client, test_user_token, test_user_id):
+    async def test_change_password_success(self, async_client, auth_headers):
         """Test successful password change"""
-        if not test_user_id:
+        # Get user ID from authenticated user
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
+        if response.status_code != 200:
+            pytest.skip("Could not get users list")
+        
+        user_id = next((u["id"] for u in response.json() if u["email"] == "testuser@example.com"), None)
+        if not user_id:
             pytest.skip("Could not get test user ID")
         
-        headers = {"Authorization": f"Bearer {test_user_token}"}
         password_data = {
-            "current_password": TEST_USER_DATA["password"],
+            "current_password": "testpassword",
             "new_password": "newpassword123"
         }
         
-        response = await async_client.patch(f"/api/v1/users/{test_user_id}/password", 
-                                          json=password_data, headers=headers)
+        response = await async_client.patch(f"/api/v1/users/{user_id}/password", 
+                                          json=password_data, headers=auth_headers)
         
         # This might fail due to validation, but should not hang
         assert response.status_code in [200, 422]
@@ -270,19 +237,24 @@ class TestUserPasswordManagement:
             assert "correctamente" in data["message"]
     
     @pytest.mark.asyncio
-    async def test_change_password_wrong_current(self, async_client, test_user_token, test_user_id):
+    async def test_change_password_wrong_current(self, async_client, auth_headers):
         """Test password change with wrong current password"""
-        if not test_user_id:
+        # Get user ID from authenticated user
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
+        if response.status_code != 200:
+            pytest.skip("Could not get users list")
+        
+        user_id = next((u["id"] for u in response.json() if u["email"] == "testuser@example.com"), None)
+        if not user_id:
             pytest.skip("Could not get test user ID")
         
-        headers = {"Authorization": f"Bearer {test_user_token}"}
         password_data = {
             "current_password": "wrongpassword",
             "new_password": "newpassword123"
         }
         
-        response = await async_client.patch(f"/api/v1/users/{test_user_id}/password", 
-                                          json=password_data, headers=headers)
+        response = await async_client.patch(f"/api/v1/users/{user_id}/password", 
+                                          json=password_data, headers=auth_headers)
         
         assert response.status_code == 400
         assert "incorrecta" in response.json()["detail"]
@@ -325,14 +297,19 @@ class TestUserRoleManagement:
         assert "No tiene permisos" in response.text
     
     @pytest.mark.asyncio
-    async def test_remove_role_requires_permission(self, async_client, test_user_token, test_user_id):
+    async def test_remove_role_requires_permission(self, async_client, auth_headers):
         """Test that removing roles requires proper permissions"""
-        if not test_user_id:
+        # Get user ID from authenticated user
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
+        if response.status_code != 200:
+            pytest.skip("Could not get users list")
+        
+        user_id = next((u["id"] for u in response.json() if u["email"] == "testuser@example.com"), None)
+        if not user_id:
             pytest.skip("Could not get test user ID")
         
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.delete(f"/api/v1/users/{test_user_id}/roles/caregiver", 
-                                           headers=headers)
+        response = await async_client.delete(f"/api/v1/users/{user_id}/roles/caregiver", 
+                                           headers=auth_headers)
         
         # Should fail due to lack of permissions
         assert response.status_code == 403
@@ -341,9 +318,8 @@ class TestUserPermissions:
     """Test user permission checks"""
     
     @pytest.mark.asyncio
-    async def test_create_user_requires_permission(self, async_client, test_user_token):
+    async def test_create_user_requires_permission(self, async_client, auth_headers):
         """Test that creating users requires proper permissions"""
-        headers = {"Authorization": f"Bearer {test_user_token}"}
         new_user_data = {
             "email": "another@example.com",
             "password": "anotherpass123",
@@ -352,19 +328,24 @@ class TestUserPermissions:
             "phone": "111222333"
         }
         
-        response = await async_client.post("/api/v1/users/", json=new_user_data, headers=headers)
+        response = await async_client.post("/api/v1/users/", json=new_user_data, headers=auth_headers)
         
         # Should fail due to lack of permissions
         assert response.status_code == 403
     
     @pytest.mark.asyncio
-    async def test_delete_user_requires_permission(self, async_client, test_user_token, test_user_id):
+    async def test_delete_user_requires_permission(self, async_client, auth_headers):
         """Test that deleting users requires proper permissions"""
-        if not test_user_id:
+        # Get user ID from authenticated user
+        response = await async_client.get("/api/v1/users/", headers=auth_headers)
+        if response.status_code != 200:
+            pytest.skip("Could not get users list")
+        
+        user_id = next((u["id"] for u in response.json() if u["email"] == "testuser@example.com"), None)
+        if not user_id:
             pytest.skip("Could not get test user ID")
         
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.delete(f"/api/v1/users/{test_user_id}", headers=headers)
+        response = await async_client.delete(f"/api/v1/users/{user_id}", headers=auth_headers)
         
         # Should fail due to lack of permissions
         assert response.status_code == 403
@@ -408,10 +389,9 @@ class TestUserErrorHandling:
     """Test error handling in user endpoints"""
     
     @pytest.mark.asyncio
-    async def test_invalid_uuid_format(self, async_client, test_user_token):
+    async def test_invalid_uuid_format(self, async_client, auth_headers):
         """Test handling of invalid UUID format"""
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.get("/api/v1/users/invalid-uuid", headers=headers)
+        response = await async_client.get("/api/v1/users/invalid-uuid", headers=auth_headers)
         
         assert response.status_code == 422  # Validation error for UUID format
     

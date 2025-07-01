@@ -84,11 +84,10 @@ async def auth_headers(async_client, db_session):
             name="basic",
             description="Basic user role",
             permissions=json.dumps({
-                "users.read": True,
-                "profile.read": True,
-                "profile.write": True,
-                "devices.read": True,
-                "alerts.read": True
+                "users": {"read": True},
+                "profile": {"read": True, "write": True},
+                "devices": {"read": True},
+                "alerts": {"read": True}
             }),
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -168,17 +167,16 @@ async def admin_auth(async_client, db_session):
             name="admin",
             description="Administrator role",
             permissions=json.dumps({
-                "users.read": True,
-                "users.write": True,
-                "profile.read": True,
-                "profile.write": True,
-                "devices.read": True,
-                "devices.write": True,
-                "alerts.read": True,
-                "alerts.write": True,
-                "packages.read": True,
-                "packages.write": True,
-                "packages.delete": True
+                "users": {"read": True, "write": True, "delete": True},
+                "profile": {"read": True, "write": True},
+                "devices": {"read": True, "write": True, "delete": True},
+                "alerts": {"read": True, "write": True},
+                "packages": {"read": True, "write": True, "delete": True},
+                "cared_persons": {"read": True, "write": True, "delete": True},
+                "institutions": {"read": True, "write": True, "delete": True},
+                "protocols": {"read": True, "write": True, "delete": True},
+                "reports": {"read": True, "write": True},
+                "system": {"read": True, "write": True, "delete": True}
             }),
             is_system=False,
             is_active=True,
