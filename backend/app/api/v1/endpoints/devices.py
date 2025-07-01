@@ -20,7 +20,7 @@ def create_device(
     """Create a new device"""
     try:
         # Create device - exclude user_id from schema data
-        data_dict = device_data.dict()
+        data_dict = device_data.model_dump()
         data_dict.pop('user_id', None)  # Remove user_id if present
         
         device = Device(
@@ -92,7 +92,7 @@ def update_device(
         )
     
     try:
-        for field, value in device_data.dict(exclude_unset=True).items():
+        for field, value in device_data.model_dump(exclude_unset=True).items():
             setattr(device, field, value)
         
         db.commit()

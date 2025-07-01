@@ -50,7 +50,7 @@ Se han completado las primeras tres fases de refactorización del backend, imple
    - Sistema de validación de permisos
 
 2. **Personas Bajo Cuidado**:
-   - Soporte para todos los tipos de cuidado (no solo adultos mayores)
+   - Soporte para todos los tipos de cuidado (no solo personas mayores)
    - Contactos de emergencia obligatorios
    - Información médica y de accesibilidad
    - Validación de reglas de negocio

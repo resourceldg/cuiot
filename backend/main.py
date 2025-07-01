@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 import structlog
+from fastapi.exceptions import RequestValidationError
+from starlette.requests import Request
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -31,8 +34,8 @@ logger = structlog.get_logger()
 
 # Crear aplicación FastAPI
 app = FastAPI(
-    title="Viejos Son Los Trapos API",
-    description="API para sistema de acompañamiento de adultos mayores",
+    title="Sistema Integral de Monitoreo API",
+    description="API para sistema de acompañamiento de personas bajo cuidado",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -54,7 +57,7 @@ app.include_router(api_router, prefix="/api/v1")
 async def root():
     """Endpoint raíz de la API"""
     return {
-        "message": "Viejos Son Los Trapos API",
+        "message": "Sistema Integral de Monitoreo API",
         "version": "1.0.0",
         "status": "running"
     }
@@ -82,18 +85,45 @@ async def http_exception_handler(request, exc):
         content={"detail": exc.detail}
     )
 
+# --- Utilidad para decodificar bytes en dicts, listas, etc. ---
+def decode_bytes(obj):
+    if isinstance(obj, bytes):
+        return obj.decode('utf-8', errors='replace')
+    if isinstance(obj, dict):
+        return {k: decode_bytes(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [decode_bytes(i) for i in obj]
+    return obj
+
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
-    """Manejador global de excepciones generales"""
+    error_obj = decode_bytes(exc)
+    error_str = str(error_obj)
     logger.error(
         "General Exception",
-        error=str(exc),
+        error=error_str,
         path=request.url.path,
         exc_info=True
     )
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"}
+        content={"detail": "Internal server error", "error": error_str}
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Decodifica el body y los errores si contienen bytes
+    errors = decode_bytes(exc.errors())
+    body = decode_bytes(exc.body)
+    logger.error(
+        "Validation Error (422)",
+        errors=errors,
+        body=body,
+        path=request.url.path
+    )
+    return JSONResponse(
+        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": errors, "body": body}
     )
 
 if __name__ == "__main__":

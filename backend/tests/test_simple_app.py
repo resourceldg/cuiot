@@ -4,7 +4,7 @@ from main import app
 def test_app_import():
     """Test that the app can be imported without hanging"""
     assert app is not None
-    assert app.title == "Viejos Son Los Trapos API"
+    assert app.title == "Sistema Integral de Monitoreo API"
 
 def test_app_routes():
     """Test that app routes are accessible"""

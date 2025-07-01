@@ -2,7 +2,7 @@
 
 ## 🏥 **CUIOT: Plataforma de Monitoreo y Cuidado IoT**
 
-**CUIOT** = **CUI**dar + **IOT** - Una plataforma integral de monitoreo y gestión del cuidado para adultos mayores y personas con necesidades especiales, utilizando tecnología IoT.
+**CUIOT** = **CUI**dar + **IOT** - Una plataforma integral de monitoreo y gestión del cuidado para personas bajo cuidado y personas con necesidades especiales, utilizando tecnología IoT.
 
 ---
 

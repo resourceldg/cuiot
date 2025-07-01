@@ -38,7 +38,7 @@ def create_caregiver_score(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new caregiver score (admin only)"""
-    if not current_user.has_permission("admin"):
+    if not current_user.has_permission("admin", db):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
     # Check if score already exists
@@ -57,7 +57,7 @@ def update_caregiver_score(
     current_user: User = Depends(get_current_user)
 ):
     """Update caregiver score (admin only)"""
-    if not current_user.has_permission("admin"):
+    if not current_user.has_permission("admin", db):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
     score = CaregiverScoreService.update_score(db, caregiver_id, score_data)
@@ -149,7 +149,7 @@ def update_review(
         raise HTTPException(status_code=404, detail="Review not found")
     
     # Check permissions
-    if not (current_user.id == db_review.reviewer_id or current_user.has_permission("admin")):
+    if not (current_user.id == db_review.reviewer_id or current_user.has_permission("admin", db)):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
     return CaregiverReviewService.update_review(db, review_id, review_data)
@@ -166,7 +166,7 @@ def delete_review(
         raise HTTPException(status_code=404, detail="Review not found")
     
     # Check permissions
-    if not (current_user.id == db_review.reviewer_id or current_user.has_permission("admin")):
+    if not (current_user.id == db_review.reviewer_id or current_user.has_permission("admin", db)):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
     success = CaregiverReviewService.delete_review(db, review_id)
@@ -182,7 +182,7 @@ def verify_review(
     current_user: User = Depends(get_current_user)
 ):
     """Verify a review (admin only)"""
-    if not current_user.has_permission("admin"):
+    if not current_user.has_permission("admin", db):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
     review = CaregiverReviewService.verify_review(db, review_id)

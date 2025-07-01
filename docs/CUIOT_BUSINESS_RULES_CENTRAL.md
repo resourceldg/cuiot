@@ -10,13 +10,14 @@
 
 1. **[Actores y Permisos](#actores-y-permisos)**
 2. **[Modelo de Negocio](#modelo-de-negocio)**
-3. **[Sistema de Referidos](#sistema-de-referidos)**
-4. **[Tipos de Cuidado](#tipos-de-cuidado)**
-5. **[Scoring y Calificaciones](#scoring-y-calificaciones)**
-6. **[Relaciones y Asignaciones](#relaciones-y-asignaciones)**
-7. **[Flujos de Información](#flujos-de-información)**
-8. **[Consideraciones Éticas](#consideraciones-éticas)**
-9. **[Métricas y KPIs](#métricas-y-kpis)**
+3. **[Sistema de Paquetes](#sistema-de-paquetes)**
+4. **[Sistema de Referidos](#sistema-de-referidos)**
+5. **[Tipos de Cuidado](#tipos-de-cuidado)**
+6. **[Scoring y Calificaciones](#scoring-y-calificaciones)**
+7. **[Relaciones y Asignaciones](#relaciones-y-asignaciones)**
+8. **[Flujos de Información](#flujos-de-información)**
+9. **[Consideraciones Éticas](#consideraciones-éticas)**
+10. **[Métricas y KPIs](#métricas-y-kpis)**
 
 ---
 
@@ -24,14 +25,14 @@
 
 ### **A. Persona Bajo Cuidado (CaredPerson)**
 **Tipos**:
-- **Autocuidado**: Independiente, toma decisiones propias
-- **Cuidado Delegado**: Dependiente, necesita representación
+- **Autocuidado (self_care)**: Independiente, toma decisiones propias
+- **Cuidado Delegado (delegated)**: Dependiente, necesita representación
 
 **Permisos por Tipo**:
 
 | Acción | Autocuidado | Cuidado Delegado |
 |--------|-------------|------------------|
-| Contratar servicios IoT | ✅ | ❌ |
+| Contratar paquetes | ✅ | ❌ |
 | Contratar cuidador | ✅ | ❌ |
 | Contratar institución | ✅ | ❌ |
 | Ver costos totales | ✅ | ❌ |
@@ -40,6 +41,9 @@
 | Coordinar servicios | ✅ | ❌ |
 | Recomendar plataforma | ✅ | ❌ |
 | Recibir comisiones | ✅ | ❌ |
+| Gestionar dispositivos IoT | ✅ | ❌ |
+
+**Regla Crítica**: Persona bajo cuidado delegado **DEBE** tener un representante legal (familiar, tutor) vinculado.
 
 ### **B. Familiar/Representante Legal (User: family)**
 **Responsabilidades**:
@@ -49,14 +53,15 @@
 - Coordinación entre cuidadores e instituciones
 
 **Permisos**:
-- ✅ Contratar servicios IoT
+- ✅ Contratar paquetes para representado
 - ✅ Contratar cuidadores e instituciones
-- ✅ Ver costos totales
+- ✅ Ver costos totales del representado
 - ✅ Editar perfil familiar
-- ✅ Asignar cuidadores
+- ✅ Asignar cuidadores al representado
 - ✅ Coordinar servicios
 - ✅ Recomendar plataforma
 - ✅ Recibir comisiones
+- ✅ Gestionar dispositivos IoT del representado
 
 ### **C. Cuidador Freelancer (User: caregiver)**
 **Responsabilidades**:
@@ -67,6 +72,7 @@
 
 **Permisos**:
 - ✅ Comprar dispositivos IoT
+- ✅ Contratar paquetes profesionales
 - ✅ Suscripción premium
 - ✅ Reportar instituciones
 - ✅ Reportar incidentes
@@ -87,6 +93,7 @@
 
 **Permisos**:
 - ✅ Comprar dispositivos IoT
+- ✅ Contratar paquetes institucionales
 - ✅ Suscripción premium
 - ✅ Reportar cuidadores
 - ✅ Reportar incidentes
@@ -113,6 +120,8 @@
 - ✅ Actualizar estados de referidos
 - ✅ Pagar comisiones
 - ✅ Expirar referidos antiguos
+- ✅ Gestionar paquetes
+- ✅ Configurar precios
 
 ---
 
@@ -127,25 +136,100 @@
 - **Sensores de temperatura**: ARS 8,000
 - **GPS tracker**: ARS 12,000
 
-#### **2. Suscripciones Mensuales**
-- **Básico**: ARS 3,000/mes (1 persona, monitoreo básico)
+#### **2. Paquetes de Servicios (NUEVA ENTIDAD CENTRAL)**
+- **Básico Individual**: ARS 3,000/mes (1 persona, monitoreo básico)
 - **Familiar**: ARS 8,000/mes (hasta 3 personas, monitoreo completo)
 - **Premium**: ARS 15,000/mes (ilimitado, analytics avanzados)
+- **Profesional**: ARS 12,000/mes (cuidadores, herramientas avanzadas)
+- **Institucional Básico**: ARS 5,000/mes (10 pacientes)
+- **Institucional Profesional**: ARS 15,000/mes (50 pacientes)
+- **Institucional Enterprise**: ARS 50,000/mes (ilimitado)
 
 #### **3. Comisiones por Gestión**
 - **Cuidador**: 10% del valor del servicio
 - **Institución**: 5% del valor del servicio
 - **Plataforma**: 15% del valor total
 
-#### **4. Paquetes Institucionales**
-- **Básico**: ARS 5,000/mes (10 pacientes)
-- **Profesional**: ARS 15,000/mes (50 pacientes)
-- **Enterprise**: ARS 50,000/mes (ilimitado)
-
-#### **5. Sistema de Referidos**
+#### **4. Sistema de Referidos**
 - **Comisión por referido**: 15% del primer mes
 - **Comisión recurrente**: 5% mensual
 - **Bonificación por volumen**: +10% después de 5 referidos
+
+---
+
+## 📦 **Sistema de Paquetes (NUEVA ENTIDAD CENTRAL)**
+
+### **Definición**
+Los **Paquetes** son la unidad central del negocio que pueden ser contratados por cualquier tipo de usuario excepto personas bajo cuidado delegado (que deben contratar a través de su representante legal).
+
+### **Tipos de Paquetes**
+
+#### **Paquetes Individuales**
+| Paquete | Precio | Usuarios | Dispositivos | Características |
+|---------|--------|----------|--------------|-----------------|
+| **Básico** | ARS 3,000/mes | 1 | 3 | Monitoreo básico, alertas simples |
+| **Familiar** | ARS 8,000/mes | 3 | 10 | Monitoreo completo, reportes |
+| **Premium** | ARS 15,000/mes | Ilimitado | Ilimitado | Analytics avanzados, IA |
+
+#### **Paquetes Profesionales**
+| Paquete | Precio | Usuarios | Dispositivos | Características |
+|---------|--------|----------|--------------|-----------------|
+| **Profesional** | ARS 12,000/mes | 1 | 15 | Herramientas de gestión, agenda |
+| **Profesional Plus** | ARS 20,000/mes | 1 | 30 | Analytics, reportes avanzados |
+
+#### **Paquetes Institucionales**
+| Paquete | Precio | Pacientes | Dispositivos | Características |
+|---------|--------|-----------|--------------|-----------------|
+| **Institucional Básico** | ARS 5,000/mes | 10 | 30 | Monitoreo básico institucional |
+| **Institucional Profesional** | ARS 15,000/mes | 50 | 150 | Gestión completa, reportes |
+| **Institucional Enterprise** | ARS 50,000/mes | Ilimitado | Ilimitado | API completa, integración |
+
+### **Reglas de Contratación**
+
+#### **Quién Puede Contratar**
+- ✅ **Autocuidado**: Puede contratar directamente
+- ✅ **Familiar/Representante**: Puede contratar para representado
+- ✅ **Cuidador Freelancer**: Puede contratar paquetes profesionales
+- ✅ **Institución**: Puede contratar paquetes institucionales
+- ❌ **Cuidado Delegado**: NO puede contratar directamente (debe ser por representante)
+
+#### **Validaciones Obligatorias**
+1. **Capacidad Legal**: Verificar edad y capacidad del contratante
+2. **Representación**: Para cuidado delegado, validar representante legal
+3. **Límites**: Verificar límites de usuarios/dispositivos según paquete
+4. **Pago**: Validar método de pago y capacidad financiera
+
+### **Características de los Paquetes**
+
+#### **Funcionalidades por Nivel**
+```json
+{
+  "básico": {
+    "monitoreo": "básico",
+    "alertas": "simples",
+    "reportes": "diarios",
+    "dispositivos": 3,
+    "usuarios": 1,
+    "soporte": "email"
+  },
+  "familiar": {
+    "monitoreo": "completo",
+    "alertas": "avanzadas",
+    "reportes": "semanal",
+    "dispositivos": 10,
+    "usuarios": 3,
+    "soporte": "chat"
+  },
+  "premium": {
+    "monitoreo": "24/7",
+    "alertas": "IA",
+    "reportes": "personalizados",
+    "dispositivos": "ilimitado",
+    "usuarios": "ilimitado",
+    "soporte": "24/7"
+  }
+}
+```
 
 ---
 
@@ -179,34 +263,38 @@
 
 ## 🏥 **Tipos de Cuidado**
 
-### **Autocuidado (Self-Care)**
+### **Autocuidado (self_care)**
 **Definición**: Persona independiente que gestiona su propio cuidado
 
 **Características**:
 - Toma decisiones propias
-- Compra servicios directamente
+- Compra paquetes directamente
 - Control total de datos
 - Monitoreo personal
+- Puede recibir comisiones por referidos
 
 **Casos de Uso**:
-- Adultos mayores independientes
+- Personas mayores independientes
 - Personas con condiciones crónicas manejables
 - Usuarios de monitoreo preventivo
 
-### **Cuidado Delegado (Delegated Care)**
+### **Cuidado Delegado (delegated)**
 **Definición**: Persona dependiente que necesita representación
 
 **Características**:
-- Necesita representante legal
-- Compra a través de familiar
+- Necesita representante legal OBLIGATORIO
+- Compra a través de familiar/representante
 - Datos compartidos con representante
 - Monitoreo por terceros
+- NO puede contratar paquetes directamente
 
 **Casos de Uso**:
 - Personas con demencia
 - Discapacidades severas
 - Menores de edad
 - Incapacitados legales
+
+**Regla Crítica**: Persona bajo cuidado delegado **DEBE** tener un representante legal vinculado en el sistema.
 
 ---
 
@@ -262,12 +350,12 @@
 
 ### **Flujo de Compra (Autocuidado)**
 ```
-CaredPerson → Busca servicios → Compara opciones → Compra → Usa plataforma
+CaredPerson → Busca paquetes → Compara opciones → Compra → Usa plataforma
 ```
 
 ### **Flujo de Compra (Cuidado Delegado)**
 ```
-Family → Busca cuidadores → Evalúa opciones → Contrata → Coordina servicios
+Family → Busca paquetes → Evalúa opciones → Contrata para representado → Coordina servicios
 ```
 
 ### **Flujo de Referido**
@@ -330,14 +418,15 @@ Cualquier actor → Reporta → Sistema analiza → Notifica apropiados → Acci
 
 ### **Prioridades de Desarrollo**
 1. **Sistema de autenticación** con roles diferenciados
-2. **Gestión de perfiles** por tipo de usuario
-3. **Sistema de referidos** con comisiones
-4. **Scoring y reviews** para calidad
-5. **Dashboard de métricas** para seguimiento
+2. **Gestión de paquetes** como unidad central del negocio
+3. **Validación de capacidad legal** por tipo de usuario
+4. **Sistema de referidos** con comisiones
+5. **Scoring y reviews** para calidad
+6. **Dashboard de métricas** para seguimiento
 
 ### **Validaciones Requeridas**
 - **Capacidad legal**: Verificar edad y capacidad
-- **Representación**: Validar representantes legales
+- **Representación**: Validar representantes legales para cuidado delegado
 - **Certificaciones**: Verificar credenciales profesionales
 - **Antecedentes**: Chequear historial criminal
 
@@ -352,11 +441,13 @@ Cualquier actor → Reporta → Sistema analiza → Notifica apropiados → Acci
 ## 📋 **Checklist de Implementación**
 
 ### **Backend**
-- [ ] Modelos de datos con tipos de cuidado
-- [ ] Sistema de permisos granular
-- [ ] API de referidos y comisiones
-- [ ] Sistema de scoring y reviews
+- [x] Modelos de datos con tipos de cuidado
+- [x] Sistema de permisos granular
+- [x] API de referidos y comisiones
+- [x] Sistema de scoring y reviews
 - [ ] Validaciones de capacidad legal
+- [ ] Sistema de paquetes como entidad central
+- [ ] Validación de representación legal
 
 ### **Frontend**
 - [ ] Interfaces diferenciadas por rol
@@ -364,6 +455,7 @@ Cualquier actor → Reporta → Sistema analiza → Notifica apropiados → Acci
 - [ ] Sistema de reviews
 - [ ] Gestión de perfiles
 - [ ] Reportes y métricas
+- [ ] Gestión de paquetes
 
 ### **Negocio**
 - [ ] Flujos de pago y comisiones
@@ -374,6 +466,6 @@ Cualquier actor → Reporta → Sistema analiza → Notifica apropiados → Acci
 
 ---
 
-*Documento de Reglas de Negocio Centrales - CUIOT v1.0*
+*Documento de Reglas de Negocio Centrales - CUIOT v2.0*
 *Última actualización: [Fecha]*
 *Próxima revisión: [Fecha]* 

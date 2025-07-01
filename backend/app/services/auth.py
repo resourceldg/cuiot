@@ -172,28 +172,63 @@ class AuthService:
         return user
     
     @staticmethod
-    def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    def get_current_active_user(
+        db: Session = Depends(get_db),
+        credentials: HTTPAuthorizationCredentials = Depends(security)
+    ) -> User:
         """Get current active user"""
-        if not current_user.is_active:
+        user = AuthService.get_current_user(db, credentials)
+        if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Inactive user"
             )
-        return current_user
+        return user
     
     @staticmethod
-    def check_permission(user: User, permission: str) -> bool:
+    def check_permission(user: User, permission: str, db) -> bool:
         """Check if user has specific permission"""
-        return user.has_permission(permission)
+        return user.has_permission(permission, db)
     
     @staticmethod
     def require_permission(permission: str):
         """Decorator to require specific permission"""
-        def permission_checker(current_user: User = Depends(AuthService.get_current_active_user)):
-            if not AuthService.check_permission(current_user, permission):
+        def permission_checker(current_user: User = Depends(AuthService.get_current_active_user), db: Session = Depends(get_db)):
+            if not AuthService.check_permission(current_user, permission, db):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Not enough permissions"
                 )
             return current_user
         return permission_checker
+    
+    @staticmethod
+    def get_current_active_user_optional(
+        db: Session = Depends(get_db),
+        credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+    ) -> Optional[User]:
+        """Get current active user if token is present, else return None"""
+        if credentials is None:
+            return None
+        token = credentials.credentials
+        payload = AuthService.verify_token(token)
+        if payload is None:
+            return None
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        user = db.query(User).filter(User.id == UUID(user_id)).first()
+        if user is None or not user.is_active:
+            return None
+        return user
+    
+    @staticmethod
+    def get_current_user_from_token(db: Session, token: str) -> Optional[User]:
+        payload = AuthService.verify_token(token)
+        if payload is None:
+            return None
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        user = db.query(User).filter(User.id == UUID(user_id)).first()
+        return user

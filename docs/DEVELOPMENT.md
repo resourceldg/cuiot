@@ -1,4 +1,4 @@
-# 🛠️ Guía de Desarrollo - Viejos Son Los Trapos
+# 🛠️ Guía de Desarrollo - Sistema Integral de Monitoreo
 
 ## 📋 Prerrequisitos
 
@@ -492,12 +492,12 @@ sudo ./scripts/quick-migrate.sh
   sudo docker-compose exec backend python -m app.scripts.load_dummy_data
   ```
 
-#### 2. Adultos mayores no visibles en el frontend
+#### 2. Personas bajo cuidado no visibles en el frontend
 - **Síntoma**: La sección "Gestión Humana" está vacía
 - **Causa**: Campo `is_deleted` en `true` o error de validación JSON
 - **Solución**:
   ```bash
-  # Verificar estado de adultos mayores
+  # Verificar estado de personas bajo cuidado
   sudo docker-compose exec postgres psql -U viejos_trapos_user -d viejos_trapos_db -c "SELECT id, first_name, last_name, is_deleted FROM elderly_persons;"
   
   # Si hay problemas, recargar datos

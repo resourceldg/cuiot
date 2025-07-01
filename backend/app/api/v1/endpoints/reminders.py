@@ -20,7 +20,7 @@ def create_reminder(
     """Create a new reminder"""
     try:
         # Create reminder - exclude user_id from schema data
-        data_dict = reminder_data.dict()
+        data_dict = reminder_data.model_dump()
         data_dict.pop('user_id', None)  # Remove user_id if present
         
         reminder = Reminder(
@@ -92,7 +92,7 @@ def update_reminder(
         )
     
     try:
-        for field, value in reminder_data.dict(exclude_unset=True).items():
+        for field, value in reminder_data.model_dump(exclude_unset=True).items():
             setattr(reminder, field, value)
         
         db.commit()

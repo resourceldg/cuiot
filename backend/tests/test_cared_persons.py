@@ -95,6 +95,21 @@ async def test_cared_person_validation(async_client, auth_headers):
     response = await async_client.post("/api/v1/cared-persons/", json=valid_data, headers=auth_headers)
     assert response.status_code == 201
 
+    # Test valid self_care type
+    cared_person_data = {
+        "first_name": "Juan",
+        "last_name": "Pérez",
+        "date_of_birth": "1950-01-01",
+        "care_type": "self_care"
+    }
+    response = await async_client.post("/api/v1/cared-persons/", json=cared_person_data, headers=auth_headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert data is not None
+    assert "id" in data
+    assert data["first_name"] == "Juan"
+    assert data["care_type"] == "self_care"
+
 @pytest.mark.asyncio
 async def test_cared_person_not_found(async_client, auth_headers):
     """Test handling of non-existent cared person"""

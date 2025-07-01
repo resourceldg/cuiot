@@ -13,7 +13,7 @@ class ReportService:
             title=report_data.title,
             description=report_data.description,
             report_type=report_data.report_type,
-            attached_files=[file.dict() for file in report_data.attached_files],
+            attached_files=[file.model_dump() for file in report_data.attached_files],
             is_autocuidado=report_data.is_autocuidado,
             cared_person_id=report_data.cared_person_id,
             created_by_id=user.id

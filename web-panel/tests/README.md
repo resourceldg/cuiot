@@ -9,6 +9,7 @@ Ubicados en `tests/e2e/` usando Playwright:
 - **devices.spec.js:** ABM completo de dispositivos
 - **session.spec.js:** Login, logout y gestión de sesión
 - **alerts.spec.js:** Visualización de alertas críticas
+- **personas-bajo-cuidado.spec.js:** ABM completo de personas bajo cuidado
 
 ### Tests Unitarios
 Ubicados en `tests/unit/` usando Vitest + Testing Library:

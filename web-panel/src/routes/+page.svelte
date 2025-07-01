@@ -94,7 +94,7 @@
             const safeDevicesData = Array.isArray(devicesDataRaw)
                 ? devicesDataRaw
                 : [];
-            // Procesar adultos mayores y ordenar por updated_at/created_at descendente
+            // Procesar personas bajo cuidado y ordenar por updated_at/created_at descendente
             elderlyPersons = Array.isArray(elderlyData)
                 ? elderlyData
                       .map((person: any) => ({
@@ -106,15 +106,15 @@
                           location: "Sala de estar", // TODO: Obtener de dispositivos
                           alerts: safeAlertsData.filter(
                               (alert: any) =>
-                                  alert.elderly_person_id === person.id,
+                                  alert.elderly_person_id === person.id
                           ).length,
                       }))
                       .sort((a: any, b: any) => {
                           const dateA = new Date(
-                              a.updated_at || a.created_at,
+                              a.updated_at || a.created_at
                           ).getTime();
                           const dateB = new Date(
-                              b.updated_at || b.created_at,
+                              b.updated_at || b.created_at
                           ).getTime();
                           return dateB - dateA;
                       })
@@ -123,7 +123,7 @@
             systemStatus = {
                 devices: safeDevicesData.length,
                 activeAlerts: safeAlertsData.filter(
-                    (alert: any) => !alert.resolved,
+                    (alert: any) => !alert.resolved
                 ).length,
                 totalEvents: 156, // TODO: Obtener de eventos
                 uptime: "99.8%",
@@ -213,7 +213,7 @@
     async function handleDelete(person: ElderlyPerson) {
         if (
             confirm(
-                `¿Seguro que deseas eliminar a ${person.first_name} ${person.last_name}?`,
+                `¿Seguro que deseas eliminar a ${person.first_name} ${person.last_name}?`
             )
         ) {
             try {
@@ -242,7 +242,7 @@
         goto("/login");
     }
 
-    // Cargar dispositivos y adultos mayores
+    // Cargar dispositivos y personas bajo cuidado
     async function loadDevicesAndElderly() {
         try {
             deviceFormLoading = true;
@@ -254,10 +254,10 @@
             devices = Array.isArray(devicesData)
                 ? devicesData.sort((a: any, b: any) => {
                       const dateA = new Date(
-                          a.updated_at || a.created_at,
+                          a.updated_at || a.created_at
                       ).getTime();
                       const dateB = new Date(
-                          b.updated_at || b.created_at,
+                          b.updated_at || b.created_at
                       ).getTime();
                       return dateB - dateA;
                   })
@@ -321,7 +321,7 @@
     async function handleDeleteDevice(device: any) {
         if (
             confirm(
-                `¿Seguro que deseas eliminar el dispositivo '${device.name}'?`,
+                `¿Seguro que deseas eliminar el dispositivo '${device.name}'?`
             )
         ) {
             try {
@@ -360,7 +360,7 @@
 <!-- Hero Section -->
 <section class="hero-section">
     <div class="hero-background">
-        <div class="hero-overlay"></div>
+        <div class="hero-overlay" />
     </div>
 
     <div class="container mx-auto px-6 py-20">

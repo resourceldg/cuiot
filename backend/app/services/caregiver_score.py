@@ -17,7 +17,7 @@ class CaregiverScoreService:
     @staticmethod
     def create_score(db: Session, score_data: CaregiverScoreCreate) -> CaregiverScore:
         """Create a new caregiver score"""
-        db_score = CaregiverScore(**score_data.dict())
+        db_score = CaregiverScore(**score_data.model_dump())
         db.add(db_score)
         db.commit()
         db.refresh(db_score)
@@ -35,7 +35,7 @@ class CaregiverScoreService:
         if not db_score:
             return None
         
-        for field, value in score_data.dict(exclude_unset=True).items():
+        for field, value in score_data.model_dump(exclude_unset=True).items():
             setattr(db_score, field, value)
         
         db.commit()

@@ -53,6 +53,7 @@ class User(BaseModel):
     alerts = relationship("Alert", back_populates="user")
     reminders = relationship("Reminder", foreign_keys="[Reminder.user_id]", back_populates="user")
     service_subscriptions = relationship("ServiceSubscription", back_populates="user")
+    user_packages = relationship("UserPackage", foreign_keys="[UserPackage.user_id]", back_populates="user")
     billing_records = relationship("BillingRecord", back_populates="user")
     location_tracking = relationship("LocationTracking", back_populates="user")
     geofences = relationship("Geofence", back_populates="user")
@@ -80,23 +81,17 @@ class User(BaseModel):
         """Check if user has specific role"""
         return any(role.name == role_name for role in self.roles)
     
-    def has_permission(self, permission: str) -> bool:
-        """Check if user has specific permission"""
-        # Use a more efficient query to avoid lazy loading deadlocks
-        db = next(get_db())
-        
-        # Query user roles with permissions in a single query
+    def has_permission(self, permission: str, db) -> bool:
+        """Check if user has specific permission (usando la sesión activa)"""
+        # Query user roles con permisos en una sola consulta
         user_with_roles = db.query(User).options(
             joinedload(User.user_roles).joinedload(UserRole.role)
         ).filter(User.id == self.id).first()
-        
         if not user_with_roles or not user_with_roles.user_roles:
             return False
-        
         for user_role in user_with_roles.user_roles:
             if user_role.is_active and user_role.role and user_role.role.has_permission(permission):
                 return True
-        
         return False
     
     @property

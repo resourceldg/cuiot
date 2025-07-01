@@ -4,7 +4,8 @@
         {
             path: "/dashboard/human",
             label: "Gestión Humana",
-            description: "Gestiona adultos mayores, recordatorios y alertas.",
+            description:
+                "Gestiona personas bajo cuidado, recordatorios y alertas.",
             icon: "👵",
         },
         {
@@ -26,7 +27,7 @@
 </script>
 
 <div class="dashboard-home">
-    <h1>👴 Viejos Son Los Trapos</h1>
+    <h1>👥 Personas Bajo Cuidado</h1>
     <p class="subtitle">
         Bienvenido al panel principal. Selecciona una sección para comenzar:
     </p>
@@ -74,9 +75,7 @@
         border: 1px solid #e5e7eb;
         padding: 2rem 1.5rem;
         cursor: pointer;
-        transition:
-            box-shadow 0.15s,
-            transform 0.12s;
+        transition: box-shadow 0.15s, transform 0.12s;
         outline: none;
     }
     .section-card:hover,

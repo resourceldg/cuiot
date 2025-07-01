@@ -6,7 +6,7 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from main import app
-from app.core.database import get_db, engine
+from app.core.database import get_db, engine, SessionLocal
 from app.models.base import Base
 from sqlalchemy import text
 
@@ -18,29 +18,30 @@ def create_tables():
     yield
     Base.metadata.drop_all(bind=engine)
 
+@pytest.fixture
+def db_session():
+    """Fixture para obtener una sesión de base de datos y cerrarla correctamente."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @pytest.fixture(autouse=True)
 def clean_db():
     """Clean database before each test using PostgreSQL"""
     db = next(get_db())
-    
     try:
-        # Disable foreign key constraints temporarily
         db.execute(text("SET session_replication_role = replica;"))
-        
-        # Clean all tables
         for table in reversed(Base.metadata.sorted_tables):
             db.execute(text(f"TRUNCATE TABLE {table.name} RESTART IDENTITY CASCADE;"))
-        
-        # Re-enable foreign key constraints
         db.execute(text("SET session_replication_role = DEFAULT;"))
         db.commit()
-        
     except Exception as e:
         print(f"Warning: Could not clean database: {e}")
         db.rollback()
     finally:
         db.close()
-    
     yield
 
 @pytest_asyncio.fixture
@@ -49,7 +50,7 @@ async def async_client():
         yield ac
 
 @pytest_asyncio.fixture
-async def auth_headers(async_client):
+async def auth_headers(async_client, db_session):
     """Create a test user and return authentication headers"""
     # Registrar usuario primero
     register_response = await async_client.post("/api/v1/auth/register", json={
@@ -66,7 +67,7 @@ async def auth_headers(async_client):
         print(f"Response: {register_response.text}")
     
     # Create basic role and assign it
-    db = next(get_db())
+    db = db_session
     from app.models.user import User
     from app.models.role import Role
     from app.models.user_role import UserRole
@@ -126,6 +127,94 @@ async def auth_headers(async_client):
         return {"Authorization": f"Bearer {token}"}
     except (KeyError, ValueError) as e:
         print(f"Error extracting token from response: {e}")
+        print(f"Response status: {login_response.status_code}")
+        print(f"Response body: {login_response.text}")
+        # Retornar headers vacíos si falla
+        return {"Authorization": "Bearer invalid_token"}
+
+@pytest_asyncio.fixture
+async def admin_auth(async_client, db_session):
+    """Create an admin user and return authentication headers"""
+    # Registrar usuario admin primero
+    register_response = await async_client.post("/api/v1/auth/register", json={
+        "email": "admin@example.com",
+        "password": "adminpassword",
+        "first_name": "Admin",
+        "last_name": "User",
+        "phone": "987654321",
+        "username": "adminuser"
+    })
+    
+    # Verificar que el registro fue exitoso
+    if register_response.status_code != 201:
+        print(f"Warning: Admin registration failed with status {register_response.status_code}")
+        print(f"Response: {register_response.text}")
+    
+    # Create admin role and assign it
+    db = db_session
+    from app.models.user import User
+    from app.models.role import Role
+    from app.models.user_role import UserRole
+    import json
+    from datetime import datetime
+    
+    # Find the admin user
+    db_user = db.query(User).filter_by(email="admin@example.com").first()
+    
+    # Crear rol admin si no existe
+    admin_role = db.query(Role).filter_by(name="admin").first()
+    if not admin_role:
+        admin_role = Role(
+            name="admin",
+            description="Administrator role",
+            permissions=json.dumps({
+                "users.read": True,
+                "users.write": True,
+                "profile.read": True,
+                "profile.write": True,
+                "devices.read": True,
+                "devices.write": True,
+                "alerts.read": True,
+                "alerts.write": True,
+                "packages.read": True,
+                "packages.write": True,
+                "packages.delete": True
+            }),
+            is_system=False,
+            is_active=True,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        db.add(admin_role)
+        db.commit()
+        db.refresh(admin_role)
+    
+    # Asignar rol admin al usuario
+    user_role = UserRole(
+        user_id=db_user.id,
+        role_id=admin_role.id,
+        is_active=True,
+        created_at=datetime.now()
+    )
+    db.add(user_role)
+    db.commit()
+    
+    # Login para obtener token
+    login_response = await async_client.post("/api/v1/auth/login", json={
+        "email": "admin@example.com",
+        "password": "adminpassword"
+    })
+    
+    # Verificar que el login fue exitoso
+    if login_response.status_code != 200:
+        print(f"Warning: Admin login failed with status {login_response.status_code}")
+        print(f"Response: {login_response.text}")
+    
+    try:
+        token = login_response.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+    except (KeyError, ValueError) as e:
+        print(f"Error extracting admin token from response: {e}")
         print(f"Response status: {login_response.status_code}")
         print(f"Response body: {login_response.text}")
         # Retornar headers vacíos si falla

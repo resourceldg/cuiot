@@ -21,6 +21,9 @@ from app.models.geofence import Geofence
 from app.models.debug_event import DebugEvent
 from app.models.report import Report
 
+# Package models
+from app.models.package import Package, UserPackage, PackageAddOn, UserPackageAddOn
+
 # Scoring models
 from app.models.caregiver_score import CaregiverScore
 from app.models.caregiver_review import CaregiverReview
@@ -53,6 +56,11 @@ __all__ = [
     "Geofence",
     "DebugEvent",
     "Report",
+    # Package models
+    "Package",
+    "UserPackage",
+    "PackageAddOn",
+    "UserPackageAddOn",
     # Scoring models
     "CaregiverScore",
     "CaregiverReview", 

@@ -4,7 +4,7 @@
 
 ## Resumen Ejecutivo
 
-Este documento presenta el modelo de datos completo para el sistema de monitoreo de cuidado humano, diseñado para soportar todos los tipos de usuarios, servicios, dispositivos, protocolos y funcionalidades definidas en las reglas de negocio.
+Este documento presenta el modelo de datos completo para el sistema de monitoreo de cuidado humano, diseñado para soportar todos los tipos de usuarios, servicios, dispositivos, protocolos y funcionalidades definidas en las reglas de negocio. **Actualizado para incluir Sistema de Paquetes como unidad central del negocio.**
 
 ---
 
@@ -29,6 +29,9 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Un usuario puede ser cuidador de múltiples personas (CAREGIVER_ASSIGNMENTS)
 - Un usuario puede ser persona bajo cuidado (CARED_PERSONS)
 - Un usuario puede pertenecer a múltiples instituciones (USER_INSTITUTIONS)
+- Un usuario puede tener múltiples paquetes (PACKAGES)
+- Un usuario puede hacer múltiples referidos (REFERRALS)
+- Un usuario puede recibir múltiples comisiones (REFERRAL_COMMISSIONS)
 
 ### 1.2 ROLES (Roles)
 **Descripción**: Roles disponibles en el sistema.
@@ -44,8 +47,8 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 
 **Atributos Clave**:
 - `id` (UUID, PK): Identificador único
-- `user_id` (UUID, FK): Referencia al usuario
-- `care_type` (VARCHAR(50)): Tipo de cuidado (elderly, disability, autism, medical, recovery)
+- `user_id` (UUID, FK): Referencia al usuario (representante legal para cuidado delegado)
+- `care_type` (VARCHAR(50)): Tipo de cuidado (self_care, delegated)
 - `disability_type` (VARCHAR(100)): Tipo de discapacidad si aplica
 - `medical_conditions` (JSONB): Condiciones médicas
 - `medications` (JSONB): Medicamentos y horarios
@@ -58,10 +61,49 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 **Relaciones**:
 - Una persona bajo cuidado debe tener al menos un cuidador (CAREGIVER_ASSIGNMENTS)
 - Una persona puede tener múltiples dispositivos (DEVICES)
-- Una persona puede pertenecer a una institución (INSTITUTION_ASSIGNMENTS)
-- Una persona puede tener múltiples servicios (SERVICE_SUBSCRIPTIONS)
+- Una persona puede pertenecer a múltiples instituciones (CARED_PERSON_INSTITUTIONS)
+- Una persona puede tener múltiples paquetes (PACKAGES) - solo si es autocuidado
+- Una persona puede hacer referidos (REFERRALS) - solo si es autocuidado
 
-### 1.4 INSTITUTIONS (Instituciones)
+### 1.4 PACKAGES (Paquetes - NUEVA ENTIDAD CENTRAL)
+**Descripción**: Unidad central del negocio. Paquetes de servicios que pueden ser contratados por usuarios.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `package_type` (VARCHAR(50)): Tipo de paquete (basic, familiar, premium, professional, institutional)
+- `name` (VARCHAR(100)): Nombre del paquete
+- `description` (TEXT): Descripción del paquete
+- `price_monthly` (DECIMAL(10,2)): Precio mensual en centavos
+- `price_yearly` (DECIMAL(10,2)): Precio anual en centavos
+- `currency` (VARCHAR(3)): Moneda (ARS)
+- `features` (JSONB): Características incluidas
+- `limitations` (JSONB): Limitaciones del paquete
+- `max_users` (INTEGER): Máximo número de usuarios
+- `max_devices` (INTEGER): Máximo número de dispositivos
+- `max_storage_gb` (INTEGER): Almacenamiento máximo en GB
+- `support_level` (VARCHAR(50)): Nivel de soporte (email, chat, phone, 24/7)
+- `is_active` (BOOLEAN): Estado activo
+
+**Relaciones**:
+- Un paquete puede ser contratado por múltiples usuarios (USER_PACKAGES)
+- Un paquete puede ser contratado por múltiples instituciones (INSTITUTION_PACKAGES)
+- Un paquete puede generar múltiples facturas (BILLING_RECORDS)
+
+### 1.5 USER_PACKAGES (Paquetes de Usuarios)
+**Descripción**: Relación entre usuarios y paquetes contratados.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `user_id` (UUID, FK): Usuario que contrata
+- `package_id` (UUID, FK): Paquete contratado
+- `start_date` (DATE): Fecha de inicio
+- `end_date` (DATE): Fecha de fin (NULL para contratos continuos)
+- `auto_renew` (BOOLEAN): Renovación automática
+- `status` (VARCHAR(20)): Estado (active, suspended, cancelled, expired)
+- `payment_method` (VARCHAR(50)): Método de pago
+- `created_at` (TIMESTAMP): Fecha de contratación
+
+### 1.6 INSTITUTIONS (Instituciones)
 **Descripción**: Centros de cuidado, escuelas especiales, geriátricos, etc.
 
 **Atributos Clave**:
@@ -81,25 +123,130 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 
 **Relaciones**:
 - Una institución puede tener múltiples usuarios (USER_INSTITUTIONS)
-- Una institución puede tener múltiples servicios (SERVICE_SUBSCRIPTIONS)
+- Una institución puede tener múltiples paquetes (INSTITUTION_PACKAGES)
 - Una institución puede tener múltiples dispositivos (DEVICES)
+- Una institución puede hacer referidos (REFERRALS)
+- Una institución puede recibir comisiones (REFERRAL_COMMISSIONS)
 
-### 1.5 SERVICES (Servicios)
-**Descripción**: Planes y servicios contratados por usuarios o instituciones.
+### 1.7 INSTITUTION_PACKAGES (Paquetes de Instituciones)
+**Descripción**: Relación entre instituciones y paquetes contratados.
 
 **Atributos Clave**:
 - `id` (UUID, PK): Identificador único
-- `name` (VARCHAR(100)): Nombre del servicio
-- `service_type` (VARCHAR(50)): Tipo (basic, premium, institutional, specialized)
-- `description` (TEXT): Descripción del servicio
-- `price_monthly` (DECIMAL(10,2)): Precio mensual
-- `features` (JSONB): Características incluidas
-- `device_limit` (INTEGER): Límite de dispositivos
-- `user_limit` (INTEGER): Límite de usuarios
-- `storage_limit_gb` (INTEGER): Límite de almacenamiento
-- `is_active` (BOOLEAN): Estado activo
+- `institution_id` (UUID, FK): Institución que contrata
+- `package_id` (UUID, FK): Paquete contratado
+- `start_date` (DATE): Fecha de inicio
+- `end_date` (DATE): Fecha de fin
+- `auto_renew` (BOOLEAN): Renovación automática
+- `status` (VARCHAR(20)): Estado
+- `payment_method` (VARCHAR(50)): Método de pago
+- `max_patients` (INTEGER): Máximo número de pacientes
+- `created_at` (TIMESTAMP): Fecha de contratación
 
-### 1.6 DEVICES (Dispositivos)
+### 1.8 REFERRALS (Referidos)
+**Descripción**: Sistema de referidos para crecimiento orgánico.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `referral_code` (VARCHAR(20), UNIQUE): Código único de referido
+- `referrer_type` (VARCHAR(20)): Tipo de referente (caregiver, institution, family, cared_person)
+- `referrer_id` (UUID): ID del referente
+- `referred_email` (VARCHAR(100)): Email de la persona referida
+- `referred_name` (VARCHAR(100)): Nombre de la persona referida
+- `referred_phone` (VARCHAR(20)): Teléfono de la persona referida
+- `status` (VARCHAR(20)): Estado (pending, registered, converted, expired)
+- `registered_at` (TIMESTAMP): Fecha de registro
+- `converted_at` (TIMESTAMP): Fecha de conversión
+- `expired_at` (TIMESTAMP): Fecha de expiración
+- `commission_amount` (DECIMAL(10,2)): Monto de comisión
+- `commission_paid` (BOOLEAN): Si la comisión fue pagada
+- `commission_paid_at` (TIMESTAMP): Fecha de pago de comisión
+- `notes` (TEXT): Notas adicionales
+- `source` (VARCHAR(50)): Fuente del referido (email, whatsapp, phone, in_person)
+
+**Relaciones**:
+- Un referido puede generar múltiples comisiones (REFERRAL_COMMISSIONS)
+
+### 1.9 REFERRAL_COMMISSIONS (Comisiones de Referidos)
+**Descripción**: Tracking de comisiones por referidos.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `referral_id` (UUID, FK): Referido asociado
+- `recipient_type` (VARCHAR(20)): Tipo de receptor (caregiver, institution, family)
+- `recipient_id` (UUID): ID del receptor
+- `amount` (DECIMAL(10,2)): Monto de la comisión
+- `commission_type` (VARCHAR(20)): Tipo (first_month, recurring, bonus)
+- `percentage` (DECIMAL(5,2)): Porcentaje de comisión
+- `status` (VARCHAR(20)): Estado (pending, paid, cancelled)
+- `paid_at` (TIMESTAMP): Fecha de pago
+
+### 1.10 CAREGIVER_SCORES (Puntuaciones de Cuidadores)
+**Descripción**: Sistema de scoring para cuidadores.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `caregiver_id` (UUID, FK): Cuidador evaluado
+- `experience_score` (DECIMAL(3,2)): Puntuación por experiencia (0-5)
+- `quality_score` (DECIMAL(3,2)): Puntuación por calidad (0-5)
+- `reliability_score` (DECIMAL(3,2)): Puntuación por confiabilidad (0-5)
+- `availability_score` (DECIMAL(3,2)): Puntuación por disponibilidad (0-5)
+- `specialization_score` (DECIMAL(3,2)): Puntuación por especialización (0-5)
+- `overall_score` (DECIMAL(3,2)): Puntuación general (0-5)
+- `total_reviews` (INTEGER): Total de reviews
+- `last_calculated` (TIMESTAMP): Última fecha de cálculo
+
+### 1.11 CAREGIVER_REVIEWS (Reviews de Cuidadores)
+**Descripción**: Reviews y calificaciones de cuidadores.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `caregiver_id` (UUID, FK): Cuidador evaluado
+- `reviewer_id` (UUID, FK): Usuario que hace la review
+- `cared_person_id` (UUID, FK): Persona bajo cuidado (opcional)
+- `rating` (INTEGER): Calificación (1-5)
+- `comment` (TEXT): Comentario
+- `categories` (JSONB): Calificaciones por categorías
+- `is_recommended` (BOOLEAN): Si recomendaría
+- `service_date` (DATE): Fecha del servicio
+- `service_hours` (DECIMAL(5,2)): Horas de servicio
+- `service_type` (VARCHAR(50)): Tipo de servicio
+- `is_verified` (BOOLEAN): Si está verificado
+- `is_public` (BOOLEAN): Si es público
+
+### 1.12 INSTITUTION_SCORES (Puntuaciones de Instituciones)
+**Descripción**: Sistema de scoring para instituciones.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `institution_id` (UUID, FK): Institución evaluada
+- `medical_quality_score` (DECIMAL(3,2)): Puntuación por calidad médica (0-5)
+- `infrastructure_score` (DECIMAL(3,2)): Puntuación por infraestructura (0-5)
+- `staff_score` (DECIMAL(3,2)): Puntuación por personal (0-5)
+- `attention_score` (DECIMAL(3,2)): Puntuación por atención (0-5)
+- `price_score` (DECIMAL(3,2)): Puntuación por precios (0-5)
+- `overall_score` (DECIMAL(3,2)): Puntuación general (0-5)
+- `total_reviews` (INTEGER): Total de reviews
+- `last_calculated` (TIMESTAMP): Última fecha de cálculo
+
+### 1.13 INSTITUTION_REVIEWS (Reviews de Instituciones)
+**Descripción**: Reviews y calificaciones de instituciones.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `institution_id` (UUID, FK): Institución evaluada
+- `reviewer_id` (UUID, FK): Usuario que hace la review
+- `cared_person_id` (UUID, FK): Persona bajo cuidado (opcional)
+- `rating` (INTEGER): Calificación (1-5)
+- `comment` (TEXT): Comentario
+- `categories` (JSONB): Calificaciones por categorías
+- `is_recommended` (BOOLEAN): Si recomendaría
+- `service_date` (DATE): Fecha del servicio
+- `service_type` (VARCHAR(50)): Tipo de servicio
+- `is_verified` (BOOLEAN): Si está verificado
+- `is_public` (BOOLEAN): Si es público
+
+### 1.14 DEVICES (Dispositivos)
 **Descripción**: Dispositivos IoT y sensores del sistema.
 
 **Atributos Clave**:
@@ -119,29 +266,11 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `is_active` (BOOLEAN): Estado activo
 
 **Relaciones**:
-- Un dispositivo debe estar asociado a un servicio (SERVICE_SUBSCRIPTIONS)
+- Un dispositivo debe estar asociado a un paquete (USER_PACKAGES o INSTITUTION_PACKAGES)
 - Un dispositivo puede estar asociado a una persona (CARED_PERSONS) o institución (INSTITUTIONS)
 - Un dispositivo puede generar múltiples eventos (EVENTS)
 
-### 1.7 PROTOCOLS (Protocolos)
-**Descripción**: Protocolos configurables para diferentes tipos de crisis y eventos.
-
-**Atributos Clave**:
-- `id` (UUID, PK): Identificador único
-- `name` (VARCHAR(100)): Nombre del protocolo
-- `protocol_type` (VARCHAR(50)): Tipo (fall, seizure, wandering, autism_crisis, etc.)
-- `description` (TEXT): Descripción del protocolo
-- `contact_sequence` (JSONB): Secuencia de contactos
-- `escalation_times` (JSONB): Tiempos de escalación
-- `automatic_actions` (JSONB): Acciones automáticas
-- `is_active` (BOOLEAN): Estado activo
-- `created_by` (UUID, FK): Usuario que creó el protocolo
-
-**Relaciones**:
-- Un protocolo puede estar asociado a múltiples usuarios (USER_PROTOCOLS)
-- Un protocolo puede estar asociado a múltiples instituciones (INSTITUTION_PROTOCOLS)
-
-### 1.8 EVENTS (Eventos)
+### 1.15 EVENTS (Eventos)
 **Descripción**: Eventos generados por dispositivos o usuarios.
 
 **Atributos Clave**:
@@ -160,7 +289,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Un evento puede generar múltiples alertas (ALERTS)
 - Un evento está asociado a una persona bajo cuidado (CARED_PERSONS)
 
-### 1.9 ALERTS (Alertas)
+### 1.16 ALERTS (Alertas)
 **Descripción**: Alertas generadas por eventos según protocolos.
 
 **Atributos Clave**:
@@ -179,176 +308,95 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - Una alerta está asociada a un evento (EVENTS)
 - Una alerta puede tener múltiples notificaciones (NOTIFICATIONS)
 
-### 1.10 LOCATION_TRACKING (Seguimiento de Ubicación)
-**Descripción**: Datos de geolocalización de usuarios.
+### 1.17 BILLING_RECORDS (Registros de Facturación)
+**Descripción**: Registros de facturación y pagos.
 
 **Atributos Clave**:
 - `id` (UUID, PK): Identificador único
-- `cared_person_id` (UUID, FK): Persona bajo cuidado
-- `device_id` (VARCHAR(100)): Dispositivo de tracking
-- `latitude` (DECIMAL(10,8)): Latitud
-- `longitude` (DECIMAL(11,8)): Longitud
-- `accuracy` (FLOAT): Precisión en metros
-- `timestamp` (TIMESTAMP): Timestamp de la ubicación
-- `location_type` (VARCHAR(50)): Tipo (home, center, outdoor, unknown)
+- `invoice_number` (VARCHAR(50), UNIQUE): Número de factura único
+- `billing_type` (VARCHAR(50)): Tipo de facturación (subscription, service, usage, etc.)
+- `description` (TEXT): Descripción
+- `amount` (INTEGER): Monto en centavos
+- `currency` (VARCHAR(3)): Moneda
+- `tax_amount` (INTEGER): Monto de impuestos en centavos
+- `total_amount` (INTEGER): Monto total en centavos
+- `billing_date` (DATE): Fecha de facturación
+- `due_date` (DATE): Fecha de vencimiento
+- `paid_date` (DATE): Fecha de pago
+- `status` (VARCHAR(20)): Estado (pending, paid, overdue, cancelled)
+- `payment_method` (VARCHAR(50)): Método de pago
+- `transaction_id` (VARCHAR(100)): ID de transacción
 
 **Relaciones**:
-- Un registro de ubicación está asociado a una persona (CARED_PERSONS)
-
-### 1.11 GEOFENCES (Geofences)
-**Descripción**: Áreas seguras para monitoreo de ubicación.
-
-**Atributos Clave**:
-- `id` (UUID, PK): Identificador único
-- `cared_person_id` (UUID, FK): Persona bajo cuidado
-- `name` (VARCHAR(100)): Nombre del geofence
-- `center_latitude` (DECIMAL(10,8)): Latitud del centro
-- `center_longitude` (DECIMAL(11,8)): Longitud del centro
-- `radius_meters` (INTEGER): Radio en metros
-- `alert_on_exit` (BOOLEAN): Alertar al salir
-- `alert_on_enter` (BOOLEAN): Alertar al entrar
-- `is_active` (BOOLEAN): Estado activo
-
-**Relaciones**:
-- Un geofence está asociado a una persona (CARED_PERSONS)
+- Una factura puede estar asociada a un paquete (USER_PACKAGES o INSTITUTION_PACKAGES)
+- Una factura puede estar asociada a un usuario (USERS) o institución (INSTITUTIONS)
 
 ---
 
-## 2. Tablas de Relación
+## 2. Reglas de Negocio Críticas
 
-### 2.1 USER_ROLES
-**Descripción**: Relación muchos a muchos entre usuarios y roles.
+### 2.1 Capacidad Legal y Representación
+- **Autocuidado**: Puede contratar paquetes directamente
+- **Cuidado Delegado**: DEBE tener representante legal vinculado
+- **Validación**: Verificar edad y capacidad legal antes de permitir contrataciones
 
-**Atributos**:
-- `user_id` (UUID, FK): Usuario
-- `role_id` (UUID, FK): Rol
-- `assigned_at` (TIMESTAMP): Fecha de asignación
+### 2.2 Sistema de Paquetes
+- **Unidad Central**: Los paquetes son la unidad central del negocio
+- **Contratación**: Solo usuarios con capacidad legal pueden contratar
+- **Límites**: Verificar límites de usuarios/dispositivos según paquete
+- **Renovación**: Sistema de renovación automática configurable
 
-### 2.2 CAREGIVER_ASSIGNMENTS
-**Descripción**: Asignación de cuidadores a personas bajo cuidado.
+### 2.3 Sistema de Referidos
+- **Comisiones Automáticas**: Cálculo automático según tipo de referente
+- **Expiración**: Referidos expiran después de 30 días
+- **Bonificaciones**: Bonificaciones por volumen de referidos
+- **Tracking**: Seguimiento completo del ciclo de vida del referido
 
-**Atributos**:
-- `id` (UUID, PK): Identificador único
-- `cared_person_id` (UUID, FK): Persona bajo cuidado
-- `caregiver_user_id` (UUID, FK): Usuario cuidador
-- `relationship` (VARCHAR(50)): Relación (family, professional, guardian)
-- `is_primary` (BOOLEAN): Si es cuidador principal
-- `availability_hours` (JSONB): Horarios de disponibilidad
-- `assigned_at` (TIMESTAMP): Fecha de asignación
-
-### 2.3 SERVICE_SUBSCRIPTIONS
-**Descripción**: Suscripciones de usuarios o instituciones a servicios.
-
-**Atributos**:
-- `id` (UUID, PK): Identificador único
-- `user_id` (UUID, FK, NULL): Usuario (NULL si es institucional)
-- `institution_id` (UUID, FK, NULL): Institución (NULL si es individual)
-- `service_id` (UUID, FK): Servicio contratado
-- `status` (VARCHAR(20)): Estado (active, suspended, cancelled, pending)
-- `start_date` (DATE): Fecha de inicio
-- `end_date` (DATE): Fecha de fin
-- `billing_cycle` (VARCHAR(20)): Ciclo de facturación
-- `price` (DECIMAL(10,2)): Precio acordado
-- `modules` (JSONB): Módulos adicionales contratados
-
-### 2.4 USER_INSTITUTIONS
-**Descripción**: Relación entre usuarios e instituciones.
-
-**Atributos**:
-- `user_id` (UUID, FK): Usuario
-- `institution_id` (UUID, FK): Institución
-- `role_in_institution` (VARCHAR(50)): Rol en la institución
-- `start_date` (DATE): Fecha de inicio
-- `end_date` (DATE): Fecha de fin (NULL si activo)
-
-### 2.5 USER_PROTOCOLS
-**Descripción**: Protocolos asignados a usuarios específicos.
-
-**Atributos**:
-- `user_id` (UUID, FK): Usuario
-- `protocol_id` (UUID, FK): Protocolo
-- `is_active` (BOOLEAN): Estado activo
-- `assigned_at` (TIMESTAMP): Fecha de asignación
-
-### 2.6 INSTITUTION_PROTOCOLS
-**Descripción**: Protocolos estándar de instituciones.
-
-**Atributos**:
-- `institution_id` (UUID, FK): Institución
-- `protocol_id` (UUID, FK): Protocolo
-- `is_active` (BOOLEAN): Estado activo
-- `assigned_at` (TIMESTAMP): Fecha de asignación
+### 2.4 Scoring y Reviews
+- **Cálculo Automático**: Scores calculados automáticamente basados en reviews
+- **Verificación**: Solo usuarios reales pueden hacer reviews
+- **Moderación**: Reviews verificadas por administradores
+- **Categorías**: Reviews por categorías específicas
 
 ---
 
-## 3. Diagrama Visual (Representación Textual)
+## 3. Relaciones Principales
 
+### 3.1 Jerarquía de Usuarios
 ```
-USERS (1) ←→ (N) USER_ROLES (N) ←→ (1) ROLES
-USERS (1) ←→ (N) CARED_PERSONS (1) ←→ (N) CAREGIVER_ASSIGNMENTS (N) ←→ (1) USERS
-USERS (N) ←→ (M) USER_INSTITUTIONS (M) ←→ (N) INSTITUTIONS
-USERS (1) ←→ (N) SERVICE_SUBSCRIPTIONS (N) ←→ (1) SERVICES
-INSTITUTIONS (1) ←→ (N) SERVICE_SUBSCRIPTIONS (N) ←→ (1) SERVICES
+USERS (1) ←→ (N) USER_ROLES
+USERS (1) ←→ (N) CARED_PERSONS (como representante)
+USERS (1) ←→ (N) USER_PACKAGES
+USERS (1) ←→ (N) REFERRALS (como referente)
+USERS (1) ←→ (N) REFERRAL_COMMISSIONS (como receptor)
+```
 
-CARED_PERSONS (1) ←→ (N) DEVICES (N) ←→ (1) SERVICE_SUBSCRIPTIONS
-INSTITUTIONS (1) ←→ (N) DEVICES (N) ←→ (1) SERVICE_SUBSCRIPTIONS
+### 3.2 Sistema de Paquetes
+```
+PACKAGES (1) ←→ (N) USER_PACKAGES
+PACKAGES (1) ←→ (N) INSTITUTION_PACKAGES
+USER_PACKAGES (1) ←→ (N) BILLING_RECORDS
+INSTITUTION_PACKAGES (1) ←→ (N) BILLING_RECORDS
+```
 
-DEVICES (1) ←→ (N) EVENTS (1) ←→ (N) ALERTS
-CARED_PERSONS (1) ←→ (N) EVENTS (1) ←→ (N) ALERTS
+### 3.3 Sistema de Referidos
+```
+REFERRALS (1) ←→ (N) REFERRAL_COMMISSIONS
+USERS (1) ←→ (N) REFERRALS (como referente)
+USERS (1) ←→ (N) REFERRAL_COMMISSIONS (como receptor)
+```
 
-CARED_PERSONS (1) ←→ (N) LOCATION_TRACKING
-CARED_PERSONS (1) ←→ (N) GEOFENCES
-
-USERS (1) ←→ (N) USER_PROTOCOLS (N) ←→ (1) PROTOCOLS
-INSTITUTIONS (1) ←→ (N) INSTITUTION_PROTOCOLS (N) ←→ (1) PROTOCOLS
+### 3.4 Sistema de Scoring
+```
+USERS (1) ←→ (1) CAREGIVER_SCORES
+USERS (1) ←→ (N) CAREGIVER_REVIEWS (como cuidador)
+USERS (1) ←→ (N) CAREGIVER_REVIEWS (como reviewer)
+INSTITUTIONS (1) ←→ (1) INSTITUTION_SCORES
+INSTITUTIONS (1) ←→ (N) INSTITUTION_REVIEWS
 ```
 
 ---
 
-## 4. Reglas de Negocio Implementadas
-
-### 4.1 Validaciones de Integridad
-- Un usuario debe tener al menos un rol (USER_ROLES)
-- Una persona bajo cuidado debe tener al menos un cuidador (CAREGIVER_ASSIGNMENTS)
-- Un servicio debe estar asociado a al menos un dispositivo (DEVICES)
-- Un dispositivo debe estar asociado a un servicio activo (SERVICE_SUBSCRIPTIONS)
-
-### 4.2 Estados y Transiciones
-- Los servicios pueden estar en estados: active, suspended, cancelled, pending
-- Las alertas pueden estar en estados: pending, sent, acknowledged, resolved
-- Los dispositivos pueden estar: online, offline, maintenance, error
-
-### 4.3 Configuraciones JSONB
-- `medical_conditions`: Condiciones médicas específicas
-- `medications`: Horarios y dosis de medicamentos
-- `emergency_contacts`: Secuencia de contactos de emergencia
-- `care_preferences`: Preferencias de cuidado personalizadas
-- `accessibility_needs`: Necesidades de accesibilidad
-- `protocols`: Configuración de protocolos específicos
-
----
-
-## 5. Consideraciones de Implementación
-
-### 5.1 Índices Recomendados
-- `users.email` (UNIQUE)
-- `devices.device_id` (UNIQUE)
-- `events.timestamp` (para consultas temporales)
-- `location_tracking.timestamp` (para consultas de ubicación)
-- `alerts.status` (para consultas de alertas pendientes)
-
-### 5.2 Particionamiento
-- `events` por fecha (mensual)
-- `location_tracking` por fecha (mensual)
-- `alerts` por fecha (mensual)
-
-### 5.3 Encriptación
-- Datos médicos en `medical_conditions`
-- Contactos de emergencia en `emergency_contacts`
-- Configuraciones sensibles en `config` de dispositivos
-
----
-
-*Documento en desarrollo - Versión 1.0*
+*Diagrama Entidad-Relación - CUIOT v2.0*
 *Última actualización: [Fecha]*
 *Próxima revisión: [Fecha]* 

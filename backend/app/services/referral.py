@@ -65,7 +65,7 @@ class ReferralService:
             referral_data.referral_code = ReferralService.generate_referral_code()
         
         # Create referral
-        db_referral = Referral(**referral_data.dict())
+        db_referral = Referral(**referral_data.model_dump())
         db.add(db_referral)
         db.commit()
         db.refresh(db_referral)
@@ -203,7 +203,7 @@ class ReferralService:
             percentage=percentage
         )
         
-        db_commission = ReferralCommission(**commission_data.dict())
+        db_commission = ReferralCommission(**commission_data.model_dump())
         db.add(db_commission)
         db.commit()
         db.refresh(db_commission)

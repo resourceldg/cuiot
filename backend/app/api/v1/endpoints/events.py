@@ -20,7 +20,7 @@ def create_event(
     """Create a new event"""
     try:
         # Create event - exclude user_id from schema data
-        data_dict = event_data.dict()
+        data_dict = event_data.model_dump()
         data_dict.pop('user_id', None)  # Remove user_id if present
         
         event = Event(
@@ -92,7 +92,7 @@ def update_event(
         )
     
     try:
-        for field, value in event_data.dict(exclude_unset=True).items():
+        for field, value in event_data.model_dump(exclude_unset=True).items():
             setattr(event, field, value)
         
         db.commit()

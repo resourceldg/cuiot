@@ -20,7 +20,7 @@ def create_alert(
     """Create a new alert"""
     try:
         # Create alert - exclude user_id from schema data
-        data_dict = alert_data.dict()
+        data_dict = alert_data.model_dump()
         data_dict.pop('user_id', None)  # Remove user_id if present
         
         alert = Alert(
@@ -89,7 +89,7 @@ def update_alert(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Alert not found"
         )
-    for field, value in alert_data.dict(exclude_unset=True).items():
+    for field, value in alert_data.model_dump(exclude_unset=True).items():
         setattr(alert, field, value)
     db.commit()
     db.refresh(alert)

@@ -1,4 +1,4 @@
-# Frontend - Viejos Son Los Trapos
+# Frontend - Sistema Integral de Monitoreo
 
 ## Arquitectura General
 
@@ -10,7 +10,7 @@
   - `lib/`: Servicios de API y utilidades
 
 ## Flujos críticos cubiertos
-- ABM de adultos mayores, eventos y dispositivos.
+- ABM de personas bajo cuidado, eventos y dispositivos.
 - Drawer lateral inteligente con polling y feedback visual.
 - Sincronización de estados activo/inactivo y soft delete.
 - Sistema de notificaciones, toast y banners de error/success.
@@ -27,7 +27,7 @@
 - **Actualmente no hay tests automáticos.**
 - Se recomienda agregar tests de integración y UI con Playwright, Cypress o Vitest + Testing Library.
 - Priorizar tests para:
-  - ABM de adultos mayores y eventos
+  - ABM de personas bajo cuidado y eventos
   - Sincronización de estados y feedback visual
   - Gestión de sesión y drawer
 

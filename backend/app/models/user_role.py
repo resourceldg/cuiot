@@ -46,26 +46,27 @@ class UserRole(BaseModel):
             bool: True si se asignó correctamente, False en caso contrario
         """
         from app.models.role import Role
-        
-        # Buscar el rol por nombre
+        print(f"[LOG] [assign_role_to_user] Buscando rol '{role_name}' para usuario {user_id}")
         role = db.query(Role).filter(Role.name == role_name).first()
+        print(f"[LOG] [assign_role_to_user] Rol encontrado: {role}")
         if not role:
+            print(f"[LOG] [assign_role_to_user] Rol '{role_name}' no existe")
             return False
-        
-        # Verificar si ya existe la asignación
+        print(f"[LOG] [assign_role_to_user] Verificando asignación existente usuario={user_id}, rol={role.id}")
         existing = db.query(cls).filter(
             cls.user_id == user_id,
             cls.role_id == role.id
         ).first()
-        
+        print(f"[LOG] [assign_role_to_user] Asignación existente: {existing}")
         if existing:
-            return True  # Ya está asignado
-        
-        # Crear nueva asignación
+            print(f"[LOG] [assign_role_to_user] El usuario ya tiene el rol asignado")
+            return True
+        print(f"[LOG] [assign_role_to_user] Creando nueva asignación usuario={user_id}, rol={role.id}")
         user_role = cls(user_id=user_id, role_id=role.id)
         db.add(user_role)
+        print(f"[LOG] [assign_role_to_user] Antes de commit")
         db.commit()
-        
+        print(f"[LOG] [assign_role_to_user] Después de commit")
         return True
     
     @classmethod

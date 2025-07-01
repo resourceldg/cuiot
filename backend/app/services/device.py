@@ -42,7 +42,7 @@ def update_device(db: Session, device_id: UUID, device_update: DeviceUpdate) -> 
     if not db_device:
         return None
     
-    update_data = device_update.dict(exclude_unset=True)
+    update_data = device_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_device, field, value)
     

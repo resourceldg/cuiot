@@ -1,4 +1,4 @@
-# Backend - Viejos Son Los Trapos
+# Backend - Sistema Integral de Monitoreo
 
 ## Arquitectura General
 
@@ -15,7 +15,7 @@
   - `scripts/`: Scripts de carga y utilidades.
 
 ## Modelos principales
-- **User:** Usuario familiar, autenticación y relación con adultos mayores.
+- **User:** Usuario familiar, autenticación y relación con personas bajo cuidado.
 - **ElderlyPerson:** Adulto mayor, con soft delete (`is_deleted`) y estado (`is_active`).
 - **Device:** Dispositivo IoT asociado a adulto mayor.
 - **Event:** Evento de calendario o sensor.
@@ -24,7 +24,7 @@
 - **DeviceConfig:** Configuración avanzada de dispositivos.
 
 ## Flujos críticos cubiertos
-- ABM de usuarios, adultos mayores, dispositivos, eventos, alertas y recordatorios.
+- ABM de usuarios, personas bajo cuidado, dispositivos, eventos, alertas y recordatorios.
 - Soft delete profesional y gestión de estados activos/inactivos.
 - Sincronización de estados con el frontend.
 - Endpoints de health check y monitoreo.
@@ -61,7 +61,7 @@
      ```
   3. Reintenta la carga de la vista en el frontend.
 
-### Error: No se muestran adultos mayores en la vista "Humans"
+### Error: No se muestran personas bajo cuidado en la vista "Humans"
 - **Síntoma:** La sección de gestión humana aparece vacía aunque hay datos en la base.
 - **Causa:** El frontend filtra por `is_deleted = false` en la tabla `elderly_persons`.
 - **Solución:**

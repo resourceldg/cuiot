@@ -95,32 +95,17 @@ class UserService:
         """Update user information"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-        
-        # Update fields
-        update_data = user_data.dict(exclude_unset=True)
-        
-        # Hash password if provided
-        if "password" in update_data:
-            from app.services.auth import AuthService
-            update_data["hashed_password"] = AuthService.get_password_hash(update_data.pop("password"))
-        
-        for field, value in update_data.items():
-            setattr(user, field, value)
-        
+            return None
         try:
+            update_data = user_data.model_dump(exclude_unset=True)
+            for field, value in update_data.items():
+                setattr(user, field, value)
             db.commit()
             db.refresh(user)
             return user
-        except IntegrityError:
+        except Exception as e:
             db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User update failed"
-            )
+            raise HTTPException(status_code=422, detail=f"Error de validación: {str(e)}")
     
     @staticmethod
     def delete_user(db: Session, user_id: UUID) -> bool:
@@ -177,18 +162,18 @@ class UserService:
     @staticmethod
     def get_user_with_roles(db: Session, user_id: UUID) -> Optional[UserWithRoles]:
         """Get user with role information"""
-        # Use explicit join to avoid lazy loading issues
-        from sqlalchemy.orm import joinedload
-        
-        user = db.query(User).options(
-            joinedload(User.user_roles).joinedload(UserRole.role)
-        ).filter(User.id == user_id).first()
+        # Get user first
+        user = db.query(User).filter(User.id == user_id).first()
         
         if not user:
             return None
         
-        # Get role names from the loaded relationships
-        roles = [user_role.role.name for user_role in user.user_roles if user_role.role]
+        # Get roles separately to avoid lazy loading issues
+        user_roles = db.query(UserRole).filter(UserRole.user_id == user_id).all()
+        role_ids = [ur.role_id for ur in user_roles]
+        roles = []
+        if role_ids:
+            roles = [r.name for r in db.query(Role).filter(Role.id.in_(role_ids)).all()]
         
         # Convert user to dict and add roles
         user_dict = {

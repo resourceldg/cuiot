@@ -6,7 +6,7 @@ from app.models.user_role import UserRole
 from app.core.database import get_db
 
 @pytest_asyncio.fixture
-async def caregiver_auth(async_client):
+async def caregiver_auth(async_client, db_session):
     # Registrar usuario con rol caregiver
     response = await async_client.post("/api/v1/auth/register", json={
         "email": "caregiver@example.com",
@@ -18,7 +18,7 @@ async def caregiver_auth(async_client):
     user = response.json()
     
     # Asignar rol 'caregiver' usando acceso directo a la BD
-    db = next(get_db())
+    db = db_session
     from app.models.user import User
     from app.models.role import Role
     
@@ -62,8 +62,6 @@ async def caregiver_auth(async_client):
     role_ids = [ur.role_id for ur in user_roles]
     roles = db.query(Role).filter(Role.id.in_(role_ids)).all()
     print(f"Usuario {db_user.email} tiene roles: {[r.name for r in roles]}")
-    
-    db.close()
     
     # Login para obtener token
     response = await async_client.post("/api/v1/auth/login", json={

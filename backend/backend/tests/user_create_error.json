@@ -1,0 +1,2 @@
+assert 400 in (200, 204)
+ +  where 400 = <Response [400 Bad Request]>.status_code

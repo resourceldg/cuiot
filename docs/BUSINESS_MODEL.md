@@ -3,8 +3,8 @@
 ## 1. Modelo de Negocio
 
 ### Usuarios Principales
-- **Personas con necesidades de cuidado** (no solo adultos mayores)
-  - Adultos mayores (65+ años)
+- **Personas con necesidades de cuidado**
+  - Personas mayores (65+ años)
   - Personas con discapacidad física o intelectual
   - Personas con condiciones médicas crónicas
   - Personas en recuperación post-quirúrgica
@@ -119,7 +119,7 @@
 #### Segmentos de Mercado
 
 ##### Hogares Particulares
-- **Familias con adultos mayores**: ~500,000 hogares
+- **Familias con personas mayores**: ~500,000 hogares
 - **Familias con personas con discapacidad**: ~200,000 hogares
 - **Familias con niños especiales**: ~50,000 hogares
 
@@ -348,7 +348,7 @@
 
 ### Fase 1 (MVP Ampliado) - 4 meses ✅ COMPLETADO
 - [x] Backend expandido con nuevos modelos
-- [x] Frontend con gestión de personas (no solo adultos mayores)
+- [x] Frontend con gestión de personas (no solo personas mayores)
 - [x] Integración básica de múltiples tipos de sensores
 - [x] Sistema de alertas personalizado
 - [x] Pruebas con diferentes tipos de usuarios

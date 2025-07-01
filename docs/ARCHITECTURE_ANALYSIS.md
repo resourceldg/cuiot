@@ -2,14 +2,14 @@
 
 ## Resumen Ejecutivo
 
-El proyecto actual tiene una **base sólida** pero necesita **evolucionar significativamente** para cumplir con el modelo de negocio expandido. La arquitectura actual es funcional para un MVP básico de adultos mayores, pero requiere **expansión masiva** para soportar el cuidado de **todas las personas con necesidades especiales** y la **integración con centros de cuidado** en toda la Costa Atlántica y Provincia de Buenos Aires.
+El proyecto actual tiene una **base sólida** pero necesita **evolucionar significativamente** para cumplir con el modelo de negocio expandido. La arquitectura actual es funcional para un MVP básico de personas bajo cuidado, pero requiere **expansión masiva** para soportar el cuidado de **todas las personas con necesidades especiales** y la **integración con centros de cuidado** en toda la Costa Atlántica y Provincia de Buenos Aires.
 
 ---
 
 ## 1. Análisis de la Base de Datos
 
 ### ✅ **Fortalezas Actuales**
-- **Estructura básica sólida**: Usuarios, adultos mayores, dispositivos, eventos, alertas
+- **Estructura básica sólida**: Usuarios, personas bajo cuidado, dispositivos, eventos, alertas
 - **Relaciones bien definidas**: Foreign keys y relaciones SQLAlchemy correctas
 - **Soporte JSONB**: Para datos flexibles (emergency_contacts, medical_conditions, medications)
 - **Migraciones Alembic**: Sistema de versionado de base de datos
@@ -520,7 +520,7 @@ class SpecializedCareService:
 
 El proyecto actual tiene una **base técnica sólida** pero necesita **evolución masiva** para cumplir con el modelo de negocio expandido. Las principales brechas están en:
 
-1. **Soporte para diferentes tipos de cuidado** (no solo adultos mayores)
+1. **Soporte para diferentes tipos de cuidado** (no solo personas mayores)
 2. **Gestión de centros de cuidado** y personal
 3. **Geolocalización y tracking** avanzado
 4. **Sensores especializados** por tipo de necesidad

@@ -91,7 +91,7 @@
             console.log("🔄 Cargando datos del dashboard...");
             console.log(
                 "🔑 Token de autenticación:",
-                localStorage.getItem("authToken") ? "Presente" : "Ausente",
+                localStorage.getItem("authToken") ? "Presente" : "Ausente"
             );
 
             const [elderlyData, alertsDataRaw, devicesDataRaw] =
@@ -124,19 +124,19 @@
                               "🔍 Filtrando persona:",
                               person.first_name,
                               "is_deleted:",
-                              person.is_deleted,
+                              person.is_deleted
                           );
                           return person.is_deleted === false;
                       })
                       .map((person) => {
                           console.log(
                               "🔍 Mapeando persona:",
-                              person.first_name,
+                              person.first_name
                           );
                           const personAlerts = safeAlertsData.filter(
                               (alert) =>
                                   String(alert.elderly_person_id) ===
-                                  String(person.id),
+                                  String(person.id)
                           );
                           return {
                               ...person,
@@ -148,21 +148,20 @@
                               criticalAlerts: personAlerts.filter(
                                   (a) =>
                                       a.severity === "critical" &&
-                                      !a.is_resolved,
+                                      !a.is_resolved
                               ),
                               warningAlerts: personAlerts.filter(
                                   (a) =>
-                                      a.severity === "warning" &&
-                                      !a.is_resolved,
+                                      a.severity === "warning" && !a.is_resolved
                               ),
                           };
                       })
                       .sort((a, b) => {
                           const dateA = new Date(
-                              a.updated_at || a.created_at,
+                              a.updated_at || a.created_at
                           ).getTime();
                           const dateB = new Date(
-                              b.updated_at || b.created_at,
+                              b.updated_at || b.created_at
                           ).getTime();
                           return dateB - dateA;
                       })
@@ -239,7 +238,7 @@
     async function handleDelete(person) {
         if (
             confirm(
-                `¿Seguro que deseas eliminar a ${person.first_name} ${person.last_name}?`,
+                `¿Seguro que deseas eliminar a ${person.first_name} ${person.last_name}?`
             )
         ) {
             try {
@@ -271,7 +270,7 @@
             const events = await eventService.getAll();
             // Filtrar eventos por persona
             const personEvents = events.filter(
-                (event) => String(event.elderly_person_id) === String(personId),
+                (event) => String(event.elderly_person_id) === String(personId)
             );
             drawerEvents = personEvents.map((event) => ({
                 id: event.id,
@@ -356,7 +355,7 @@
 
     function isValidUUID(uuid) {
         return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
-            uuid,
+            uuid
         );
     }
 
@@ -397,7 +396,7 @@
                 elderly_person_id: selectedPerson.id,
                 created_by_id,
                 start_datetime: new Date(
-                    eventData.start_datetime,
+                    eventData.start_datetime
                 ).toISOString(),
                 end_datetime: new Date(eventData.end_datetime).toISOString(),
                 device_id: eventData.device_id
@@ -507,7 +506,12 @@
     function formatEventDate(dt) {
         if (!dt) return "";
         const d = new Date(dt);
-        return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+        return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")} ${d.getHours().toString().padStart(2, "0")}:${d
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}`;
     }
 
     $: if (showDrawer && selectedPerson && !isPollingActive) {
@@ -598,7 +602,7 @@
         unreadAlerts.delete(alertId);
         selectedPerson.criticalAlerts = selectedPerson.criticalAlerts.map(
             (alert) =>
-                alert.id === alertId ? { ...alert, isRead: true } : alert,
+                alert.id === alertId ? { ...alert, isRead: true } : alert
         );
     }
 
@@ -658,8 +662,10 @@
                 // Si hay otros campos que pueden cambiar, actualízalos aquí también
             }
             showToast(
-                `Estado actualizado: ${!person.is_active ? "Activo" : "Inactivo"}`,
-                "success",
+                `Estado actualizado: ${
+                    !person.is_active ? "Activo" : "Inactivo"
+                }`,
+                "success"
             );
         } catch (err) {
             showToast("Error al actualizar estado", "error");
@@ -675,7 +681,7 @@
     <h2 class="text-2xl font-bold mb-6 text-blue-900">Gestión Humana</h2>
     <div class="flex items-center mb-4">
         <span class="text-lg font-semibold text-gray-700 mr-2"
-            >Adultos Mayores</span
+            >Personas Bajo Cuidado</span
         >
         <button
             class="ml-2 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center"
@@ -707,18 +713,18 @@
                             <span>{person.name}</span>
                             <span
                                 class="inline-block w-3 h-3 rounded-full {getPersonLedColor(
-                                    person,
+                                    person
                                 )} border border-gray-300"
                                 title={person.is_active
                                     ? person.criticalAlerts &&
                                       person.criticalAlerts.length > 0
                                         ? "Alerta crítica"
                                         : person.warningAlerts &&
-                                            person.warningAlerts.length > 0
-                                          ? "Advertencia"
-                                          : "Activo"
+                                          person.warningAlerts.length > 0
+                                        ? "Advertencia"
+                                        : "Activo"
                                     : "Inactivo"}
-                            ></span>
+                            />
                         </h3>
                         <div
                             class="flex items-center gap-2 text-sm text-gray-600"
@@ -784,7 +790,7 @@
     <div
         class="fixed inset-0 bg-black bg-opacity-50 z-40"
         on:click={closeDrawer}
-    ></div>
+    />
     <div
         class="fixed right-0 top-0 h-full w-96 bg-white shadow-xl z-50 overflow-y-auto"
     >
@@ -796,18 +802,18 @@
                     {selectedPerson.name}
                     <span
                         class="inline-block w-3 h-3 rounded-full {getPersonLedColor(
-                            selectedPerson,
+                            selectedPerson
                         )} border border-gray-300"
                         title={selectedPerson.is_active
                             ? selectedPerson.criticalAlerts &&
                               selectedPerson.criticalAlerts.length > 0
                                 ? "Alerta crítica"
                                 : selectedPerson.warningAlerts &&
-                                    selectedPerson.warningAlerts.length > 0
-                                  ? "Advertencia"
-                                  : "Activo"
+                                  selectedPerson.warningAlerts.length > 0
+                                ? "Advertencia"
+                                : "Activo"
                             : "Inactivo"}
-                    ></span>
+                    />
                     <span
                         class="px-2 py-0.5 rounded-full text-xs font-semibold {selectedPerson.is_active
                             ? 'bg-green-100 text-green-700'
@@ -826,7 +832,7 @@
                             checked={selectedPerson.is_active}
                             on:change={() => toggleActive(selectedPerson)}
                         />
-                        <span class="slider"></span>
+                        <span class="slider" />
                     </label>
                 </h2>
                 <button
@@ -844,7 +850,7 @@
                             stroke-linejoin="round"
                             stroke-width="2"
                             d="M6 18L18 6M6 6l12 12"
-                        ></path>
+                        />
                     </svg>
                 </button>
             </div>
@@ -869,13 +875,13 @@
                             >
                             <span
                                 class="text-sm font-medium {getAlertColor(
-                                    alert.type,
+                                    alert.type
                                 )} flex-1">{alert.message}</span
                             >
                             {#if !alert.isRead}
                                 <span
                                     class="w-2 h-2 bg-red-500 rounded-full animate-ping"
-                                ></span>
+                                />
                             {/if}
                             <span class="text-xs text-gray-500">
                                 {formatEventDate(alert.timestamp)}
@@ -917,7 +923,7 @@
                     <div class="text-center py-4">
                         <div
                             class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"
-                        ></div>
+                        />
                     </div>
                 {:else if drawerEvents && drawerEvents.length > 0}
                     <div class="space-y-2 max-h-64 overflow-y-auto">
@@ -930,7 +936,7 @@
                                         <span
                                             class="w-3 h-3 rounded-full"
                                             style="background-color: {event.color}"
-                                        ></span>
+                                        />
                                         <span class="font-medium text-gray-800"
                                             >{event.title}</span
                                         >
@@ -938,7 +944,7 @@
                                     <div class="flex items-center space-x-2">
                                         <span class="text-xs text-gray-500"
                                             >{formatEventDate(
-                                                event.start,
+                                                event.start
                                             )}</span
                                         >
                                         <button
@@ -990,7 +996,7 @@
                                     <div
                                         class="bg-blue-600 h-2 rounded-full"
                                         style="width: {bar.value * 20}%"
-                                    ></div>
+                                    />
                                 </div>
                                 <span class="text-xs text-gray-600 w-4"
                                     >{bar.value}</span

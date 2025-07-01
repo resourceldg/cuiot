@@ -208,7 +208,7 @@ class ReminderService:
             return None
         
         # Actualizar campos
-        update_data = reminder_data.dict(exclude_unset=True)
+        update_data = reminder_data.model_dump(exclude_unset=True)
         
         for field, value in update_data.items():
             setattr(db_reminder, field, value)

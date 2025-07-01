@@ -4,7 +4,7 @@ Database Monitoring System Setup Script
 ======================================
 
 This script sets up a comprehensive database monitoring system for the
-Viejos Son Los Trapos project. It includes:
+Sistema Integral de Monitoreo project. It includes:
 
 1. Production-ready monitoring daemon
 2. Automated cleanup scripts

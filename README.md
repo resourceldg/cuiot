@@ -1,6 +1,6 @@
-# Viejos Son Los Trapos - Sistema de Monitoreo para Adultos Mayores
+# Sistema Integral de Monitoreo y Cuidado
 
-Un sistema completo de monitoreo y cuidado para adultos mayores que incluye dispositivos IoT, aplicación web, API backend y comunicación MQTT en tiempo real.
+Un sistema completo de monitoreo y cuidado para personas bajo cuidado que incluye dispositivos IoT, aplicación web, API backend y comunicación MQTT en tiempo real.
 
 ## 🚀 Estado del Proyecto
 

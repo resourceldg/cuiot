@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Configuración de la aplicación"""
     
     # Configuración de la aplicación
-    app_name: str = "Viejos Son Los Trapos API"
+    app_name: str = "Sistema Integral de Monitoreo API"
     version: str = "1.0.0"
     environment: str = "development"
     

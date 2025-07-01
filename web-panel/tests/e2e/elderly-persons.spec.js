@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('ABM de adultos mayores', async ({ page }) => {
+test('ABM de personas bajo cuidado', async ({ page }) => {
     await page.goto('/login');
     await page.fill('input[type="email"]', 'testuser@example.com');
     await page.fill('input[type="password"]', 'testpassword');

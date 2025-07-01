@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals
+from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals, packages
 
 api_router = APIRouter()
 
@@ -16,3 +16,4 @@ api_router.include_router(events.router, prefix="/events", tags=["events"])
 api_router.include_router(reminders.router, prefix="/reminders", tags=["reminders"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(referrals.router, prefix="/referrals", tags=["referrals"])
+api_router.include_router(packages.router, prefix="/packages", tags=["packages"])

@@ -19,7 +19,7 @@ class DebugService:
     @staticmethod
     def create_debug_event(db: Session, event_data: DebugEventCreate) -> DebugEvent:
         """Create a debug event"""
-        debug_event = DebugEvent(**event_data.dict())
+        debug_event = DebugEvent(**event_data.model_dump())
         db.add(debug_event)
         db.commit()
         db.refresh(debug_event)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script para iniciar el entorno de desarrollo
-echo "🚀 Iniciando entorno de desarrollo para Viejos Son Los Trapos..."
+echo "🚀 Iniciando entorno de desarrollo para el Sistema Integral de Monitoreo..."
 
 # Verificar si Docker está instalado
 if ! command -v docker &> /dev/null; then

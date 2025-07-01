@@ -1,4 +1,4 @@
--- Inicialización de la base de datos para Viejos Son Los Trapos MVP
+-- Inicialización de la base de datos para el Sistema Integral de Monitoreo MVP
 
 -- Crear extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

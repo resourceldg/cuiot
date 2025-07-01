@@ -2,6 +2,7 @@ import pytest
 import pytest_asyncio
 from uuid import uuid4
 from datetime import datetime
+import json
 
 # Test data constants
 TEST_USER_DATA = {
@@ -282,17 +283,32 @@ class TestUserRoleManagement:
     """Test user role assignment and removal"""
     
     @pytest.mark.asyncio
-    async def test_assign_role_requires_permission(self, async_client, test_user_token, test_user_id):
-        """Test that assigning roles requires proper permissions"""
-        if not test_user_id:
-            pytest.skip("Could not get test user ID")
-        
-        headers = {"Authorization": f"Bearer {test_user_token}"}
-        response = await async_client.post(f"/api/v1/users/{test_user_id}/roles/caregiver", 
-                                         headers=headers)
-        
-        # Should fail due to lack of permissions
+    async def test_assign_role_requires_permission(self, async_client, admin_auth, auth_headers):
+        # Crear usuario de destino con admin
+        user_data = {
+            "email": "roleuser3@example.com",
+            "username": "roleuser3",
+            "password": "testpass123",
+            "first_name": "Role3",
+            "last_name": "User3"
+        }
+        create_resp = await async_client.post("/api/v1/users/", json=user_data, headers=admin_auth)
+        assert create_resp.status_code == 201
+        user_id = create_resp.json()["id"]
+        # Crear rol test_role si no existe
+        role_data = {
+            "name": "test_role",
+            "description": "Rol de prueba para test minimal",
+            "permissions": json.dumps({"users": {"read": True}}),
+            "is_system": False
+        }
+        create_role_resp = await async_client.post("/api/v1/users/roles", json=role_data, headers=admin_auth)
+        assert create_role_resp.status_code in (200, 201)
+        # Intentar asignar rol sin permisos admin
+        data = {"role_name": "test_role"}
+        response = await async_client.post(f"/api/v1/users/{user_id}/assign-role", json=data, headers=auth_headers)
         assert response.status_code == 403
+        assert "No tiene permisos" in response.text
     
     @pytest.mark.asyncio
     async def test_remove_role_requires_permission(self, async_client, test_user_token, test_user_id):

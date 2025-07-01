@@ -18,7 +18,7 @@ class CaredPersonInstitutionService:
     def create_relationship(db: Session, relationship_data: CaredPersonInstitutionCreate, registered_by: UUID) -> CaredPersonInstitution:
         """Create a new cared person institution relationship"""
         db_relationship = CaredPersonInstitution(
-            **relationship_data.dict(),
+            **relationship_data.model_dump(),
             registered_by=registered_by
         )
         
@@ -77,7 +77,7 @@ class CaredPersonInstitutionService:
         if relationship_data.is_primary:
             CaredPersonInstitutionService._unmark_other_primary(db, db_relationship.cared_person_id)
         
-        for field, value in relationship_data.dict(exclude_unset=True).items():
+        for field, value in relationship_data.model_dump(exclude_unset=True).items():
             setattr(db_relationship, field, value)
         
         db.commit()

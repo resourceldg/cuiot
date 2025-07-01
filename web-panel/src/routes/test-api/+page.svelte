@@ -6,8 +6,11 @@
     let currentToken = "";
     let loading = false;
 
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-        (typeof window !== 'undefined' ? 'http://localhost:8000/api/v1' : 'http://backend:8000/api/v1');
+    const API_BASE_URL =
+        import.meta.env.VITE_API_BASE_URL ||
+        (typeof window !== "undefined"
+            ? "http://localhost:8000/api/v1"
+            : "http://backend:8000/api/v1");
 
     async function apiRequest(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
@@ -92,7 +95,7 @@
 </script>
 
 <svelte:head>
-    <title>Test API - Viejos Son Los Trapos</title>
+    <title>Test API - Sistema Integral de Monitoreo</title>
 </svelte:head>
 
 <div class="container mx-auto p-8 max-w-4xl">
@@ -148,8 +151,8 @@
             <li>Verifica que el token se muestre en "Current Token"</li>
             <li>Haz clic en "Get Elderly Persons" para obtener los datos</li>
             <li>
-                Si todo funciona, los adultos mayores deberían aparecer en la
-                página de Human
+                Si todo funciona, las personas bajo cuidado deberían aparecer en
+                la página de Human
             </li>
         </ol>
     </div>

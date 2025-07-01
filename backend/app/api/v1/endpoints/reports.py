@@ -84,7 +84,7 @@ def update_report(report_id: int, report_update: ReportUpdate, db: Session = Dep
     if not report:
         raise HTTPException(status_code=404, detail='Reporte no encontrado')
     old_data = report.__dict__.copy()
-    for field, value in report_update.dict(exclude_unset=True).items():
+    for field, value in report_update.model_dump(exclude_unset=True).items():
         setattr(report, field, value)
     db.commit()
     db.refresh(report)

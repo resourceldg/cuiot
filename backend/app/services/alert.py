@@ -211,7 +211,7 @@ class AlertService:
             return None
         
         # Actualizar campos
-        update_data = alert_data.dict(exclude_unset=True)
+        update_data = alert_data.model_dump(exclude_unset=True)
         
         # Si se marca como resuelta, establecer timestamp
         if update_data.get('is_resolved') and not db_alert.is_resolved:

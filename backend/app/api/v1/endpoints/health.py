@@ -25,7 +25,7 @@ async def health_check():
     """
     return {
         "status": "healthy",
-        "message": "Viejos Son Los Trapos API funcionando correctamente",
+        "message": "Sistema Integral de Monitoreo API funcionando correctamente",
         "version": "1.0.0",
         "timestamp": datetime.utcnow().isoformat(),
         "environment": os.getenv("ENVIRONMENT", "development")

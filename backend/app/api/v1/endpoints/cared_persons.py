@@ -20,7 +20,7 @@ def create_cared_person(
     """Create a new cared person"""
     try:
         # Create cared person - exclude user_id from schema data
-        data_dict = cared_person_data.dict()
+        data_dict = cared_person_data.model_dump()
         data_dict.pop('user_id', None)  # Remove user_id if present
         
         cared_person = CaredPerson(
@@ -92,7 +92,7 @@ def update_cared_person(
         )
     
     try:
-        for field, value in cared_person_data.dict(exclude_unset=True).items():
+        for field, value in cared_person_data.model_dump(exclude_unset=True).items():
             setattr(cared_person, field, value)
         
         db.commit()

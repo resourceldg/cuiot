@@ -1,4 +1,4 @@
-# API Backend - Viejos Son Los Trapos
+# API Backend - Sistema Integral de Monitoreo
 
 ## Autenticación (JWT)
 
@@ -35,7 +35,7 @@
 
 ### Listar personas
 **GET** `/api/v1/cared-persons/`
-- Query: `skip`, `limit`, `care_level`, `mobility_level`
+- Query: `skip`, `limit`, `care_type`, `mobility_level`
 - **Protegido:** Sí (JWT)
 
 ### Detalle de persona
@@ -57,7 +57,7 @@
   "medications": "Insulina, metformina",
   "allergies": "Penicilina",
   "blood_type": "O+",
-  "care_level": "medium",
+  "care_type": "self_care",
   "mobility_level": "assisted",
   "address": "Av. Principal 123",
   "latitude": -34.6037,
@@ -70,6 +70,196 @@
 
 ### Eliminar persona
 **DELETE** `/api/v1/cared-persons/{id}`
+
+---
+
+## Sistema de Paquetes (NUEVA ENTIDAD CENTRAL)
+
+### Listar paquetes disponibles
+**GET** `/api/v1/packages/`
+- Query: `package_type`, `is_active`
+- **Protegido:** Sí (JWT)
+
+### Detalle de paquete
+**GET** `/api/v1/packages/{package_id}`
+
+### Crear paquete (Admin)
+**POST** `/api/v1/packages/`
+```json
+{
+  "package_type": "basic",
+  "name": "Paquete Básico Individual",
+  "description": "Monitoreo básico para 1 persona",
+  "price_monthly": 3000,
+  "price_yearly": 30000,
+  "currency": "ARS",
+  "features": {
+    "monitoreo": "básico",
+    "alertas": "simples",
+    "reportes": "diarios",
+    "dispositivos": 3,
+    "usuarios": 1,
+    "soporte": "email"
+  },
+  "limitations": {
+    "max_users": 1,
+    "max_devices": 3,
+    "max_storage_gb": 5
+  },
+  "max_users": 1,
+  "max_devices": 3,
+  "max_storage_gb": 5,
+  "support_level": "email",
+  "is_active": true
+}
+```
+
+### Actualizar paquete
+**PUT** `/api/v1/packages/{package_id}`
+
+### Eliminar paquete
+**DELETE** `/api/v1/packages/{package_id}`
+
+---
+
+## Contratación de Paquetes
+
+### Listar paquetes contratados por usuario
+**GET** `/api/v1/user-packages/`
+- Query: `status`, `package_type`
+- **Protegido:** Sí (JWT)
+
+### Contratar paquete
+**POST** `/api/v1/user-packages/`
+```json
+{
+  "package_id": "uuid-del-paquete",
+  "start_date": "2024-01-15",
+  "auto_renew": true,
+  "payment_method": "credit_card"
+}
+```
+
+### Actualizar suscripción
+**PUT** `/api/v1/user-packages/{subscription_id}`
+
+### Cancelar suscripción
+**PATCH** `/api/v1/user-packages/{subscription_id}/cancel`
+
+### Renovar suscripción
+**PATCH** `/api/v1/user-packages/{subscription_id}/renew`
+
+---
+
+## Sistema de Referidos
+
+### Generar código de referido
+**POST** `/api/v1/referrals/generate-code`
+```json
+{
+  "referrer_type": "caregiver",
+  "referrer_id": "uuid-del-referente"
+}
+```
+
+### Validar código de referido
+**POST** `/api/v1/referrals/validate`
+```json
+{
+  "referral_code": "ABC123",
+  "referred_email": "nuevo@ejemplo.com",
+  "referred_name": "Nuevo Usuario"
+}
+```
+
+### Listar referidos del usuario
+**GET** `/api/v1/referrals/my-referrals`
+- Query: `status`, `referrer_type`
+- **Protegido:** Sí (JWT)
+
+### Estadísticas de referidos
+**GET** `/api/v1/referrals/stats`
+- **Protegido:** Sí (JWT)
+
+### Actualizar estado de referido
+**PATCH** `/api/v1/referrals/{referral_id}/update-status`
+```json
+{
+  "status": "converted",
+  "commission_amount": 1500.00
+}
+```
+
+---
+
+## Sistema de Comisiones
+
+### Listar comisiones del usuario
+**GET** `/api/v1/referral-commissions/my-commissions`
+- Query: `status`, `commission_type`
+- **Protegido:** Sí (JWT)
+
+### Marcar comisión como pagada
+**PATCH** `/api/v1/referral-commissions/{commission_id}/mark-paid`
+
+### Estadísticas de comisiones
+**GET** `/api/v1/referral-commissions/stats`
+- **Protegido:** Sí (JWT)
+
+---
+
+## Sistema de Scoring y Reviews
+
+### Crear review de cuidador
+**POST** `/api/v1/caregiver-reviews/`
+```json
+{
+  "caregiver_id": "uuid-del-cuidador",
+  "rating": 5,
+  "comment": "Excelente servicio",
+  "categories": {
+    "puntualidad": 5,
+    "cuidado": 5,
+    "comunicacion": 4
+  },
+  "is_recommended": true,
+  "service_date": "2024-01-15",
+  "service_hours": 8.0,
+  "service_type": "daily"
+}
+```
+
+### Listar reviews de cuidador
+**GET** `/api/v1/caregiver-reviews/caregiver/{caregiver_id}`
+- Query: `rating`, `is_verified`
+
+### Crear review de institución
+**POST** `/api/v1/institution-reviews/`
+```json
+{
+  "institution_id": 1,
+  "rating": 4,
+  "comment": "Muy buena atención",
+  "categories": {
+    "calidad_medica": 4,
+    "infraestructura": 5,
+    "personal": 4
+  },
+  "is_recommended": true,
+  "service_date": "2024-01-15",
+  "service_type": "consultation"
+}
+```
+
+### Listar reviews de institución
+**GET** `/api/v1/institution-reviews/institution/{institution_id}`
+- Query: `rating`, `is_verified`
+
+### Obtener score de cuidador
+**GET** `/api/v1/caregiver-scores/{caregiver_id}`
+
+### Obtener score de institución
+**GET** `/api/v1/institution-scores/{institution_id}`
 
 ---
 
@@ -199,11 +389,28 @@
 ### Eliminar dispositivo
 **DELETE** `/api/v1/devices/{device_id}`
 
-### Configurar dispositivo
-**PATCH** `/api/v1/devices/{device_id}/config`
-
 ### Estado del dispositivo
 **GET** `/api/v1/devices/{device_id}/status`
+
+### Configurar dispositivo
+**PATCH** `/api/v1/devices/{device_id}/configure`
+```json
+{
+  "settings": {
+    "sensitivity": 0.9,
+    "sampling_rate": 2000
+  }
+}
+```
+
+### Dispositivos por tipo
+**GET** `/api/v1/devices/type/{device_type}/list`
+
+### Dispositivos activos
+**GET** `/api/v1/devices/active/list`
+
+### Dispositivos con batería baja
+**GET** `/api/v1/devices/low-battery/list`
 
 ---
 
@@ -211,22 +418,33 @@
 
 ### Listar eventos
 **GET** `/api/v1/events/`
-- Query: `skip`, `limit`, `event_type`, `severity`, `cared_person_id`
+- Query: `skip`, `limit`, `event_type`, `severity`, `device_id`, `cared_person_id`
 
 ### Detalle de evento
 **GET** `/api/v1/events/{event_id}`
+
+### Eventos por dispositivo
+**GET** `/api/v1/events/device/{device_id}`
+
+### Eventos por persona
+**GET** `/api/v1/events/cared-person/{cared_person_id}`
 
 ### Crear evento
 **POST** `/api/v1/events/`
 ```json
 {
+  "event_type": "motion_detected",
+  "severity": "low",
+  "device_id": "ESP32_001",
   "cared_person_id": 1,
-  "event_type": "sensor_event",
-  "event_subtype": "movement",
-  "severity": "info",
-  "message": "Movimiento detectado en sala de estar",
-  "event_data": "{\"location\": \"sala_estar\", \"confidence\": 0.95}",
-  "event_time": "2024-01-15T10:30:00Z"
+  "location_data": {
+    "latitude": -34.6037,
+    "longitude": -58.3816
+  },
+  "sensor_data": {
+    "motion_level": 0.8,
+    "temperature": 22.5
+  }
 }
 ```
 
@@ -236,246 +454,74 @@
 ### Eliminar evento
 **DELETE** `/api/v1/events/{event_id}`
 
-### Eventos por persona
-**GET** `/api/v1/events/cared-person/{cared_person_id}`
+### Eventos críticos
+**GET** `/api/v1/events/critical/list`
 
 ### Eventos por tipo
 **GET** `/api/v1/events/type/{event_type}/list`
 
----
-
-## Reportes con Adjuntos
-
-### Listar reportes
-**GET** `/api/v1/reports/`
-- Query: `skip`, `limit`, `report_type`, `cared_person_id`, `is_autocuidado`
-
-### Detalle de reporte
-**GET** `/api/v1/reports/{report_id}`
-
-### Crear reporte con adjuntos
-**POST** `/api/v1/reports/`
-- **Content-Type:** `multipart/form-data`
-- **Form fields:**
-  - `title`: Título del reporte
-  - `description`: Descripción (opcional)
-  - `report_type`: Tipo de reporte (general, médico, incidente, etc.)
-  - `is_autocuidado`: Boolean (false para reportes de otros)
-  - `cared_person_id`: ID de la persona (requerido si no es autocuidado)
-  - `files`: Archivos adjuntos (múltiples)
-
-**Response:**
-```json
-{
-  "id": 1,
-  "title": "Reporte médico mensual",
-  "description": "Control rutinario",
-  "report_type": "médico",
-  "attached_files": [
-    {
-      "filename": "analisis_sangre.pdf",
-      "url": "/static/reports/uuid_analisis_sangre.pdf",
-      "content_type": "application/pdf",
-      "size": 1024000
-    }
-  ],
-  "created_at": "2024-01-15T10:30:00Z",
-  "cared_person_id": 1,
-  "created_by_id": 1,
-  "is_autocuidado": false
-}
-```
-
-### Actualizar reporte
-**PUT** `/api/v1/reports/{report_id}`
-
-### Eliminar reporte
-**DELETE** `/api/v1/reports/{report_id}`
-
-### Reportes por persona
-**GET** `/api/v1/reports/cared-person/{cared_person_id}`
-
-### Reportes de autocuidado
-**GET** `/api/v1/reports/autocuidado`
+### Eventos no procesados
+**GET** `/api/v1/events/unprocessed/list`
 
 ---
 
-## Sistema de Debug y Testing
+## Usuarios
 
-### Resumen de debug
-**GET** `/api/v1/debug/summary`
-- **Protegido:** Sí (JWT)
-- **Response:** Estadísticas de datos de prueba
+### Listar usuarios
+**GET** `/api/v1/users/`
+- Query: `skip`, `limit`, `role`, `is_active`
+- **Protegido:** Sí (JWT, Admin)
 
-### Generar datos de prueba
-**POST** `/api/v1/debug/generate-test-data`
-- **Query:** `count` (número de registros a generar, 1-100)
-- **Protegido:** Sí (JWT)
-- **Response:**
+### Detalle de usuario
+**GET** `/api/v1/users/{user_id}`
+
+### Crear usuario
+**POST** `/api/v1/users/`
 ```json
 {
-  "message": "Test data generated successfully",
-  "results": {
-    "users_created": 5,
-    "cared_persons_created": 3,
-    "devices_created": 4,
-    "events_created": 8,
-    "alerts_created": 6,
-    "debug_events_created": 10
-  }
+  "email": "usuario@ejemplo.com",
+  "password": "contraseña123",
+  "first_name": "Nombre",
+  "last_name": "Apellido",
+  "phone": "123456789",
+  "role": "family"
 }
 ```
 
-### Limpiar datos de prueba
-**POST** `/api/v1/debug/clean-test-data`
-- **Protegido:** Sí (JWT)
-- **Response:**
+### Actualizar usuario
+**PUT** `/api/v1/users/{user_id}`
+
+### Eliminar usuario
+**DELETE** `/api/v1/users/{user_id}`
+
+### Perfil del usuario actual
+**GET** `/api/v1/users/me`
+
+### Actualizar perfil
+**PUT** `/api/v1/users/me`
+
+### Cambiar contraseña
+**PATCH** `/api/v1/users/me/change-password`
 ```json
 {
-  "message": "Test data cleaned successfully",
-  "results": {
-    "location_tracking_deleted": 50,
-    "geofences_deleted": 5,
-    "debug_events_deleted": 100,
-    "cared_persons_deleted": 3,
-    "devices_deleted": 4
-  }
+  "current_password": "contraseña_actual",
+  "new_password": "nueva_contraseña"
 }
 ```
 
-### Listar eventos de debug
-**GET** `/api/v1/debug/events`
-- **Query:** `skip`, `limit`, `event_type`, `severity`, `test_session`
-- **Protegido:** Sí (JWT)
+### Usuarios por rol
+**GET** `/api/v1/users/role/{role}/list`
 
-### Crear evento de debug
-**POST** `/api/v1/debug/events`
-```json
-{
-  "event_type": "test_event",
-  "event_subtype": "simulation",
-  "severity": "info",
-  "message": "Evento de prueba simulado",
-  "source": "test_suite",
-  "test_session": "session_20240115_103000",
-  "environment": "development",
-  "event_time": "2024-01-15T10:30:00Z"
-}
-```
-
-### Health check de debug
-**GET** `/api/v1/debug/health`
+### Usuarios activos
+**GET** `/api/v1/users/active/list`
 
 ---
 
-## Geolocalización y Geofencing
-
-### Tracking de ubicación
-**POST** `/api/v1/location/track`
-```json
-{
-  "cared_person_id": 1,
-  "latitude": -34.6037,
-  "longitude": -58.3816,
-  "altitude": 25.5,
-  "accuracy": 5.0,
-  "speed": 0.0,
-  "heading": 180.0,
-  "location_name": "Casa",
-  "address": "Av. Principal 123",
-  "place_type": "home",
-  "tracking_method": "gps",
-  "battery_level": 85,
-  "signal_strength": 95,
-  "recorded_at": "2024-01-15T10:30:00Z"
-}
-```
-
-### Historial de ubicaciones
-**GET** `/api/v1/location/history/{cared_person_id}`
-- **Query:** `start_date`, `end_date`, `limit`
-
-### Ubicación actual
-**GET** `/api/v1/location/current/{cared_person_id}`
-
-### Crear geofence
-**POST** `/api/v1/geofences/`
-```json
-{
-  "name": "Zona segura - Casa",
-  "geofence_type": "safe_zone",
-  "description": "Zona segura alrededor de la casa",
-  "center_latitude": -34.6037,
-  "center_longitude": -58.3816,
-  "radius": 100.0,
-  "trigger_action": "exit",
-  "alert_message": "Persona ha salido de la zona segura",
-  "is_active": true,
-  "start_time": "2024-01-15T00:00:00Z",
-  "end_time": "2024-01-15T23:59:59Z",
-  "days_of_week": "1,2,3,4,5,6,7",
-  "cared_person_id": 1
-}
-```
-
-### Listar geofences
-**GET** `/api/v1/geofences/`
-- **Query:** `cared_person_id`, `geofence_type`, `is_active`
-
-### Actualizar geofence
-**PUT** `/api/v1/geofences/{geofence_id}`
-
-### Eliminar geofence
-**DELETE** `/api/v1/geofences/{geofence_id}`
-
----
-
-## Protocolos de Emergencia
-
-### Listar protocolos
-**GET** `/api/v1/emergency-protocols/`
-- **Query:** `protocol_type`, `crisis_type`, `institution_id`, `is_active`
-
-### Detalle de protocolo
-**GET** `/api/v1/emergency-protocols/{protocol_id}`
-
-### Crear protocolo
-**POST** `/api/v1/emergency-protocols/`
-```json
-{
-  "name": "Protocolo de Caída",
-  "protocol_type": "medical",
-  "crisis_type": "fall",
-  "description": "Protocolo para manejo de caídas",
-  "steps": "[\"Evaluar consciencia\", \"Verificar lesiones\", \"Contactar médico\"]",
-  "contacts": "[\"Dr. García: 123456789\", \"Ambulancia: 911\"]",
-  "trigger_conditions": "{\"severity\": \"high\", \"location\": \"bathroom\"}",
-  "severity_threshold": "high",
-  "is_active": true,
-  "is_default": false,
-  "institution_id": 1
-}
-```
-
-### Actualizar protocolo
-**PUT** `/api/v1/emergency-protocols/{protocol_id}`
-
-### Eliminar protocolo
-**DELETE** `/api/v1/emergency-protocols/{protocol_id}`
-
-### Activar protocolo
-**PATCH** `/api/v1/emergency-protocols/{protocol_id}/activate`
-
-### Desactivar protocolo
-**PATCH** `/api/v1/emergency-protocols/{protocol_id}/deactivate`
-
----
-
-## Servicios y Suscripciones
+## Suscripciones de Servicio
 
 ### Listar suscripciones
 **GET** `/api/v1/service-subscriptions/`
-- **Query:** `subscription_type`, `status`, `user_id`, `institution_id`
+- Query: `subscription_type`, `status`, `user_id`, `institution_id`
 
 ### Detalle de suscripción
 **GET** `/api/v1/service-subscriptions/{subscription_id}`
@@ -573,87 +619,99 @@
 ## Vinculación de Reportes con Usuarios
 
 ### Descripción
-El sistema implementa una regla de negocio que vincula todos los reportes (eventos, alertas y recordatorios) con los usuarios que los crean y reciben. Solo los usuarios con roles de familia o empleado pueden crear reportes.
+Los reportes están vinculados a usuarios específicos para mantener trazabilidad y control de acceso.
 
-### Campos de Vinculación
-Todos los reportes incluyen los siguientes campos:
-- `created_by_id`: ID del usuario que creó el reporte (obligatorio)
-- `received_by_id`: ID del usuario que recibe/recibió el reporte (opcional)
+### Endpoints de Reportes
+- **GET** `/api/v1/reports/` - Listar reportes del usuario
+- **POST** `/api/v1/reports/` - Crear nuevo reporte
+- **GET** `/api/v1/reports/{report_id}` - Detalle de reporte
+- **PUT** `/api/v1/reports/{report_id}` - Actualizar reporte
+- **DELETE** `/api/v1/reports/{report_id}` - Eliminar reporte
 
-### Validaciones
-- Solo usuarios con roles `family` o `employee` pueden crear reportes
-- El usuario autenticado se asigna automáticamente como `created_by_id`
-- Se valida que el usuario tenga permisos para acceder al adulto mayor asociado
-
-### Eventos
-
-#### Crear evento (actualizado)
-**POST** `/api/v1/events/`
+### Ejemplo de Reporte
 ```json
 {
+  "title": "Reporte Mensual - Enero 2024",
+  "description": "Análisis completo de actividad y salud",
+  "report_type": "monthly",
   "cared_person_id": 1,
-  "event_type": "visit",
-  "title": "Visita médica",
-  "description": "Control rutinario",
-  "event_date": "2024-01-15T10:00:00",
-  "received_by_id": "uuid-opcional"
-}
-```
-**Nota:** `created_by_id` se asigna automáticamente al usuario autenticado.
-
-#### Listar eventos del usuario
-**GET** `/api/v1/events/my-events/`
-- Lista todos los eventos creados por el usuario autenticado
-
-#### Listar eventos recibidos
-**GET** `/api/v1/events/received/`
-- Lista todos los eventos donde el usuario es `received_by_id`
-
-### Alertas
-
-#### Crear alerta (actualizado)
-**POST** `/api/v1/alerts/`
-```json
-{
-  "cared_person_id": 1,
-  "alert_type": "sos",
-  "message": "Botón de pánico presionado",
-  "severity": "high",
-  "received_by_id": "uuid-opcional"
+  "content": {
+    "activity_summary": "Actividad normal",
+    "health_metrics": {
+      "steps": 8500,
+      "sleep_hours": 7.5,
+      "medication_adherence": 95
+    },
+    "alerts_summary": {
+      "total": 3,
+      "resolved": 3,
+      "pending": 0
+    }
+  },
+  "attachments": [
+    {
+      "filename": "reporte_enero_2024.pdf",
+      "url": "/uploads/reports/reporte_enero_2024.pdf",
+      "size": 1024000
+    }
+  ]
 }
 ```
 
-#### Listar alertas del usuario
-**GET** `/api/v1/alerts/my-alerts/`
-- Lista todas las alertas creadas por el usuario autenticado
+---
 
-#### Listar alertas recibidas
-**GET** `/api/v1/alerts/received/`
-- Lista todas las alertas donde el usuario es `received_by_id`
+## Validaciones de Capacidad Legal
 
-### Recordatorios
-
-#### Crear recordatorio (actualizado)
-**POST** `/api/v1/reminders/`
+### Verificar capacidad legal
+**POST** `/api/v1/legal-capacity/verify`
 ```json
 {
-  "cared_person_id": 1,
-  "title": "Tomar medicación",
-  "description": "Pastilla azul",
-  "reminder_type": "medication",
-  "scheduled_time": "08:00:00",
-  "days_of_week": [1,2,3,4,5],
-  "received_by_id": "uuid-opcional"
+  "user_id": "uuid-del-usuario",
+  "care_type": "self_care",
+  "date_of_birth": "1940-05-15",
+  "legal_status": "competent"
 }
 ```
 
-#### Listar recordatorios del usuario
-**GET** `/api/v1/reminders/my-reminders/`
-- Lista todos los recordatorios creados por el usuario autenticado
+### Validar representante legal
+**POST** `/api/v1/legal-capacity/validate-representative`
+```json
+{
+  "cared_person_id": "uuid-de-la-persona",
+  "representative_id": "uuid-del-representante",
+  "relationship": "family",
+  "legal_document": "power_of_attorney"
+}
+```
 
-#### Listar recordatorios recibidos
-**GET** `/api/v1/reminders/received/`
-- Lista todos los recordatorios donde el usuario es `received_by_id`
+### Obtener representante legal
+**GET** `/api/v1/legal-capacity/representative/{cared_person_id}`
+
+---
+
+## Administración
+
+### Dashboard de métricas
+**GET** `/api/v1/admin/dashboard`
+- **Protegido:** Sí (JWT, Admin)
+
+### Estadísticas de usuarios
+**GET** `/api/v1/admin/users/stats`
+
+### Estadísticas de paquetes
+**GET** `/api/v1/admin/packages/stats`
+
+### Estadísticas de referidos
+**GET** `/api/v1/admin/referrals/stats`
+
+### Estadísticas de comisiones
+**GET** `/api/v1/admin/commissions/stats`
+
+### Configuración del sistema
+**GET** `/api/v1/admin/config`
+
+### Actualizar configuración
+**PUT** `/api/v1/admin/config`
 
 ---
 
@@ -661,53 +719,26 @@ Todos los reportes incluyen los siguientes campos:
 
 ### Errores de Autenticación
 - `401 Unauthorized`: Token inválido o expirado
-- `403 Forbidden`: Usuario sin permisos para la operación
+- `403 Forbidden`: Sin permisos para el recurso
 
 ### Errores de Validación
-- `400 Bad Request`: Datos de entrada inválidos
-- `422 Unprocessable Entity`: Error de validación de esquema
+- `422 Unprocessable Entity`: Datos inválidos
+- `400 Bad Request`: Parámetros incorrectos
 
-### Errores de Recurso
-- `404 Not Found`: Recurso no encontrado
+### Errores de Negocio
 - `409 Conflict`: Conflicto de datos (ej: email duplicado)
-
-### Errores del Servidor
+- `404 Not Found`: Recurso no encontrado
 - `500 Internal Server Error`: Error interno del servidor
-- `503 Service Unavailable`: Servicio temporalmente no disponible
+
+### Errores Específicos
+- `CAPACITY_LEGAL_REQUIRED`: Se requiere validación de capacidad legal
+- `REPRESENTATIVE_REQUIRED`: Se requiere representante legal para cuidado delegado
+- `PACKAGE_LIMIT_EXCEEDED`: Límite del paquete excedido
+- `REFERRAL_EXPIRED`: Código de referido expirado
+- `INSUFFICIENT_PERMISSIONS`: Permisos insuficientes para la acción
 
 ---
 
-## Ejemplos de Respuesta
-
-### Respuesta de Error
-```json
-{
-  "detail": "Validation error",
-  "errors": [
-    {
-      "field": "email",
-      "message": "Email inválido"
-    }
-  ]
-}
-```
-
-### Respuesta de Lista Paginada
-```json
-{
-  "items": [...],
-  "total": 100,
-  "page": 1,
-  "size": 20,
-  "pages": 5
-}
-```
-
-### Respuesta de Creación
-```json
-{
-  "id": 1,
-  "message": "Recurso creado exitosamente",
-  "created_at": "2024-01-15T10:30:00Z"
-}
-``` 
+*Documentación API - CUIOT v2.0*
+*Última actualización: [Fecha]*
+*Próxima revisión: [Fecha]* 

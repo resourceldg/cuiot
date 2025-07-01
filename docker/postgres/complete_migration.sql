@@ -137,7 +137,7 @@ BEGIN
         CASE WHEN COUNT(*) > 0 THEN 'OK' ELSE 'EMPTY' END::TEXT
     FROM users;
     
-    -- Validar adultos mayores
+    -- Validar personas bajo cuidado
     RETURN QUERY SELECT 
         'elderly_persons'::TEXT,
         COUNT(*)::BIGINT,

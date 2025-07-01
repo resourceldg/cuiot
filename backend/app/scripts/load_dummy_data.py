@@ -60,7 +60,7 @@ def create_institutions(db: Session) -> List[Institution]:
     institutions_data = [
         {
             "name": "Centro de Cuidado San Martín",
-            "description": "Centro especializado en cuidado de adultos mayores",
+            "description": "Centro especializado en cuidado de personas bajo cuidado",
             "institution_type": "nursing_home",
             "address": "Av. San Martín 1234, CABA",
             "phone": "+5491112345678",
@@ -221,13 +221,17 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
     return users
 
 def assign_roles(db: Session, users: List[User]):
-    # Asignar roles: el primero admin, el segundo y tercero family, el cuarto y quinto caregiver
-    role_names = ["admin", "family", "family", "caregiver", "caregiver"]
-    for user, role_name in zip(users, role_names):
-        try:
-            UserRole.assign_role_to_user(db, user.id, role_name)
-        except Exception as e:
-            print(f"⚠️ Error asignando rol {role_name} a {user.email}: {e}")
+    for user in users:
+        for role_name in user.get("roles", []):
+            try:
+                # Recargar el usuario desde la base de datos por email
+                db_user = db.query(User).filter_by(email=user.email).first()
+                if not db_user:
+                    print(f"⚠️ Usuario {user.email} no encontrado para asignar rol {role_name}")
+                    continue
+                UserRole.assign_role_to_user(db, db_user.id, role_name)
+            except Exception as e:
+                print(f"⚠️ Error asignando rol {role_name} a {user.email}: {e}")
     print("✅ Roles asignados a los usuarios")
 
 def create_cared_persons(db: Session, users: List[User]) -> List[CaredPerson]:
@@ -437,15 +441,42 @@ def print_credentials(users: List[User]) -> None:
 def cleanup_database(db: Session) -> None:
     try:
         print("🧹 Limpiando datos existentes...")
-        db.query(Event).delete()
-        db.query(Alert).delete()
-        db.query(Reminder).delete()
-        db.query(Device).delete()
-        db.query(CaredPerson).delete()
-        db.query(UserRole).delete()
-        db.query(User).delete()
-        db.query(Role).delete()
-        db.query(Institution).delete()
+        try:
+            db.query(Event).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar Event: {e}")
+        try:
+            db.query(Alert).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar Alert: {e}")
+        try:
+            db.query(Reminder).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar Reminder: {e}")
+        try:
+            db.query(Device).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar Device: {e}")
+        try:
+            db.query(CaredPerson).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar CaredPerson: {e}")
+        try:
+            db.query(UserRole).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar UserRole: {e}")
+        try:
+            db.query(User).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar User: {e}")
+        try:
+            db.query(Role).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar Role: {e}")
+        try:
+            db.query(Institution).delete()
+        except Exception as e:
+            print(f"⚠️  No se pudo limpiar Institution: {e}")
         db.commit()
         print("✅ Base de datos limpiada")
     except Exception as e:
@@ -496,7 +527,7 @@ def main():
         print("📊 Resumen:")
         print(f"   🏥 Instituciones: {len(institutions)}")
         print(f"   👥 Usuarios: {len(users)}")
-        print(f"   👴 Personas bajo cuidado: {len(cared_persons)}")
+        print(f"   • Personas bajo cuidado: {len(cared_persons)}")
         print(f"   📱 Dispositivos: {len(devices)}")
         print(f"   📅 Eventos: {len(events)}")
         print(f"   🚨 Alertas: {len(alerts)}")

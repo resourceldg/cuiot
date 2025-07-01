@@ -79,7 +79,7 @@ def update_event(db: Session, event_id: UUID, event_update: EventUpdate) -> Opti
     db_event = get_event_by_id(db, event_id)
     if not db_event:
         return None
-    update_data = event_update.dict(exclude_unset=True)
+    update_data = event_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_event, field, value)
     db.commit()

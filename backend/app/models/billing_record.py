@@ -32,11 +32,13 @@ class BillingRecord(BaseModel):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
     service_subscription_id = Column(Integer, ForeignKey("service_subscriptions.id"), nullable=True)
+    user_package_id = Column(UUID(as_uuid=True), ForeignKey("user_packages.id"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="billing_records")
     institution = relationship("Institution", back_populates="billing_records")
     service_subscription = relationship("ServiceSubscription", back_populates="billing_records")
+    user_package = relationship("UserPackage", back_populates="billing_records")
     
     def __repr__(self):
         return f"<BillingRecord(invoice='{self.invoice_number}', amount={self.total_amount}, status='{self.status}')>"

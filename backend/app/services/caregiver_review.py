@@ -16,7 +16,7 @@ class CaregiverReviewService:
     def create_review(db: Session, review_data: CaregiverReviewCreate, reviewer_id: UUID) -> CaregiverReview:
         """Create a new caregiver review"""
         db_review = CaregiverReview(
-            **review_data.dict(),
+            **review_data.model_dump(),
             reviewer_id=reviewer_id
         )
         db.add(db_review)
@@ -56,7 +56,7 @@ class CaregiverReviewService:
         if not db_review:
             return None
         
-        for field, value in review_data.dict(exclude_unset=True).items():
+        for field, value in review_data.model_dump(exclude_unset=True).items():
             setattr(db_review, field, value)
         
         db.commit()

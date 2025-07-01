@@ -73,13 +73,13 @@
 </script>
 
 <svelte:head>
-    <title>Registro - Viejos Son Los Trapos</title>
+    <title>Registro - Sistema Integral de Monitoreo</title>
 </svelte:head>
 
 <div class="register-container">
     <div class="register-card">
         <div class="register-header">
-            <h1>👴 Viejos Son Los Trapos</h1>
+            <h1>👴 Registro</h1>
             <p>Crea tu cuenta</p>
         </div>
 
@@ -190,8 +190,7 @@
     .register-card {
         background: white;
         border-radius: 12px;
-        box-shadow:
-            0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
             0 10px 10px -5px rgba(0, 0, 0, 0.04);
         padding: 2.5rem;
         width: 100%;

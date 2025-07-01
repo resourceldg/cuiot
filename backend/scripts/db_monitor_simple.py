@@ -3,7 +3,7 @@
 Simple Database Monitor
 ======================
 
-A simplified but functional database monitoring system for the Viejos Son Los Trapos project.
+A simplified but functional database monitoring system for the Sistema Integral de Monitoreo project.
 This script provides essential monitoring capabilities with emergency features.
 
 Features:
