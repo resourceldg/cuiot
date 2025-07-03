@@ -3,10 +3,10 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# Crear engine de base de datos
+# Crear engine de base de datos usando la URL según el entorno
 engine = create_engine(
-    settings.database_url,
-    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
+    settings.get_database_url,
+    connect_args={"check_same_thread": False} if settings.get_database_url.startswith("sqlite") else {},
     pool_pre_ping=True,
     pool_recycle=300,
     echo=settings.environment == "development"

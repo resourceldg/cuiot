@@ -10,8 +10,17 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     environment: str = "development"
     
-    # Base de datos
+    # Base de datos - Configuración por entorno
     database_url: str = "postgresql://viejos_trapos_user:viejos_trapos_pass@postgres:5432/viejos_trapos_db"
+    test_database_url: str = "postgresql://viejos_trapos_user:viejos_trapos_pass@postgres:5432/viejos_trapos_test_db"
+    
+    # Determinar URL de base de datos según entorno
+    @property
+    def get_database_url(self) -> str:
+        """Retorna la URL de base de datos según el entorno"""
+        if self.environment == "test":
+            return self.test_database_url
+        return self.database_url
     
     # Redis
     redis_url: str = "redis://redis:6379"

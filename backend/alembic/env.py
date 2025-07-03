@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import os
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -22,6 +23,27 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+
+# Configuración dinámica de URL de base de datos según entorno
+def get_database_url():
+    """Obtiene la URL de base de datos según el entorno"""
+    environment = os.getenv("ENVIRONMENT", "development")
+    
+    if environment == "test":
+        # URL para base de datos de testing
+        return os.getenv(
+            "TEST_DATABASE_URL", 
+            "postgresql://viejos_trapos_user:viejos_trapos_pass@postgres_test:5432/viejos_trapos_test_db"
+        )
+    else:
+        # URL para base de datos de desarrollo
+        return os.getenv(
+            "DATABASE_URL", 
+            "postgresql://viejos_trapos_user:viejos_trapos_pass@postgres:5432/viejos_trapos_db"
+        )
+
+# Override sqlalchemy.url with environment-specific URL
+config.set_main_option("sqlalchemy.url", get_database_url())
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -75,6 +97,7 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
+# Ejecutar migraciones cuando se llama desde alembic
 if context.is_offline_mode():
     run_migrations_offline()
 else:

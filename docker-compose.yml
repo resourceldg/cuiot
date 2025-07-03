@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Base de datos PostgreSQL
+  # Base de datos PostgreSQL para desarrollo
   postgres:
     image: postgres:15-alpine
     container_name: viejos_trapos_postgres
@@ -16,6 +16,31 @@ services:
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - viejos_trapos_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U viejos_trapos_user -d viejos_trapos_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos PostgreSQL para testing
+  postgres_test:
+    image: postgres:15-alpine
+    container_name: viejos_trapos_postgres_test
+    environment:
+      POSTGRES_DB: viejos_trapos_test_db
+      POSTGRES_USER: viejos_trapos_user
+      POSTGRES_PASSWORD: viejos_trapos_pass
+    ports:
+      - "5433:5432" # Puerto diferente para evitar conflictos
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    networks:
+      - viejos_trapos_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U viejos_trapos_user -d viejos_trapos_test_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis para cache y sesiones
   redis:
@@ -28,6 +53,29 @@ services:
     networks:
       - viejos_trapos_network
 
+  # Servicio de migración (se ejecuta una vez y termina)
+  migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: viejos_trapos_migrations
+    environment:
+      - DATABASE_URL=postgresql://viejos_trapos_user:viejos_trapos_pass@postgres:5432/viejos_trapos_db
+      - TEST_DATABASE_URL=postgresql://viejos_trapos_user:viejos_trapos_pass@postgres_test:5432/viejos_trapos_test_db
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres_test:
+        condition: service_healthy
+    networks:
+      - viejos_trapos_network
+    command: [ "python", "-m", "app.scripts.init_db" ]
+    profiles:
+      - migrate
+
   # Backend FastAPI
   backend:
     build:
@@ -36,6 +84,7 @@ services:
     container_name: viejos_trapos_backend
     environment:
       - DATABASE_URL=postgresql://viejos_trapos_user:viejos_trapos_pass@postgres:5432/viejos_trapos_db
+      - TEST_DATABASE_URL=postgresql://viejos_trapos_user:viejos_trapos_pass@postgres_test:5432/viejos_trapos_test_db
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=viejos_trapos_secret_key_dev
       - ENVIRONMENT=development
@@ -44,8 +93,12 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      postgres_test:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - viejos_trapos_network
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -99,6 +152,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_test_data:
   redis_data:
   mqtt_data:
   mqtt_logs:

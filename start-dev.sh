@@ -1,89 +1,101 @@
 #!/bin/bash
 
-# Script para iniciar el entorno de desarrollo
-echo "🚀 Iniciando entorno de desarrollo para el Sistema Integral de Monitoreo..."
+# Script de inicio para desarrollo
+# Levanta todos los servicios y ejecuta migraciones automáticamente
 
-# Verificar si Docker está instalado
-if ! command -v docker &> /dev/null; then
-    echo "❌ Docker no está instalado. Por favor, instala Docker primero."
+set -e
+
+# Colores para output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+echo "🚀 Iniciando entorno de desarrollo..."
+
+# 1. Levantar bases de datos
+print_info "📦 Levantando bases de datos..."
+docker-compose up -d postgres postgres_test
+
+# 2. Esperar a que las bases de datos estén listas
+print_info "⏳ Esperando que las bases de datos estén listas..."
+sleep 15
+
+# 3. Verificar que las bases de datos estén funcionando
+print_info "🔍 Verificando conexiones a bases de datos..."
+
+if docker-compose exec -T postgres pg_isready -U viejos_trapos_user -d viejos_trapos_db >/dev/null 2>&1; then
+    print_success "✅ Base de datos de desarrollo lista"
+else
+    print_error "❌ Error en base de datos de desarrollo"
     exit 1
 fi
 
-# Verificar si Docker Compose está instalado
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose no está instalado. Por favor, instala Docker Compose primero."
+if docker-compose exec -T postgres_test pg_isready -U viejos_trapos_user -d viejos_trapos_test_db >/dev/null 2>&1; then
+    print_success "✅ Base de datos de testing lista"
+else
+    print_error "❌ Error en base de datos de testing"
     exit 1
 fi
 
-# Verificar si Docker está ejecutándose
-if ! docker info &> /dev/null; then
-    echo "❌ Docker no está ejecutándose. Por favor, inicia Docker primero."
+# 4. Levantar Redis
+print_info "📦 Levantando Redis..."
+docker-compose up -d redis
+
+# 5. Ejecutar migraciones automáticamente
+print_info "🔧 Ejecutando migraciones automáticamente..."
+if ./scripts/migrate.sh up; then
+    print_success "✅ Migraciones aplicadas correctamente"
+else
+    print_error "❌ Error al aplicar migraciones"
     exit 1
 fi
 
-echo "✅ Docker y Docker Compose están disponibles"
+# 6. Levantar backend (con migraciones automáticas)
+print_info "📦 Levantando backend..."
+docker-compose up -d backend
 
-# Detener contenedores existentes si los hay
-echo "🛑 Deteniendo contenedores existentes..."
-docker-compose down
+# 7. Levantar panel web
+print_info "📦 Levantando panel web..."
+docker-compose up -d web-panel
 
-# Limpiar recursos no utilizados
-echo "🧹 Limpiando recursos no utilizados..."
-docker system prune -f
+# 8. Levantar servicios adicionales
+print_info "📦 Levantando servicios adicionales..."
+docker-compose up -d mqtt adminer
 
-# Construir y levantar todos los servicios
-echo "🔨 Construyendo y levantando servicios..."
-docker-compose up --build -d
-
-# Esperar un momento para que los servicios se inicien
-echo "⏳ Esperando que los servicios se inicien..."
-sleep 10
-
-# Verificar el estado de los contenedores
-echo "🔍 Verificando estado de los contenedores..."
-docker-compose ps
-
-# Verificar que los servicios estén respondiendo
-echo "🌐 Verificando conectividad de los servicios..."
-
-# Verificar backend
-if curl -s http://localhost:8000/health > /dev/null; then
-    echo "✅ Backend (puerto 8000) - Funcionando"
-else
-    echo "❌ Backend (puerto 8000) - No responde"
-fi
-
-# Verificar frontend
-if curl -s http://localhost:3000 > /dev/null; then
-    echo "✅ Frontend (puerto 3000) - Funcionando"
-else
-    echo "❌ Frontend (puerto 3000) - No responde"
-fi
-
-# Verificar base de datos
-if curl -s http://localhost:8080 > /dev/null; then
-    echo "✅ Adminer (puerto 8080) - Funcionando"
-else
-    echo "❌ Adminer (puerto 8080) - No responde"
-fi
-
+# 9. Mostrar estado final
+print_success "🎉 Entorno de desarrollo iniciado correctamente!"
 echo ""
-echo "🎉 ¡Entorno de desarrollo iniciado!"
+print_info "📊 Servicios disponibles:"
+echo "  🌐 Panel Web:     http://localhost:3000"
+echo "  🔧 API Backend:   http://localhost:8000"
+echo "  📊 Adminer:       http://localhost:8080"
+echo "  📚 API Docs:      http://localhost:8000/docs"
+echo "  🗄️  PostgreSQL:    localhost:5432"
+echo "  🧪 PostgreSQL Test: localhost:5433"
+echo "  📡 MQTT:          localhost:1883"
 echo ""
-echo "📱 Servicios disponibles:"
-echo "   • Frontend: http://localhost:3000"
-echo "   • Backend API: http://localhost:8000"
-echo "   • Documentación API: http://localhost:8000/docs"
-echo "   • Adminer (DB): http://localhost:8080"
-echo "   • MQTT: localhost:1883"
+print_info "🔧 Comandos útiles:"
+echo "  ./scripts/migrate.sh status    # Ver estado de migraciones"
+echo "  ./scripts/migrate.sh create 'mensaje'  # Crear nueva migración"
+echo "  docker-compose logs -f backend  # Ver logs del backend"
+echo "  docker-compose down            # Detener todos los servicios"
 echo ""
-echo "📋 Comandos útiles:"
-echo "   • Ver logs: docker-compose logs -f [servicio]"
-echo "   • Parar servicios: docker-compose down"
-echo "   • Reiniciar: docker-compose restart [servicio]"
-echo ""
-echo "🔧 Para desarrollo:"
-echo "   • Los archivos están montados en volumen, los cambios se reflejan automáticamente"
-echo "   • El frontend tiene hot-reload habilitado"
-echo "   • El backend tiene auto-reload habilitado"
-echo "" 
+print_success "¡Listo para desarrollar! 🚀" 

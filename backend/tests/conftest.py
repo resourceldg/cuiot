@@ -1,6 +1,7 @@
 import os
-# Use PostgreSQL for tests (development database)
-os.environ["DATABASE_URL"] = "postgresql://viejos_trapos_user:viejos_trapos_pass@postgres:5432/viejos_trapos_db"
+# Configurar entorno de testing
+os.environ["ENVIRONMENT"] = "test"
+os.environ["DATABASE_URL"] = "postgresql://viejos_trapos_user:viejos_trapos_pass@postgres_test:5432/viejos_trapos_test_db"
 
 import pytest
 import pytest_asyncio
@@ -10,13 +11,47 @@ from app.core.database import get_db, engine, SessionLocal
 from app.models.base import Base
 from sqlalchemy import text
 
-# Create all tables in the test database
+# Configurar base de datos de testing usando migraciones de Alembic
 @pytest.fixture(scope="session", autouse=True)
-def create_tables():
-    """Create all tables in the test database"""
-    Base.metadata.create_all(bind=engine)
+def setup_test_database():
+    """Configura la base de datos de testing usando migraciones de Alembic"""
+    import subprocess
+    import sys
+    
+    print("🔧 Configurando base de datos de testing con Alembic...")
+    
+    # Ejecutar migraciones de Alembic en la base de datos de testing
+    try:
+        result = subprocess.run([
+            sys.executable, "-m", "alembic", "upgrade", "head"
+        ], capture_output=True, text=True, cwd=".", env={
+            **os.environ,
+            "ENVIRONMENT": "test"
+        })
+        
+        if result.returncode != 0:
+            print(f"❌ Error en migración: {result.stderr}")
+            raise Exception("Falló la migración de Alembic")
+        
+        print("✅ Base de datos de testing configurada correctamente")
+    except Exception as e:
+        print(f"❌ Error configurando base de datos: {e}")
+        raise
+    
     yield
-    Base.metadata.drop_all(bind=engine)
+    
+    # Cleanup: limpiar datos pero mantener estructura
+    print("🧹 Limpiando datos de testing...")
+    try:
+        db = SessionLocal()
+        db.execute(text("SET session_replication_role = replica;"))
+        for table in reversed(Base.metadata.sorted_tables):
+            db.execute(text(f"TRUNCATE TABLE {table.name} RESTART IDENTITY CASCADE;"))
+        db.execute(text("SET session_replication_role = DEFAULT;"))
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"⚠️  Warning: No se pudo limpiar la base de datos: {e}")
 
 @pytest.fixture
 def db_session():

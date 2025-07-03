@@ -332,6 +332,21 @@ async def test_remove_role(async_client, admin_auth, auth_headers):
     create_resp = await async_client.post("/api/v1/users/", json=user_data, headers=admin_auth["headers"])
     assert create_resp.status_code == 201
     user_id = create_resp.json()["id"]
+    # Crear rol test_role si no existe
+    role_data = {
+        "name": "test_role",
+        "description": "Rol de prueba para test minimal",
+        "permissions": json.dumps({"users": {"read": True}}),
+        "is_system": False
+    }
+    create_role_resp = await async_client.post("/api/v1/users/roles", json=role_data, headers=admin_auth["headers"])
+    if create_role_resp.status_code not in (200, 201):
+        # Si el error es por rol duplicado, continuar
+        if create_role_resp.status_code == 400 and ("ya existe" in create_role_resp.text or "already exists" in create_role_resp.text):
+            pass
+        else:
+            print(f"Error creando rol: {create_role_resp.status_code}, {create_role_resp.text}")
+            assert False, f"Error creando rol: {create_role_resp.status_code}, {create_role_resp.text}"
     # Asignar rol antes de removerlo
     data = {"role_name": "test_role"}
     assign_resp = await async_client.post(f"/api/v1/users/{user_id}/assign-role", json=data, headers=admin_auth["headers"])
