@@ -3,6 +3,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 from app.models.diagnosis import Diagnosis
+from app.models.allergy import Allergy
+from app.models.medical_condition import MedicalCondition
+from app.models.medication import Medication
 import uuid
 
 class CaredPerson(BaseModel):
@@ -25,9 +28,6 @@ class CaredPerson(BaseModel):
     emergency_phone = Column(String(20), nullable=True)
     
     # Medical info
-    medical_conditions = Column(Text, nullable=True)
-    medications = Column(Text, nullable=True)
-    allergies = Column(Text, nullable=True)
     blood_type = Column(String(10), nullable=True)
     
     # Care info
@@ -76,6 +76,11 @@ class CaredPerson(BaseModel):
     
     # Relaciones con otras entidades
     shift_observations = relationship("ShiftObservation", back_populates="cared_person")
+    
+    # Relaciones normalizadas
+    medical_conditions = relationship("MedicalCondition", back_populates="cared_person", cascade="all, delete-orphan")
+    medications = relationship("Medication", back_populates="cared_person", cascade="all, delete-orphan")
+    allergies = relationship("Allergy", back_populates="cared_person", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<CaredPerson(name='{self.first_name} {self.last_name}', care_type='{self.care_type}')>"

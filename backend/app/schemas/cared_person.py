@@ -14,9 +14,6 @@ class CaredPersonBase(BaseModel):
     email: Optional[EmailStr] = None
     emergency_contact: Optional[str] = Field(None, max_length=100)
     emergency_phone: Optional[str] = Field(None, max_length=20)
-    medical_conditions: Optional[str] = None
-    medications: Optional[str] = None
-    allergies: Optional[str] = None
     blood_type: Optional[str] = Field(None, max_length=10)
     care_type: Optional[str] = Field("delegated", max_length=20)  # "self_care" or "delegated"
     care_level: Optional[str] = Field(None, max_length=50)
