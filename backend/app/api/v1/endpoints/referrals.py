@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.services.auth import AuthService
 from app.models.user import User
 from app.services.referral import ReferralService
 from app.schemas.referral import (
@@ -20,7 +20,7 @@ router = APIRouter()
 def generate_referral_code(
     code_data: ReferralCodeGenerate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Generate a referral code for the current user"""
     # Validate referrer type and ID
@@ -70,7 +70,7 @@ def validate_referral_code(
 def create_referral(
     referral_data: ReferralCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Create a new referral"""
     # Validate referrer permissions
@@ -96,7 +96,7 @@ def get_my_referrals(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Get referrals created by current user"""
     # Get primary role (first active role)
@@ -121,7 +121,7 @@ def get_my_commissions(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Get commissions for current user"""
     # Get primary role (first active role)
@@ -136,7 +136,7 @@ def get_my_commissions(
 @router.get("/stats", response_model=ReferralStats)
 def get_referral_stats(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Get referral statistics for current user"""
     # Get primary role (first active role)
@@ -148,7 +148,7 @@ def get_referral_stats(
 @router.get("/stats/all", response_model=ReferralStats)
 def get_all_referral_stats(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Get all referral statistics (admin only)"""
     if not current_user.has_role("admin"):
@@ -162,7 +162,7 @@ def update_referral_status(
     referral_id: UUID,
     status_update: ReferralUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Update referral status (admin only)"""
     if not current_user.has_role("admin"):
@@ -184,7 +184,7 @@ def update_referral_status(
 def pay_commission(
     commission_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Mark commission as paid (admin only)"""
     if not current_user.has_role("admin"):
@@ -200,7 +200,7 @@ def pay_commission(
 @router.post("/expire-old")
 def expire_old_referrals(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Expire old referrals (admin only)"""
     if not current_user.has_role("admin"):
@@ -216,7 +216,7 @@ def expire_old_referrals(
 @router.get("/bonus-eligibility")
 def check_bonus_eligibility(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Check if current user is eligible for bonus"""
     # Get primary role (first active role)

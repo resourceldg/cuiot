@@ -35,7 +35,7 @@ def create_restraint_protocol(
     responsible_professional: str = Form(..., max_length=200, description="Profesional responsable"),
     professional_license: Optional[str] = Form(None, max_length=100, description="Licencia profesional"),
     supervising_doctor: Optional[str] = Form(None, max_length=200, description="Médico supervisor"),
-    status: str = Form("active", description="Estado: active, suspended, completed, terminated, pending, under_review"),
+    status_type_id: Optional[int] = Form(None, description="ID del tipo de estado"),
     compliance_status: str = Form("compliant", description="Cumplimiento: compliant, non_compliant, under_review, pending_assessment"),
     notes: Optional[str] = Form(None, description="Notas adicionales"),
     cared_person_id: str = Form(..., description="ID de la persona bajo cuidado"),
@@ -109,7 +109,7 @@ def create_restraint_protocol(
             responsible_professional=responsible_professional,
             professional_license=professional_license,
             supervising_doctor=supervising_doctor,
-            status=status,
+            status_type_id=status_type_id,
             compliance_status=compliance_status,
             notes=notes,
             cared_person_id=UUID(cared_person_id),
@@ -149,7 +149,7 @@ def get_restraint_protocols(
     cared_person_id: Optional[UUID] = Query(None, description="Filtrar por persona bajo cuidado"),
     institution_id: Optional[int] = Query(None, description="Filtrar por institución"),
     protocol_type: Optional[str] = Query(None, description="Filtrar por tipo de protocolo"),
-    status: Optional[str] = Query(None, description="Filtrar por estado"),
+    status_type_id: Optional[int] = Query(None, description="Filtrar por ID del tipo de estado"),
     active_only: bool = Query(False, description="Solo protocolos activos"),
     db: Session = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_active_user)
@@ -164,7 +164,7 @@ def get_restraint_protocols(
     protocols = RestraintProtocolService.get_restraint_protocols(
         db, skip=skip, limit=limit, cared_person_id=cared_person_id,
         institution_id=institution_id, protocol_type=protocol_type,
-        status=status, active_only=active_only
+        status_type_id=status_type_id, active_only=active_only
     )
     
     return protocols

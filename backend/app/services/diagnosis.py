@@ -17,7 +17,7 @@ class DiagnosisService:
             doctor_name=diagnosis_data.doctor_name,
             medical_notes=diagnosis_data.medical_notes,
             cie10_code=diagnosis_data.cie10_code,
-            attachments=[a.dict() for a in (diagnosis_data.attachments or [])],
+            attachments=[a.model_dump() for a in (diagnosis_data.attachments or [])],
             is_active=diagnosis_data.is_active,
             cared_person_id=diagnosis_data.cared_person_id,
             created_by_id=user.id,
@@ -54,7 +54,7 @@ class DiagnosisService:
         diagnosis = db.query(Diagnosis).filter(Diagnosis.id == diagnosis_id).first()
         if not diagnosis:
             return None
-        for field, value in diagnosis_update.dict(exclude_unset=True).items():
+        for field, value in diagnosis_update.model_dump(exclude_unset=True).items():
             setattr(diagnosis, field, value)
         diagnosis.updated_by_id = user.id
         diagnosis.updated_at = datetime.utcnow()

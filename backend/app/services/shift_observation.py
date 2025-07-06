@@ -11,6 +11,7 @@ from app.models.shift_observation import ShiftObservation
 from app.models.user import User
 from app.models.cared_person import CaredPerson
 from app.models.institution import Institution
+from app.models.status_type import StatusType
 from app.schemas.shift_observation import (
     ShiftObservationCreate, 
     ShiftObservationUpdate, 
@@ -85,6 +86,12 @@ class ShiftObservationService:
         if existing_observation:
             raise ValidationException("Ya existe una observación para este turno y fecha")
         
+        # Buscar el ID del status_type "draft" por defecto
+        draft_status = db.query(StatusType).filter(StatusType.name == "draft").first()
+        if not draft_status:
+            # Fallback: usar el primer status_type disponible
+            draft_status = db.query(StatusType).first()
+        
         # Crear la observación
         observation = ShiftObservation(
             id=uuid.uuid4(),
@@ -92,6 +99,7 @@ class ShiftObservationService:
             shift_start=observation_data.shift_start,
             shift_end=observation_data.shift_end,
             observation_date=observation_data.observation_date,
+            shift_observation_type_id=observation_data.shift_observation_type_id,
             
             # Estado físico
             physical_condition=observation_data.physical_condition,
@@ -99,7 +107,7 @@ class ShiftObservationService:
             pain_level=observation_data.pain_level,
             vital_signs=observation_data.vital_signs,
             skin_condition=observation_data.skin_condition,
-            hygiene_status=observation_data.hygiene_status,
+            hygiene_status_type_id=observation_data.hygiene_status_type_id,
             
             # Estado mental y conductual
             mental_state=observation_data.mental_state,
@@ -119,7 +127,7 @@ class ShiftObservationService:
             bowel_movement=observation_data.bowel_movement,
             urinary_output=observation_data.urinary_output,
             incontinence_episodes=observation_data.incontinence_episodes,
-            catheter_status=observation_data.catheter_status,
+            catheter_status_type_id=observation_data.catheter_status_type_id,
             
             # Medicación
             medications_taken=observation_data.medications_taken,
@@ -151,8 +159,8 @@ class ShiftObservationService:
             # Archivos adjuntos
             attached_files=attached_files or [],
             
-            # Estado
-            status=observation_data.status,
+            # Estado (normalizado)
+            status_type_id=observation_data.status_type_id or (draft_status.id if draft_status else None),
             
             # Relaciones
             cared_person_id=observation_data.cared_person_id,
@@ -208,7 +216,7 @@ class ShiftObservationService:
         caregiver_id: Optional[UUID] = None,
         institution_id: Optional[int] = None,
         shift_type: Optional[ShiftType] = None,
-        status: Optional[ObservationStatus] = None,
+        status_type_id: Optional[int] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         incidents_only: Optional[bool] = None
@@ -248,8 +256,8 @@ class ShiftObservationService:
         if shift_type:
             query = query.filter(ShiftObservation.shift_type == shift_type)
         
-        if status:
-            query = query.filter(ShiftObservation.status == status)
+        if status_type_id:
+            query = query.filter(ShiftObservation.status_type_id == status_type_id)
         
         if start_date:
             query = query.filter(ShiftObservation.observation_date >= start_date)
@@ -423,7 +431,12 @@ class ShiftObservationService:
         observation.is_verified = True
         observation.verified_by = current_user.id
         observation.verified_at = datetime.utcnow()
-        observation.status = ObservationStatus.REVIEWED
+        
+        # Buscar el ID del status_type "reviewed"
+        reviewed_status = db.query(StatusType).filter(StatusType.name == "reviewed").first()
+        if reviewed_status:
+            observation.status_type_id = reviewed_status.id
+        
         observation.updated_at = datetime.utcnow()
         
         db.commit()
@@ -576,6 +589,7 @@ class ShiftObservationService:
             shift_start=observation.shift_start,
             shift_end=observation.shift_end,
             observation_date=observation.observation_date,
+            shift_observation_type_id=observation.shift_observation_type_id,
             
             # Estado físico
             physical_condition=observation.physical_condition,
@@ -583,7 +597,7 @@ class ShiftObservationService:
             pain_level=observation.pain_level,
             vital_signs=observation.vital_signs,
             skin_condition=observation.skin_condition,
-            hygiene_status=observation.hygiene_status,
+            hygiene_status_type_id=observation.hygiene_status_type_id,
             
             # Estado mental y conductual
             mental_state=observation.mental_state,
@@ -603,7 +617,7 @@ class ShiftObservationService:
             bowel_movement=observation.bowel_movement,
             urinary_output=observation.urinary_output,
             incontinence_episodes=observation.incontinence_episodes,
-            catheter_status=observation.catheter_status,
+            catheter_status_type_id=observation.catheter_status_type_id,
             
             # Medicación
             medications_taken=observation.medications_taken,
@@ -635,8 +649,8 @@ class ShiftObservationService:
             # Archivos adjuntos
             attached_files=observation.attached_files,
             
-            # Estado
-            status=observation.status,
+            # Estado (normalizado)
+            status_type_id=observation.status_type_id,
             
             # Relaciones
             cared_person_id=observation.cared_person_id,

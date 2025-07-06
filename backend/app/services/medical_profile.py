@@ -11,7 +11,7 @@ class MedicalProfileService:
     @staticmethod
     def create(db: Session, medical_profile: MedicalProfileCreate) -> MedicalProfile:
         """Create a new medical profile"""
-        db_medical_profile = MedicalProfile(**medical_profile.dict())
+        db_medical_profile = MedicalProfile(**medical_profile.model_dump())
         db.add(db_medical_profile)
         db.commit()
         db.refresh(db_medical_profile)
@@ -51,7 +51,7 @@ class MedicalProfileService:
         if not db_medical_profile:
             raise NotFoundException(f"Medical profile with id {medical_profile_id} not found")
         
-        update_data = medical_profile.dict(exclude_unset=True)
+        update_data = medical_profile.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_medical_profile, field, value)
         

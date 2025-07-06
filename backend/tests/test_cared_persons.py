@@ -3,7 +3,7 @@ import pytest_asyncio
 from datetime import datetime
 
 @pytest.mark.asyncio
-async def test_cared_person_crud(async_client, auth_headers):
+async def test_cared_person_crud(async_client, auth_headers, normalized_catalogs):
     """Test CRUD operations for cared persons"""
     # Create cared person
     cared_person_data = {
@@ -12,7 +12,7 @@ async def test_cared_person_crud(async_client, auth_headers):
         "date_of_birth": "1945-03-15",
         "address": "Av. Corrientes 1234, CABA",
         "phone": "+54 11 1234-5678",
-        "care_type": "delegated",
+        "care_type_id": normalized_catalogs["care_type_id"],
         "care_level": "medium",
         "mobility_level": "assisted"
     }
@@ -41,7 +41,7 @@ async def test_cared_person_crud(async_client, auth_headers):
     assert response.status_code == 204
 
 @pytest.mark.asyncio
-async def test_cared_person_list(async_client, auth_headers):
+async def test_cared_person_list(async_client, auth_headers, normalized_catalogs):
     """Test listing cared persons"""
     # Create multiple cared persons
     cared_persons_data = [
@@ -50,7 +50,7 @@ async def test_cared_person_list(async_client, auth_headers):
             "last_name": "Pérez",
             "date_of_birth": "1940-01-01",
             "address": "Calle 1, 123",
-            "care_type": "delegated",
+            "care_type_id": normalized_catalogs["care_type_id"],
             "care_level": "low"
         },
         {
@@ -58,7 +58,7 @@ async def test_cared_person_list(async_client, auth_headers):
             "last_name": "López",
             "date_of_birth": "1950-05-10",
             "address": "Calle 2, 456",
-            "care_type": "delegated",
+            "care_type_id": normalized_catalogs["care_type_id"],
             "care_level": "high"
         }
     ]
@@ -74,7 +74,7 @@ async def test_cared_person_list(async_client, auth_headers):
     assert len(cared_persons) >= 2
 
 @pytest.mark.asyncio
-async def test_cared_person_validation(async_client, auth_headers):
+async def test_cared_person_validation(async_client, auth_headers, normalized_catalogs):
     """Test validation for cared person data"""
     # Test missing required fields
     invalid_data = {
@@ -85,22 +85,22 @@ async def test_cared_person_validation(async_client, auth_headers):
     response = await async_client.post("/api/v1/cared-persons/", json=invalid_data, headers=auth_headers)
     assert response.status_code == 422
     
-    # Test invalid care_type (should still work as it has default value)
+    # Test valid care_type_id
     valid_data = {
         "first_name": "Test",
         "last_name": "User",
-        "care_type": "delegated"  # Valid value
+        "care_type_id": normalized_catalogs["care_type_id"]
     }
     
     response = await async_client.post("/api/v1/cared-persons/", json=valid_data, headers=auth_headers)
     assert response.status_code == 201
 
-    # Test valid self_care type
+    # Test another valid cared person
     cared_person_data = {
         "first_name": "Juan",
         "last_name": "Pérez",
         "date_of_birth": "1950-01-01",
-        "care_type": "self_care"
+        "care_type_id": normalized_catalogs["care_type_id"]
     }
     response = await async_client.post("/api/v1/cared-persons/", json=cared_person_data, headers=auth_headers)
     assert response.status_code == 201
@@ -108,7 +108,7 @@ async def test_cared_person_validation(async_client, auth_headers):
     assert data is not None
     assert "id" in data
     assert data["first_name"] == "Juan"
-    assert data["care_type"] == "self_care"
+    assert data["care_type_id"] == normalized_catalogs["care_type_id"]
 
 @pytest.mark.asyncio
 async def test_cared_person_not_found(async_client, auth_headers):

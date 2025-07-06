@@ -108,13 +108,30 @@ class DebugService:
         for i in range(min(count, 4)):
             try:
                 unique_id = str(uuid.uuid4())[:8]
+                
+                # Buscar el ID del status_type "active"
+                from app.models.status_type import StatusType
+                active_status = db.query(StatusType).filter(StatusType.name == "active").first()
+                if not active_status:
+                    # Fallback: usar el primer status_type disponible
+                    active_status = db.query(StatusType).first()
+                
+                # Buscar el ID del device_type correspondiente
+                from app.models.device_type import DeviceType
+                device_type_names = ["sensor", "tracker", "camera", "wearable"]
+                device_type_name = device_type_names[i % 4]
+                device_type = db.query(DeviceType).filter(DeviceType.name == device_type_name).first()
+                if not device_type:
+                    device_type = db.query(DeviceType).first()
+                
                 device_data = {
                     "device_id": f"TEST_DEVICE_{unique_id}_{i:03d}",
                     "name": f"Test Device {i}",
-                    "device_type": ["sensor", "tracker", "camera", "wearable"][i % 4],
+                    "type": device_type_name,
+                    "device_type_id": device_type.id if device_type else None,
                     "model": f"Test Model {i}",
                     "manufacturer": "Test Manufacturer",
-                    "status": "active",
+                    "status_type_id": active_status.id if active_status else None,
                     "battery_level": 80 + (i * 5) % 20,
                     "signal_strength": 90 + (i * 3) % 10
                 }
@@ -127,11 +144,35 @@ class DebugService:
             except Exception as e:
                 print(f"Error creating test device {i}: {e}")
         
+        # Asegurar que existan los EventType requeridos
+        from app.models.event_type import EventType
+        event_type_names = ["sensor_event", "system_event", "user_action"]
+        for et_name in event_type_names:
+            if not db.query(EventType).filter(EventType.name == et_name).first():
+                db.add(EventType(name=et_name, description=f"Tipo de evento {et_name}"))
+        db.commit()
+        
+        # Asegurar que existan los AlertType requeridos
+        from app.models.alert_type import AlertType
+        alert_type_names = ["health_alert", "security_alert", "device_alert"]
+        for at_name in alert_type_names:
+            if not db.query(AlertType).filter(AlertType.name == at_name).first():
+                db.add(AlertType(name=at_name, description=f"Tipo de alerta {at_name}"))
+        db.commit()
+        
         # Create test events
         for i in range(min(count, 8)):
             try:
+                # Buscar el ID del event_type correspondiente
+                from app.models.event_type import EventType
+                event_type_names = ["sensor_event", "system_event", "user_action"]
+                event_type_name = event_type_names[i % 3]
+                event_type = db.query(EventType).filter(EventType.name == event_type_name).first()
+                if not event_type:
+                    event_type = db.query(EventType).first()
+                
                 event_data = {
-                    "event_type": ["sensor_event", "system_event", "user_action"][i % 3],
+                    "event_type_id": event_type.id if event_type else None,
                     "event_subtype": f"test_subtype_{i}",
                     "severity": ["info", "warning", "error"][i % 3],
                     "message": f"Test event message {i}",
@@ -149,13 +190,29 @@ class DebugService:
         # Create test alerts
         for i in range(min(count, 6)):
             try:
+                # Buscar el ID del status_type "active"
+                from app.models.status_type import StatusType
+                active_status = db.query(StatusType).filter(StatusType.name == "active").first()
+                if not active_status:
+                    # Fallback: usar el primer status_type disponible
+                    active_status = db.query(StatusType).first()
+                
+                # Buscar el ID del alert_type correspondiente
+                from app.models.alert_type import AlertType
+                alert_type_names = ["health_alert", "security_alert", "device_alert"]
+                alert_type_name = alert_type_names[i % 3]
+                alert_type = db.query(AlertType).filter(AlertType.name == alert_type_name).first()
+                if not alert_type:
+                    # Fallback: usar el primer alert_type disponible
+                    alert_type = db.query(AlertType).first()
+                
                 alert_data = {
-                    "alert_type": ["health_alert", "security_alert", "device_alert"][i % 3],
+                    "alert_type_id": alert_type.id if alert_type else None,
                     "alert_subtype": f"test_alert_{i}",
                     "severity": ["low", "medium", "high"][i % 3],
                     "title": f"Test Alert {i}",
                     "message": f"Test alert message {i}",
-                    "status": "active",
+                    "status_type_id": active_status.id if active_status else None,
                     "priority": 5 + (i % 5)
                 }
                 

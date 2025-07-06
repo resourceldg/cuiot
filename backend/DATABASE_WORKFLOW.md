@@ -9,6 +9,23 @@ El sistema utiliza **dos bases de datos PostgreSQL separadas**:
 - **Desarrollo**: `viejos_trapos_db` (puerto 5432)
 - **Testing**: `viejos_trapos_test_db` (puerto 5433)
 
+## ✅ Estado Actual
+
+**🎉 NORMALIZACIÓN COMPLETA**: Todas las tablas han sido normalizadas exitosamente:
+- ✅ Status fields → `status_types` table
+- ✅ Care types → `care_types` table  
+- ✅ Device types → `device_types` table
+- ✅ Alert types → `alert_types` table
+- ✅ Event types → `event_types` table
+- ✅ Reminder types → `reminder_types` table
+- ✅ Service types → `service_types` table
+- ✅ Caregiver assignment types → `caregiver_assignment_types` table
+- ✅ Shift observation types → `shift_observation_types` table
+- ✅ Referral types → `referral_types` table
+- ✅ Relationship types → `relationship_types` table
+
+**🧪 TESTS**: 100% de tests pasando (98/98)
+
 ## 🚀 Configuración Inicial
 
 ### 1. Primera vez que configuras el proyecto
@@ -21,6 +38,7 @@ El sistema utiliza **dos bases de datos PostgreSQL separadas**:
 Este comando:
 - Levanta los servicios de Docker (postgres y postgres_test)
 - Aplica todas las migraciones de Alembic a ambas bases de datos
+- Inicializa los catálogos normalizados automáticamente
 - Verifica que las conexiones funcionen correctamente
 
 ### 2. Verificar el estado

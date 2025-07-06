@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any
 from .base import BaseResponse, BaseCreate, BaseUpdate
 import json
@@ -9,8 +9,8 @@ class RoleBase(BaseModel):
     permissions: Optional[str] = None  # JSON string
     is_system: bool = False
 
-    @validator('permissions', pre=True)
-    def serialize_permissions(cls, v):
+    @field_validator('permissions')
+    def validate_permissions(cls, v):
         if isinstance(v, dict):
             return json.dumps(v)
         return v

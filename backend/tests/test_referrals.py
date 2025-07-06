@@ -103,13 +103,14 @@ async def test_referral_code_validation(async_client, caregiver_auth):
     assert data["is_valid"] == False
 
 @pytest.mark.asyncio
-async def test_referral_creation(async_client, caregiver_auth):
+async def test_referral_creation(async_client, caregiver_auth, normalized_catalogs):
     headers, user_id = caregiver_auth
     referral_data = {
         "referrer_type": "caregiver",
         "referrer_id": user_id,
         "referred_email": "newuser@example.com",
         "referral_code": "TEST123",
+        "referral_type_id": normalized_catalogs["referral_type_id"],
         "commission_amount": 50.0
     }
     response = await async_client.post("/api/v1/referrals/create", json=referral_data, headers=headers)

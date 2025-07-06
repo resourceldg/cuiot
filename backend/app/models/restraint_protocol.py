@@ -34,8 +34,8 @@ class RestraintProtocol(BaseModel):
     professional_license = Column(String(100), nullable=True)
     supervising_doctor = Column(String(200), nullable=True)
     
-    # Status and compliance
-    status = Column(String(50), default="active", nullable=False, index=True)  # active, suspended, completed, terminated
+    # Status and compliance (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     compliance_status = Column(String(50), default="compliant", nullable=False)  # compliant, non_compliant, under_review
     last_compliance_check = Column(DateTime, nullable=True)
     
@@ -53,6 +53,7 @@ class RestraintProtocol(BaseModel):
     institution = relationship("Institution", back_populates="restraint_protocols")
     created_by = relationship("User", foreign_keys=[created_by_id])
     updated_by = relationship("User", foreign_keys=[updated_by_id])
+    status_type = relationship("StatusType")
     
     def __repr__(self):
         return f"<RestraintProtocol(id={self.id}, type='{self.protocol_type}', status='{self.status}')>"
@@ -63,7 +64,7 @@ class RestraintProtocol(BaseModel):
         from datetime import datetime
         now = datetime.now()
         
-        if self.status != "active":
+        if not self.status_type or self.status_type.name != "active":
             return False
         
         if self.start_date > now:

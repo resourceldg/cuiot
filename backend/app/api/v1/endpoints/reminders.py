@@ -5,8 +5,8 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.services.auth import AuthService
+from app.services.reminder import ReminderService
 from app.schemas.reminder import ReminderCreate, ReminderUpdate, ReminderResponse
-from app.models.reminder import Reminder
 from app.models.user import User
 
 router = APIRouter()
@@ -19,21 +19,12 @@ def create_reminder(
 ):
     """Create a new reminder"""
     try:
-        # Create reminder - exclude user_id from schema data
-        data_dict = reminder_data.model_dump()
-        data_dict.pop('user_id', None)  # Remove user_id if present
+        # Set user_id from current user
+        reminder_data.user_id = current_user.id
         
-        reminder = Reminder(
-            **data_dict,
-            user_id=current_user.id
-        )
-        
-        db.add(reminder)
-        db.commit()
-        db.refresh(reminder)
+        reminder = ReminderService.create_reminder(db, reminder_data)
         return reminder
     except Exception as e:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create reminder: {str(e)}"
@@ -47,9 +38,7 @@ def get_reminders(
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Get all reminders for the current user"""
-    reminders = db.query(Reminder).filter(
-        Reminder.user_id == current_user.id
-    ).offset(skip).limit(limit).all()
+    reminders, _ = ReminderService.get_reminders_by_user(db, current_user.id, skip, limit)
     return reminders
 
 @router.get("/{reminder_id}", response_model=ReminderResponse)
@@ -59,12 +48,9 @@ def get_reminder(
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Get a specific reminder"""
-    reminder = db.query(Reminder).filter(
-        Reminder.id == reminder_id,
-        Reminder.user_id == current_user.id
-    ).first()
+    reminder = ReminderService.get_reminder(db, reminder_id)
     
-    if not reminder:
+    if not reminder or reminder.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reminder not found"
@@ -80,26 +66,18 @@ def update_reminder(
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Update a reminder"""
-    reminder = db.query(Reminder).filter(
-        Reminder.id == reminder_id,
-        Reminder.user_id == current_user.id
-    ).first()
+    reminder = ReminderService.get_reminder(db, reminder_id)
     
-    if not reminder:
+    if not reminder or reminder.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reminder not found"
         )
     
     try:
-        for field, value in reminder_data.model_dump(exclude_unset=True).items():
-            setattr(reminder, field, value)
-        
-        db.commit()
-        db.refresh(reminder)
-        return reminder
+        updated_reminder = ReminderService.update_reminder(db, reminder_id, reminder_data)
+        return updated_reminder
     except Exception as e:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update reminder: {str(e)}"
@@ -112,22 +90,22 @@ def delete_reminder(
     current_user: User = Depends(AuthService.get_current_active_user)
 ):
     """Delete a reminder"""
-    reminder = db.query(Reminder).filter(
-        Reminder.id == reminder_id,
-        Reminder.user_id == current_user.id
-    ).first()
+    reminder = ReminderService.get_reminder(db, reminder_id)
     
-    if not reminder:
+    if not reminder or reminder.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reminder not found"
         )
     
     try:
-        db.delete(reminder)
-        db.commit()
+        success = ReminderService.delete_reminder(db, reminder_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete reminder"
+            )
     except Exception as e:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete reminder: {str(e)}"

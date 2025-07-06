@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from app.models.reminder_type import ReminderType
 from datetime import datetime, timezone
 import uuid
 
@@ -13,7 +14,7 @@ class Reminder(BaseModel):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Reminder identification
-    reminder_type = Column(String(50), nullable=False, index=True)  # medication, appointment, task, etc.
+    reminder_type_id = Column(Integer, ForeignKey('reminder_types.id'), nullable=False, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     
@@ -22,8 +23,8 @@ class Reminder(BaseModel):
     due_date = Column(Date, nullable=True)
     repeat_pattern = Column(String(100), nullable=True)  # daily, weekly, monthly, custom
     
-    # Status and completion
-    status = Column(String(20), default="pending", nullable=False)  # pending, completed, missed, cancelled
+    # Status and completion (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     completed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     
@@ -43,6 +44,8 @@ class Reminder(BaseModel):
     user = relationship("User", foreign_keys=[user_id], back_populates="reminders")
     cared_person = relationship("CaredPerson", back_populates="reminders")
     completed_by_user = relationship("User", foreign_keys=[completed_by])
+    status_type = relationship("StatusType")
+    reminder_type = relationship("ReminderType")
     
     def __repr__(self):
         return f"<Reminder(type='{self.reminder_type}', title='{self.title}', status='{self.status}')>"
@@ -51,16 +54,16 @@ class Reminder(BaseModel):
     def is_overdue(self) -> bool:
         """Check if reminder is overdue"""
         now = datetime.now(timezone.utc)
-        return self.status == "pending" and self.scheduled_time < now
+        return self.status_type and self.status_type.name == "pending" and self.scheduled_time < now
     
     @property
     def is_completed(self) -> bool:
         """Check if reminder is completed"""
-        return self.status == "completed"
+        return self.status_type and self.status_type.name == "completed"
     
     @classmethod
     def get_reminder_types(cls) -> list:
-        """Returns available reminder types"""
+        """Returns available reminder types - DEPRECATED: Use ReminderType model instead"""
         return [
             "medication", "appointment", "task", "exercise", "meal",
             "hygiene", "social", "medical_checkup", "therapy", "maintenance"

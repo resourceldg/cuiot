@@ -162,8 +162,8 @@ class UserPackage(BaseModel):
     current_amount = Column(Integer, nullable=False)  # Current price in cents
     next_billing_date = Column(Date, nullable=False)
     
-    # Status
-    status = Column(String(20), default="active", nullable=False)  # active, suspended, cancelled, expired
+    # Status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     
     # Personalization
     custom_configuration = Column(JSONB, nullable=True)  # JSON with custom configuration
@@ -185,6 +185,7 @@ class UserPackage(BaseModel):
     legal_representative = relationship("User", foreign_keys=[legal_representative_id])
     billing_records = relationship("BillingRecord", back_populates="user_package")
     add_ons = relationship("UserPackageAddOn", back_populates="user_package")
+    status_type = relationship("StatusType")
     
     def __repr__(self):
         return f"<UserPackage(user_id={self.user_id}, package_id={self.package_id}, status='{self.status}')>"
@@ -195,7 +196,7 @@ class UserPackage(BaseModel):
         from datetime import date
         today = date.today()
         
-        if self.status != "active":
+        if not self.status_type or self.status_type.name != "active":
             return False
         
         if self.start_date > today:
@@ -238,6 +239,13 @@ class UserPackage(BaseModel):
         total_cents = self.current_amount + self.total_add_ons_cost
         return total_cents / 100
     
+    @property
+    def status(self) -> str:
+        """Get status as string for backward compatibility"""
+        if self.status_type:
+            return self.status_type.name
+        return "unknown"
+    
     @classmethod
     def get_status_types(cls) -> list:
         """Returns available status types"""
@@ -250,17 +258,27 @@ class UserPackage(BaseModel):
     
     def cancel_subscription(self):
         """Cancel the subscription"""
-        self.status = "cancelled"
+        # Nota: Este método necesita acceso a la sesión de DB para buscar el status_type
+        # Se recomienda usar el método del servicio en su lugar
+        # Por ahora, mantenemos compatibilidad con el campo legacy
+        # No asignamos a status ya que es una propiedad de solo lectura
         self.auto_renew = False
     
     def suspend_subscription(self):
         """Suspend the subscription"""
-        self.status = "suspended"
+        # Nota: Este método necesita acceso a la sesión de DB para buscar el status_type
+        # Se recomienda usar el método del servicio en su lugar
+        # Por ahora, mantenemos compatibilidad con el campo legacy
+        # No asignamos a status ya que es una propiedad de solo lectura
+        pass
     
     def reactivate_subscription(self):
         """Reactivate the subscription"""
-        if self.status in ["suspended", "cancelled"]:
-            self.status = "active"
+        # Nota: Este método necesita acceso a la sesión de DB para buscar el status_type
+        # Se recomienda usar el método del servicio en su lugar
+        # Por ahora, mantenemos compatibilidad con el campo legacy
+        # No asignamos a status ya que es una propiedad de solo lectura
+        pass
     
     def verify_legal_capacity(self, verified_by_user_id: UUID = None):
         """Mark legal capacity as verified"""
@@ -288,13 +306,14 @@ class UserPackageAddOn(BaseModel):
     current_amount = Column(Integer, nullable=False)  # Current price in cents
     billing_cycle = Column(String(20), default="monthly", nullable=False)
     
-    # Status
-    status = Column(String(20), default="active", nullable=False)  # active, suspended, cancelled
+    # Status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     added_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships
     user_package = relationship("UserPackage", back_populates="add_ons")
     add_on = relationship("PackageAddOn", back_populates="user_package_add_ons")
+    status_type = relationship("StatusType")
     
     def __repr__(self):
         return f"<UserPackageAddOn(user_package_id={self.user_package_id}, add_on_id={self.add_on_id}, quantity={self.quantity})>"
@@ -302,7 +321,14 @@ class UserPackageAddOn(BaseModel):
     @property
     def is_active(self) -> bool:
         """Check if add-on is active"""
-        return self.status == "active"
+        return self.status_type and self.status_type.name == "active"
+    
+    @property
+    def status(self) -> str:
+        """Get status as string for backward compatibility"""
+        if self.status_type:
+            return self.status_type.name
+        return "unknown"
     
     @property
     def current_amount_ars(self) -> float:

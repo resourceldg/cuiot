@@ -1,16 +1,28 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, validator
+from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
 
 class CaredPersonInstitutionBase(BaseModel):
     """Base schema for cared person institution relationship"""
-    service_type: str = Field(..., description="Type of service provided")
-    start_date: date = Field(..., description="Start date of service")
-    end_date: Optional[date] = Field(None, description="End date of service")
-    schedule: Optional[str] = Field(None, description="JSON string with schedule details")
-    frequency: Optional[str] = Field(None, description="Service frequency")
-    duration_hours: Optional[float] = Field(None, ge=0.0, description="Hours per session")
+    cared_person_id: UUID
+    institution_id: int
+    service_type_id: int = Field(..., description="Service type ID")
+    start_date: date
+    end_date: Optional[date] = None
+    schedule: Optional[str] = None
+    frequency: Optional[str] = None
+    duration_hours: Optional[float] = None
+    cost_per_session: Optional[int] = None
+    payment_frequency: Optional[str] = None
+    insurance_coverage: bool = False
+    insurance_provider: Optional[str] = None
+    primary_doctor: Optional[str] = None
+    medical_notes: Optional[str] = None
+    treatment_plan: Optional[str] = None
+    status_type_id: Optional[int] = None
+    is_primary: bool = False
+    notes: Optional[str] = None
 
 class CaredPersonInstitutionCreate(CaredPersonInstitutionBase):
     """Schema for creating a cared person institution relationship"""
@@ -28,21 +40,22 @@ class CaredPersonInstitutionCreate(CaredPersonInstitutionBase):
 
 class CaredPersonInstitutionUpdate(BaseModel):
     """Schema for updating a cared person institution relationship"""
-    service_type: Optional[str] = Field(None, description="Type of service provided")
-    end_date: Optional[date] = Field(None, description="End date of service")
-    schedule: Optional[str] = Field(None, description="JSON string with schedule details")
-    frequency: Optional[str] = Field(None, description="Service frequency")
-    duration_hours: Optional[float] = Field(None, ge=0.0, description="Hours per session")
-    cost_per_session: Optional[int] = Field(None, ge=0, description="Cost per session in cents")
-    payment_frequency: Optional[str] = Field(None, description="Payment frequency")
-    insurance_coverage: Optional[bool] = Field(None, description="Whether service is covered by insurance")
-    insurance_provider: Optional[str] = Field(None, description="Insurance provider name")
-    primary_doctor: Optional[str] = Field(None, description="Primary doctor name")
-    medical_notes: Optional[str] = Field(None, description="Medical notes")
-    treatment_plan: Optional[str] = Field(None, description="Treatment plan")
-    status: Optional[str] = Field(None, description="Service status")
-    is_primary: Optional[bool] = Field(None, description="Whether this is the primary institution")
-    notes: Optional[str] = Field(None, description="Additional notes")
+    service_type_id: Optional[int] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    schedule: Optional[str] = None
+    frequency: Optional[str] = None
+    duration_hours: Optional[float] = None
+    cost_per_session: Optional[int] = None
+    payment_frequency: Optional[str] = None
+    insurance_coverage: Optional[bool] = None
+    insurance_provider: Optional[str] = None
+    primary_doctor: Optional[str] = None
+    medical_notes: Optional[str] = None
+    treatment_plan: Optional[str] = None
+    status_type_id: Optional[int] = None
+    is_primary: Optional[bool] = None
+    notes: Optional[str] = None
 
 class CaredPersonInstitution(CaredPersonInstitutionBase):
     """Schema for cared person institution relationship response"""
@@ -56,7 +69,7 @@ class CaredPersonInstitution(CaredPersonInstitutionBase):
     primary_doctor: Optional[str] = None
     medical_notes: Optional[str] = None
     treatment_plan: Optional[str] = None
-    status: str = "active"
+    status_type_id: Optional[int] = None
     is_primary: bool = False
     registered_by: Optional[UUID] = None
     registered_at: datetime

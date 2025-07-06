@@ -6,6 +6,7 @@ from app.models.diagnosis import Diagnosis
 from app.models.allergy import Allergy
 from app.models.medical_condition import MedicalCondition
 from app.models.medication import Medication
+from app.models.care_type import CareType
 import uuid
 
 class CaredPerson(BaseModel):
@@ -31,7 +32,8 @@ class CaredPerson(BaseModel):
     blood_type = Column(String(10), nullable=True)
     
     # Care info
-    care_type = Column(String(20), nullable=False, default="delegated")  # "self_care" or "delegated"
+    care_type_id = Column(Integer, ForeignKey('care_types.id'), nullable=True, index=True)
+    care_type = relationship('CareType', backref='cared_persons')
     care_level = Column(String(50), nullable=True)  # low, medium, high, critical
     special_needs = Column(Text, nullable=True)
     mobility_level = Column(String(50), nullable=True)  # independent, assisted, wheelchair, bedridden
@@ -81,6 +83,7 @@ class CaredPerson(BaseModel):
     medical_conditions = relationship("MedicalCondition", back_populates="cared_person", cascade="all, delete-orphan")
     medications = relationship("Medication", back_populates="cared_person", cascade="all, delete-orphan")
     allergies = relationship("Allergy", back_populates="cared_person", cascade="all, delete-orphan")
+    # medical_referrals relationship removed - MedicalReferral model was deleted
     
     def __repr__(self):
         return f"<CaredPerson(name='{self.first_name} {self.last_name}', care_type='{self.care_type}')>"
@@ -100,12 +103,12 @@ class CaredPerson(BaseModel):
     @property
     def is_self_care(self) -> bool:
         """Check if person is in self-care mode"""
-        return self.care_type == "self_care"
+        return self.care_type_id == 1  # Assuming 1 is the ID for self_care
     
     @property
     def is_delegated_care(self) -> bool:
         """Check if person is in delegated care mode"""
-        return self.care_type == "delegated"
+        return self.care_type_id == 2  # Assuming 2 is the ID for delegated care
     
     @property
     def can_make_purchases(self) -> bool:
@@ -206,3 +209,9 @@ class CaredPerson(BaseModel):
     def referral_code(self) -> str:
         """Generate unique referral code for this person"""
         return f"CP{self.id.hex[:8].upper()}"
+    
+    @property
+    def care_type_name(self) -> str | None:
+        if self.care_type:
+            return self.care_type.name
+        return None

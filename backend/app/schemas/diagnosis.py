@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
@@ -34,5 +34,4 @@ class Diagnosis(DiagnosisBase):
     updated_by_id: Optional[UUID] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True 
+    model_config = ConfigDict(from_attributes=True) 

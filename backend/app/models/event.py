@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from app.models.event_type import EventType
 import uuid
 
 class Event(BaseModel):
@@ -12,7 +13,7 @@ class Event(BaseModel):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Event identification
-    event_type = Column(String(50), nullable=False, index=True)  # sensor_event, system_event, user_action, etc.
+    event_type_id = Column(Integer, ForeignKey('event_types.id'), nullable=False, index=True)
     event_subtype = Column(String(50), nullable=True, index=True)  # motion_detected, temperature_alert, etc.
     severity = Column(String(20), default="info", nullable=False)  # info, warning, error, critical
     
@@ -40,13 +41,14 @@ class Event(BaseModel):
     cared_person = relationship("CaredPerson", back_populates="events")
     device = relationship("Device", back_populates="events")
     alerts = relationship("Alert", back_populates="event")
+    event_type = relationship("EventType")
     
     def __repr__(self):
         return f"<Event(type='{self.event_type}', subtype='{self.event_subtype}', severity='{self.severity}')>"
     
     @classmethod
     def get_event_types(cls) -> list:
-        """Returns available event types"""
+        """Returns available event types - DEPRECATED: Use EventType model instead"""
         return [
             "sensor_event", "system_event", "user_action", "alert_event",
             "device_event", "location_event", "health_event", "environmental_event",

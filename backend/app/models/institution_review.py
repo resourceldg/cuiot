@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.models.service_type import ServiceType
 import uuid
 
 class InstitutionReview(BaseModel):
@@ -25,8 +26,7 @@ class InstitutionReview(BaseModel):
     
     # Service details
     service_date = Column(Date, nullable=True)
-    service_type = Column(String(50), nullable=True)  # inpatient, outpatient, emergency, etc.
-    length_of_stay = Column(Integer, nullable=True)  # Days if applicable
+    service_type_id = Column(Integer, ForeignKey('service_types.id'), nullable=True)
     
     # Status
     is_verified = Column(Boolean, default=False, nullable=False)
@@ -37,10 +37,11 @@ class InstitutionReview(BaseModel):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     # Relationships
-    institution = relationship("Institution", back_populates="received_reviews")
+    institution = relationship("Institution", back_populates="reviews")
     reviewer = relationship("User", foreign_keys=[reviewer_id], back_populates="institution_reviews")
     cared_person = relationship("CaredPerson", back_populates="institution_reviews")
     institution_score = relationship("InstitutionScore", back_populates="reviews")
+    service_type = relationship("ServiceType")
     
     def __repr__(self):
         return f"<InstitutionReview(institution_id={self.institution_id}, rating={self.rating})>"

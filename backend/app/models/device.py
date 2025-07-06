@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from app.models.device_type import DeviceType
 import uuid
 
 class Device(BaseModel):
@@ -16,13 +17,13 @@ class Device(BaseModel):
     name = Column(String(255), nullable=False)  # Nombre del dispositivo
     type = Column(String(50), nullable=False, default="unknown")  # Tipo de dispositivo (wearable, sensor, etc.)
     location = Column(String(255), nullable=True)  # Ubicación física
-    device_type = Column(String(50), nullable=True, index=True)  # sensor, tracker, camera, etc.
+    device_type_id = Column(Integer, ForeignKey('device_types.id'), nullable=True, index=True)
     model = Column(String(100), nullable=True)
     manufacturer = Column(String(100), nullable=True)
     serial_number = Column(String(100), nullable=True, unique=True)
     
-    # Device status
-    status = Column(String(50), default="active", nullable=False)  # active, inactive, maintenance, error
+    # Device status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     battery_level = Column(Integer, nullable=True)  # 0-100
     signal_strength = Column(Integer, nullable=True)  # 0-100
     last_seen = Column(DateTime(timezone=True), nullable=True)
@@ -52,6 +53,8 @@ class Device(BaseModel):
     alerts = relationship("Alert", back_populates="device")
     location_tracking = relationship("LocationTracking", back_populates="device")
     debug_events = relationship("DebugEvent", back_populates="device")
+    status_type = relationship("StatusType")
+    device_type = relationship("DeviceType")
     
     def __repr__(self):
         return f"<Device(device_id='{self.device_id}', name='{self.name}', type='{self.type}')>"
@@ -69,7 +72,7 @@ class Device(BaseModel):
     
     @classmethod
     def get_device_types(cls) -> list:
-        """Returns available device types"""
+        """Returns available device types - DEPRECATED: Use DeviceType model instead"""
         return [
             "sensor", "tracker", "camera", "smartphone", "tablet", 
             "wearable", "medical_device", "environmental_sensor",

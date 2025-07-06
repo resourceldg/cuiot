@@ -10,6 +10,7 @@ from app.models.referral import Referral, ReferralCommission
 from app.models.user import User
 from app.models.cared_person import CaredPerson
 from app.models.institution import Institution
+from app.models.status_type import StatusType
 from app.schemas.referral import (
     ReferralCreate, ReferralUpdate, ReferralCommissionCreate,
     ReferralStats, ReferralCodeGenerate, ReferralValidation
@@ -64,8 +65,16 @@ class ReferralService:
         if not referral_data.referral_code:
             referral_data.referral_code = ReferralService.generate_referral_code()
         
+        # Obtener el status_type_id por defecto (pending)
+        default_status = db.query(StatusType).filter(StatusType.name == "pending").first()
+        if not default_status:
+            raise ValueError("Status type 'pending' no encontrado en la base de datos")
+        
         # Create referral
-        db_referral = Referral(**referral_data.model_dump())
+        referral_dict = referral_data.model_dump()
+        referral_dict['status_type_id'] = referral_data.status_type_id or default_status.id
+        
+        db_referral = Referral(**referral_dict)
         db.add(db_referral)
         db.commit()
         db.refresh(db_referral)
@@ -97,7 +106,7 @@ class ReferralService:
     def update_referral_status(
         db: Session, 
         referral_id: UUID, 
-        status: str,
+        status_name: str,
         commission_amount: Optional[float] = None
     ) -> Optional[Referral]:
         """Update referral status"""
@@ -105,15 +114,20 @@ class ReferralService:
         if not referral:
             return None
         
-        referral.status = status
+        # Obtener el status_type_id por nombre
+        status_type = db.query(StatusType).filter(StatusType.name == status_name).first()
+        if not status_type:
+            raise ValueError(f"Status type '{status_name}' no encontrado")
         
-        if status == "registered":
+        referral.status_type_id = status_type.id
+        
+        if status_name == "registered":
             referral.registered_at = datetime.utcnow()
-        elif status == "converted":
+        elif status_name == "converted":
             referral.converted_at = datetime.utcnow()
             if commission_amount:
                 referral.commission_amount = commission_amount
-        elif status == "expired":
+        elif status_name == "expired":
             referral.expired_at = datetime.utcnow()
         
         db.commit()
@@ -135,13 +149,13 @@ class ReferralService:
                 "error_message": "Código de referido inválido"
             }
         
-        if referral.status == "expired":
+        if referral.status_type and referral.status_type.name == "expired":
             return {
                 "is_valid": False,
                 "error_message": "Código de referido expirado"
             }
         
-        if referral.status == "converted":
+        if referral.status_type and referral.status_type.name == "converted":
             return {
                 "is_valid": False,
                 "error_message": "Código de referido ya utilizado"
@@ -256,10 +270,26 @@ class ReferralService:
             )
         
         total_referrals = query.count()
-        pending_referrals = query.filter(Referral.status == "pending").count()
-        registered_referrals = query.filter(Referral.status == "registered").count()
-        converted_referrals = query.filter(Referral.status == "converted").count()
-        expired_referrals = query.filter(Referral.status == "expired").count()
+        
+        # Buscar los IDs de los status_types correspondientes
+        pending_status = db.query(StatusType).filter(StatusType.name == "pending").first()
+        registered_status = db.query(StatusType).filter(StatusType.name == "registered").first()
+        converted_status = db.query(StatusType).filter(StatusType.name == "converted").first()
+        expired_status = db.query(StatusType).filter(StatusType.name == "expired").first()
+        
+        pending_referrals = 0
+        registered_referrals = 0
+        converted_referrals = 0
+        expired_referrals = 0
+        
+        if pending_status:
+            pending_referrals = query.filter(Referral.status_type_id == pending_status.id).count()
+        if registered_status:
+            registered_referrals = query.filter(Referral.status_type_id == registered_status.id).count()
+        if converted_status:
+            converted_referrals = query.filter(Referral.status_type_id == converted_status.id).count()
+        if expired_status:
+            expired_referrals = query.filter(Referral.status_type_id == expired_status.id).count()
         
         conversion_rate = (converted_referrals / total_referrals * 100) if total_referrals > 0 else 0
         
@@ -273,13 +303,22 @@ class ReferralService:
                 )
             )
         
-        total_commissions_paid = commission_query.filter(ReferralCommission.status == "paid").with_entities(
-            func.sum(ReferralCommission.amount)
-        ).scalar() or 0
+        # Buscar los IDs de los status_types para comisiones
+        paid_status = db.query(StatusType).filter(StatusType.name == "paid").first()
+        pending_commission_status = db.query(StatusType).filter(StatusType.name == "pending").first()
         
-        total_commissions_pending = commission_query.filter(ReferralCommission.status == "pending").with_entities(
-            func.sum(ReferralCommission.amount)
-        ).scalar() or 0
+        total_commissions_paid = 0
+        total_commissions_pending = 0
+        
+        if paid_status:
+            total_commissions_paid = commission_query.filter(ReferralCommission.status_type_id == paid_status.id).with_entities(
+                func.sum(ReferralCommission.amount)
+            ).scalar() or 0
+        
+        if pending_commission_status:
+            total_commissions_pending = commission_query.filter(ReferralCommission.status_type_id == pending_commission_status.id).with_entities(
+                func.sum(ReferralCommission.amount)
+            ).scalar() or 0
         
         avg_commission_amount = commission_query.with_entities(
             func.avg(ReferralCommission.amount)
@@ -302,12 +341,19 @@ class ReferralService:
         """Expire referrals older than REFERRAL_EXPIRY_DAYS"""
         expiry_date = datetime.utcnow() - timedelta(days=ReferralService.REFERRAL_EXPIRY_DAYS)
         
+        # Buscar el ID del status_type "pending"
+        pending_status = db.query(StatusType).filter(StatusType.name == "pending").first()
+        expired_status = db.query(StatusType).filter(StatusType.name == "expired").first()
+        
+        if not pending_status or not expired_status:
+            return 0
+        
         expired_count = db.query(Referral).filter(
             and_(
-                Referral.status == "pending",
+                Referral.status_type_id == pending_status.id,
                 Referral.created_at < expiry_date
             )
-        ).update({"status": "expired", "expired_at": datetime.utcnow()})
+        ).update({"status_type_id": expired_status.id, "expired_at": datetime.utcnow()})
         
         db.commit()
         return expired_count
@@ -330,11 +376,17 @@ class ReferralService:
         referrer_id: UUID
     ) -> bool:
         """Check if referrer is eligible for bonus"""
+        # Buscar el ID del status_type "converted"
+        converted_status = db.query(StatusType).filter(StatusType.name == "converted").first()
+        
+        if not converted_status:
+            return False
+        
         converted_count = db.query(Referral).filter(
             and_(
                 Referral.referrer_type == referrer_type,
                 Referral.referrer_id == referrer_id,
-                Referral.status == "converted"
+                Referral.status_type_id == converted_status.id
             )
         ).count()
         

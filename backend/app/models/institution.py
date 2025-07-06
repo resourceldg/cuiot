@@ -39,6 +39,7 @@ class Institution(BaseModel):
     # Scoring relationships
     institution_score = relationship("InstitutionScore", back_populates="institution", uselist=False)
     received_reviews = relationship("InstitutionReview", foreign_keys="[InstitutionReview.institution_id]", back_populates="institution")
+    reviews = relationship("InstitutionReview", back_populates="institution")
     
     def __repr__(self):
         return f"<Institution(name='{self.name}', type='{self.institution_type}')>"

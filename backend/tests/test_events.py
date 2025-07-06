@@ -3,20 +3,30 @@ import pytest_asyncio
 from datetime import datetime
 
 @pytest.mark.asyncio
-async def test_event_crud(async_client, auth_headers):
+async def test_event_crud(async_client, auth_headers, normalized_catalogs):
     # Crear cared person primero
     cared_person_data = {
         "first_name": "Test",
         "last_name": "Event",
         "date_of_birth": "1952-01-01",
-        "address": "Test 456"
+        "care_type_id": normalized_catalogs["care_type_id"]
     }
     resp = await async_client.post("/api/v1/cared-persons/", json=cared_person_data, headers=auth_headers)
     cared_person = resp.json()
     
-    # Crear evento
+    # Inicializar event types por defecto
+    await async_client.post("/api/v1/event-types/initialize-defaults", headers=auth_headers)
+    
+    # Obtener event_type_id para "sensor_event"
+    response = await async_client.get("/api/v1/event-types/", headers=auth_headers)
+    assert response.status_code == 200
+    event_types = response.json()
+    sensor_type = next((et for et in event_types if et["name"] == "sensor_event"), None)
+    assert sensor_type is not None, "Event type 'sensor_event' not found"
+    
+    # Crear evento con event_type_id normalizado
     event_data = {
-        "event_type": "movement",
+        "event_type_id": sensor_type["id"],
         "event_time": datetime.now().isoformat(),
         "severity": "info",
         "message": "Test event description",

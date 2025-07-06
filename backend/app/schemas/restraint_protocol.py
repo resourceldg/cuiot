@@ -41,8 +41,8 @@ class RestraintProtocolBase(BaseModel):
     professional_license: Optional[str] = Field(None, max_length=100, description="Licencia profesional")
     supervising_doctor: Optional[str] = Field(None, max_length=200, description="Médico supervisor")
     
-    # Status and compliance
-    status: str = Field(default="active", description="Estado del protocolo")
+    # Status and compliance (normalized)
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     compliance_status: str = Field(default="compliant", description="Estado de cumplimiento")
     
     # Documentation
@@ -63,11 +63,10 @@ class RestraintProtocolBase(BaseModel):
             raise ValueError(f"protocol_type debe ser uno de: {allowed_types}")
         return v
 
-    @field_validator('status')
-    def validate_status(cls, v):
-        allowed_statuses = ["active", "suspended", "completed", "terminated", "pending", "under_review"]
-        if v not in allowed_statuses:
-            raise ValueError(f"status debe ser uno de: {allowed_statuses}")
+    @field_validator('status_type_id')
+    def validate_status_type_id(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError("ID del tipo de estado debe ser un entero positivo")
         return v
 
     @field_validator('compliance_status')
@@ -102,7 +101,7 @@ class RestraintProtocolUpdate(BaseModel):
     responsible_professional: Optional[str] = Field(None, max_length=200)
     professional_license: Optional[str] = Field(None, max_length=100)
     supervising_doctor: Optional[str] = Field(None, max_length=200)
-    status: Optional[str] = None
+    status_type_id: Optional[int] = None
     compliance_status: Optional[str] = None
     attached_files: Optional[List[FileMeta]] = None
     notes: Optional[str] = None
@@ -119,12 +118,10 @@ class RestraintProtocolUpdate(BaseModel):
                 raise ValueError(f"protocol_type debe ser uno de: {allowed_types}")
         return v
 
-    @field_validator('status')
-    def validate_status(cls, v):
-        if v is not None:
-            allowed_statuses = ["active", "suspended", "completed", "terminated", "pending", "under_review"]
-            if v not in allowed_statuses:
-                raise ValueError(f"status debe ser uno de: {allowed_statuses}")
+    @field_validator('status_type_id')
+    def validate_status_type_id(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError("ID del tipo de estado debe ser un entero positivo")
         return v
 
     @field_validator('compliance_status')

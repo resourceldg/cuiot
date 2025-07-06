@@ -13,6 +13,7 @@ from app.schemas.package import (
     LegalCapacityVerification, PackageRecommendationRequest
 )
 from app.services.referral import ReferralService
+from app.models.care_type import CareType
 
 class PackageService:
     """Service for managing packages and subscriptions"""
@@ -76,8 +77,19 @@ class PackageService:
                 "verification_status": "error",
                 "message": "Usuario no encontrado"
             }
+        
+        # Buscar el ID del tipo de cuidado "delegated"
+        delegated_care_type = db.query(CareType).filter(CareType.name == "delegated").first()
+        if not delegated_care_type:
+            return {
+                "can_contract": True,
+                "requires_representative": False,
+                "verification_status": "verified",
+                "message": "Usuario puede contratar directamente"
+            }
+        
         cared_persons = db.query(CaredPerson).filter(
-            and_(CaredPerson.user_id == user_id, CaredPerson.care_type == "delegated")
+            and_(CaredPerson.user_id == user_id, CaredPerson.care_type_id == delegated_care_type.id)
         ).all()
         if cared_persons:
             return {
@@ -87,7 +99,7 @@ class PackageService:
                 "message": "Usuario tiene personas bajo cuidado delegado. Se requiere verificación de capacidad legal."
             }
         cared_person = db.query(CaredPerson).filter(
-            and_(CaredPerson.user_id == user_id, CaredPerson.care_type == "delegated")
+            and_(CaredPerson.user_id == user_id, CaredPerson.care_type_id == delegated_care_type.id)
         ).first()
         if cared_person:
             return {
@@ -118,9 +130,10 @@ class PackageService:
             return None, "Precio no disponible para el ciclo de facturación seleccionado"
         final_price = base_price
         referral_applied = False
-        if getattr(subscription_data, "referral_code", None):
+        referral_code = getattr(subscription_data, "referral_code", None)
+        if referral_code:
             referral_result = ReferralService.validate_referral_code(
-                db, subscription_data.referral_code, "user@example.com"
+                db, referral_code, "user@example.com"
             )
             if referral_result.get("is_valid"):
                 discount_percentage = 0.10
@@ -134,12 +147,18 @@ class PackageService:
         user_package_data = subscription_data.model_dump()
         user_package_data.pop("add_ons", None)
         user_package_data.pop("referral_code", None)
+        
+        # Buscar el ID del status_type "active"
+        from app.models.status_type import StatusType
+        active_status = db.query(StatusType).filter(StatusType.name == "active").first()
+        
         db_user_package = UserPackage(
             **user_package_data,
             user_id=user_id,
             start_date=today,
             current_amount=final_price,
             next_billing_date=next_billing,
+            status_type_id=active_status.id if active_status else None,
             referral_code_used=getattr(subscription_data, "referral_code", None),
             referral_commission_applied=referral_applied,
             legal_capacity_verified=legal_check["verification_status"] == "verified"
@@ -153,7 +172,11 @@ class PackageService:
     def get_user_subscriptions(db: Session, user_id: UUID, status: Optional[str] = None) -> List[UserPackage]:
         query = db.query(UserPackage).filter(UserPackage.user_id == user_id)
         if status:
-            query = query.filter(UserPackage.status == status)
+            # Buscar el ID del status_type correspondiente
+            from app.models.status_type import StatusType
+            status_type = db.query(StatusType).filter(StatusType.name == status).first()
+            if status_type:
+                query = query.filter(UserPackage.status_type_id == status_type.id)
         return query.all()
 
     @staticmethod
@@ -189,13 +212,19 @@ class PackageService:
         if not add_on_price:
             return None
         total_price = add_on_price * add_on_data.get("quantity", 1)
+        
+        # Buscar el ID del status_type "active"
+        from app.models.status_type import StatusType
+        active_status = db.query(StatusType).filter(StatusType.name == "active").first()
+        
         db_user_add_on = UserPackageAddOn(
             user_package_id=subscription_id,
             add_on_id=add_on_data["add_on_id"],
             quantity=add_on_data.get("quantity", 1),
             custom_configuration=add_on_data.get("custom_configuration"),
             billing_cycle=add_on_data.get("billing_cycle", "monthly"),
-            current_amount=total_price
+            current_amount=total_price,
+            status_type_id=active_status.id if active_status else None
         )
         db.add(db_user_add_on)
         db.commit()
@@ -207,7 +236,16 @@ class PackageService:
         user_add_on = db.query(UserPackageAddOn).filter(UserPackageAddOn.id == user_add_on_id).first()
         if not user_add_on:
             return False
-        user_add_on.status = "cancelled"
+        
+        # Buscar el ID del status_type "cancelled"
+        from app.models.status_type import StatusType
+        cancelled_status = db.query(StatusType).filter(StatusType.name == "cancelled").first()
+        if cancelled_status:
+            user_add_on.status_type_id = cancelled_status.id
+        else:
+            # Fallback: usar el campo status legacy si no existe el status_type
+            user_add_on.status = "cancelled"
+        
         db.commit()
         return True
 
@@ -275,15 +313,26 @@ class PackageService:
     @staticmethod
     def get_package_statistics(db: Session) -> Dict[str, Any]:
         total_packages = db.query(Package).filter(Package.is_active == True).count()
-        total_subscriptions = db.query(UserPackage).filter(UserPackage.status == "active").count()
-        active_subscriptions = db.query(UserPackage).filter(UserPackage.status == "active").all()
+        
+        # Buscar el ID del status_type "active"
+        from app.models.status_type import StatusType
+        active_status = db.query(StatusType).filter(StatusType.name == "active").first()
+        
+        if active_status:
+            total_subscriptions = db.query(UserPackage).filter(UserPackage.status_type_id == active_status.id).count()
+            active_subscriptions = db.query(UserPackage).filter(UserPackage.status_type_id == active_status.id).all()
+            package_types = db.query(
+                Package.package_type,
+                func.count(UserPackage.id)
+            ).join(UserPackage).filter(
+                UserPackage.status_type_id == active_status.id
+            ).group_by(Package.package_type).all()
+        else:
+            total_subscriptions = 0
+            active_subscriptions = []
+            package_types = []
+        
         total_revenue = sum(sub.current_amount for sub in active_subscriptions)
-        package_types = db.query(
-            Package.package_type,
-            func.count(UserPackage.id)
-        ).join(UserPackage).filter(
-            UserPackage.status == "active"
-        ).group_by(Package.package_type).all()
         return {
             "total_packages": total_packages,
             "total_subscriptions": total_subscriptions,

@@ -8,6 +8,7 @@ from app.services.auth import AuthService
 from app.schemas.alert import AlertCreate, AlertUpdate, AlertResponse
 from app.models.alert import Alert
 from app.models.user import User
+from app.models.status_type import StatusType
 
 router = APIRouter()
 
@@ -22,6 +23,12 @@ def create_alert(
         # Create alert - exclude user_id from schema data
         data_dict = alert_data.model_dump()
         data_dict.pop('user_id', None)  # Remove user_id if present
+        
+        # Asignar status_type_id por defecto si no se proporciona
+        if not data_dict.get('status_type_id'):
+            active_status = db.query(StatusType).filter_by(name="active").first()
+            if active_status:
+                data_dict['status_type_id'] = active_status.id
         
         alert = Alert(
             **data_dict,

@@ -30,7 +30,7 @@ def create_test_user(db_session, email, first_name="Test", last_name="User", pas
     db_session.refresh(user)
     return user
 
-def test_create_restraint_protocol_success(db_session: Session):
+def test_create_restraint_protocol_success(db_session: Session, normalized_catalogs):
     """Test successful creation of a restraint protocol"""
     
     # Create test user and cared person
@@ -38,7 +38,7 @@ def test_create_restraint_protocol_success(db_session: Session):
     test_cared_person = CaredPerson(
         first_name="Test",
         last_name="Person",
-        care_type="delegated",
+        care_type_id=normalized_catalogs["care_type_id"],
         user_id=test_user.id
     )
     db_session.add(test_cared_person)
@@ -65,7 +65,7 @@ def test_create_restraint_protocol_success(db_session: Session):
         "responsible_professional": "Dr. María González",
         "professional_license": "MED-12345",
         "supervising_doctor": "Dr. Carlos Rodríguez",
-        "status": "active",
+        "status_type_id": normalized_catalogs["status_type_id"],
         "compliance_status": "compliant",
         "notes": "Protocolo implementado con consentimiento familiar",
         "cared_person_id": str(test_cared_person.id)
@@ -82,14 +82,14 @@ def test_create_restraint_protocol_success(db_session: Session):
     assert result["title"] == "Protocolo de sujeción física para prevención de caídas"
     assert result["justification"] == "Paciente con historial de caídas nocturnas y riesgo de lesiones graves"
     assert result["responsible_professional"] == "Dr. María González"
-    assert result["status"] == "active"
+    assert result["status_type_id"] == normalized_catalogs["status_type_id"]
     assert result["compliance_status"] == "compliant"
     assert result["cared_person_id"] == str(test_cared_person.id)
     assert result["created_by_id"] == str(test_user.id)
     assert "id" in result
     assert "created_at" in result
 
-def test_create_restraint_protocol_invalid_type(db_session: Session):
+def test_create_restraint_protocol_invalid_type(db_session: Session, normalized_catalogs):
     """Test creation with invalid protocol type"""
     
     # Create test user and cared person
@@ -97,7 +97,7 @@ def test_create_restraint_protocol_invalid_type(db_session: Session):
     test_cared_person = CaredPerson(
         first_name="Test",
         last_name="Person",
-        care_type="delegated",
+        care_type_id=normalized_catalogs["care_type_id"],
         user_id=test_user.id
     )
     db_session.add(test_cared_person)
@@ -131,7 +131,7 @@ def test_create_restraint_protocol_invalid_type(db_session: Session):
         for e in errors
     )
 
-def test_get_restraint_protocols_list(db_session: Session):
+def test_get_restraint_protocols_list(db_session: Session, normalized_catalogs):
     """Test getting list of restraint protocols"""
     
     # Create test user and cared person
@@ -139,7 +139,7 @@ def test_get_restraint_protocols_list(db_session: Session):
     test_cared_person = CaredPerson(
         first_name="Test",
         last_name="Person",
-        care_type="delegated",
+        care_type_id=normalized_catalogs["care_type_id"],
         user_id=test_user.id
     )
     db_session.add(test_cared_person)
@@ -159,7 +159,7 @@ def test_get_restraint_protocols_list(db_session: Session):
     assert isinstance(result, list)
     assert len(result) == 0
 
-def test_get_protocols_by_cared_person(db_session: Session):
+def test_get_protocols_by_cared_person(db_session: Session, normalized_catalogs):
     """Test getting protocols for a specific cared person"""
     
     # Create test user and cared person
@@ -167,7 +167,7 @@ def test_get_protocols_by_cared_person(db_session: Session):
     test_cared_person = CaredPerson(
         first_name="Test",
         last_name="Person",
-        care_type="delegated",
+        care_type_id=normalized_catalogs["care_type_id"],
         user_id=test_user.id
     )
     db_session.add(test_cared_person)

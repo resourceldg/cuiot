@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from app.models.base import Base
+from app.models.report_type import ReportType
 import uuid
 
 class Report(Base):
@@ -10,7 +11,7 @@ class Report(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    report_type = Column(String(50), nullable=False, default='general')
+    report_type_id = Column(Integer, ForeignKey('report_types.id'), nullable=True, index=True)
     attached_files = Column(JSONB, default=list)  # List of file metadata dicts
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -19,4 +20,5 @@ class Report(Base):
     is_autocuidado = Column(Boolean, default=False)
 
     cared_person = relationship('CaredPerson', back_populates='reports')
-    created_by = relationship('User') 
+    created_by = relationship('User')
+    report_type = relationship('ReportType') 

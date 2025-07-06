@@ -1,3 +1,102 @@
+# Documentación Técnica Backend
+
+> **NOTA:** Todos los catálogos normalizados (status, tipos, etc.) deben referenciarse por su **ID** (clave foránea), no por string. Los catálogos se inicializan automáticamente al crear la base de datos. No existen scripts de migración manuales ni es necesario poblar catálogos a mano.
+
+## Arquitectura General
+
+- **Framework principal:** FastAPI
+- **ORM:** SQLAlchemy
+- **Validación:** Pydantic V2
+- **Migraciones:** Alembic
+- **Base de datos:** PostgreSQL
+- **Contenedores:** Docker Compose
+
+## Estructura del Proyecto
+
+```
+backend/
+  app/
+    api/v1/endpoints/   # Endpoints RESTful por dominio
+    core/                # Configuración, autenticación, utilidades
+    models/              # Modelos ORM (SQLAlchemy)
+    schemas/             # Esquemas Pydantic (entrada/salida)
+    services/            # Lógica de negocio por dominio
+    scripts/             # Utilidades de inicialización y monitoreo
+  alembic/               # Migraciones de base de datos
+  tests/                 # Pruebas unitarias y de integración
+```
+
+## Principios de Diseño
+
+- **Responsabilidad única:** Cada servicio encapsula la lógica de negocio de su entidad.
+- **Separación de capas:** Endpoints solo orquestan, servicios implementan la lógica.
+- **Validación y control de errores:** Uso de Pydantic y excepciones HTTP personalizadas.
+- **Integridad referencial:** Todas las operaciones respetan las relaciones de la base de datos.
+
+## Servicios Destacados
+
+### ShiftObservationService
+- Gestión de observaciones de turno clínico.
+- Validación de datos, permisos y unicidad.
+- CRUD, verificación, filtrado avanzado y formateo de respuestas enriquecidas.
+- Integridad con usuarios, personas bajo cuidado e instituciones.
+
+### ReminderService
+- Gestión de recordatorios para adultos mayores.
+- Filtros avanzados por usuario, tipo, estado y destinatario.
+- Métodos para activar/desactivar, listar y obtener recordatorios activos o por tipo.
+
+### AlertService
+- Gestión de alertas del sistema.
+- Filtros por usuario, tipo, severidad, estado de resolución.
+- Métodos para resolver, eliminar y obtener alertas no resueltas.
+
+### Otros servicios
+- **AuthService:** Autenticación y autorización.
+- **UserService:** Gestión de usuarios.
+- **PackageService:** Gestión de paquetes, recomendaciones, estadísticas y personalización.
+- **CaregiverScoreService, CaregiverReviewService:** Scoring y reviews de cuidadores.
+- **MedicalProfileService, MedicationScheduleService, MedicationLogService:** Gestión médica integral.
+
+## Endpoints RESTful
+
+- Cada recurso tiene su propio archivo de endpoints.
+- Uso de dependencias para autenticación y acceso a la base de datos.
+- Respuestas tipadas y documentación automática (Swagger/OpenAPI).
+- Ejemplo de endpoint:
+
+```python
+@router.get("/", response_model=List[DeviceResponse])
+def get_devices(...):
+    """Get all devices for the current user"""
+    ...
+```
+
+## Relación con la Base de Datos
+
+- **Integridad referencial:** 83 claves foráneas activas, sin residuos ni redundancias.
+- **Normalización:** Tablas y relaciones alineadas con las mejores prácticas.
+- **Validaciones cruzadas:** Los servicios validan la existencia y permisos sobre entidades relacionadas.
+
+## Recomendaciones para Mantenimiento
+
+- Mantener la separación de responsabilidades.
+- Documentar nuevos endpoints y servicios siguiendo este formato.
+- Usar migraciones Alembic para cualquier cambio estructural.
+- Mantener pruebas unitarias y de integración actualizadas.
+
+## Ejemplo de Flujo de Servicio
+
+1. **Request** llega a un endpoint (por ejemplo, crear observación de turno).
+2. El endpoint valida y delega a un servicio (ShiftObservationService).
+3. El servicio valida datos, permisos y relaciones.
+4. Se realiza la operación en la base de datos.
+5. Se retorna una respuesta tipada y validada.
+
+---
+
+> Documentación generada automáticamente según el estado actual del código y la base de datos. Para cambios futuros, actualizar este documento y los docstrings de cada servicio y endpoint.
+
 ## Diagnósticos clínicos con adjuntos
 
 ### Crear diagnóstico con adjuntos

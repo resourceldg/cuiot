@@ -38,6 +38,7 @@ from .institution_review import (
     InstitutionReviewBase, InstitutionReviewCreate, InstitutionReviewUpdate,
     InstitutionReview, InstitutionReviewWithDetails, InstitutionReviewSummary
 )
+from .status_type import StatusType, StatusTypeCreate, StatusTypeUpdate
 
 __all__ = [
     "BaseSchema", "BaseResponse", "BaseCreate", "BaseUpdate",
@@ -66,4 +67,6 @@ __all__ = [
     "InstitutionScore", "InstitutionScoreWithLevel",
     "InstitutionReviewBase", "InstitutionReviewCreate", "InstitutionReviewUpdate",
     "InstitutionReview", "InstitutionReviewWithDetails", "InstitutionReviewSummary",
+    # Status schemas
+    "StatusType", "StatusTypeCreate", "StatusTypeUpdate",
 ]

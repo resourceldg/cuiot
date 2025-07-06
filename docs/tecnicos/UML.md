@@ -6,6 +6,8 @@
 
 Este documento presenta los diagramas UML esenciales para el sistema de monitoreo de cuidado humano, incluyendo casos de uso, clases, componentes, secuencia y despliegue. Estos diagramas complementan el DER y proporcionan una visión completa de la arquitectura del sistema.
 
+**🎉 NORMALIZACIÓN COMPLETA**: Todos los catálogos han sido normalizados exitosamente. Los campos string han sido reemplazados por claves foráneas a tablas de catálogo normalizadas, manteniendo propiedades legacy para compatibilidad.
+
 ---
 
 ## 1. Diagrama de Casos de Uso
@@ -88,16 +90,189 @@ Sistema de Soporte:
 
 ```mermaid
 classDiagram
-    class User {
-        +UUID id
-        +String email
-        +String phone
-        +String first_name
-        +String last_name
-        +Date date_of_birth
+    %% Tablas de Catálogo Normalizadas
+    class StatusType {
+        +Integer id
+        +String name
+        +String description
+        +String category
         +Boolean is_active
         +DateTime created_at
         +DateTime updated_at
+    }
+
+    class CareType {
+        +Integer id
+        +String name
+        +String description
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class DeviceType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +String icon_name
+        +String color_code
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class AlertType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +String icon_name
+        +String color_code
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class EventType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +String icon_name
+        +String color_code
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ReminderType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +String icon_name
+        +String color_code
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ServiceType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class CaregiverAssignmentType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ShiftObservationType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ReferralType {
+        +Integer id
+        +String name
+        +String description
+        +String category
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class RelationshipType {
+        +Integer id
+        +String name
+        +String description
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ReportType {
+        +Integer id
+        +String name
+        +String description
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ActivityType {
+        +UUID id
+        +String type_name
+        +String description
+        +JSONB requirements
+        +Boolean is_active
+    }
+
+    class DifficultyLevel {
+        +Integer id
+        +String name
+        +String description
+        +String color_code
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class EnumerationType {
+        +UUID id
+        +String type_name
+        +String description
+        +Boolean is_system
+        +Boolean is_active
+    }
+
+    class EnumerationValue {
+        +UUID id
+        +UUID enumeration_type_id
+        +String value_name
+        +String description
+        +Integer sort_order
+        +Boolean is_default
+        +Boolean is_active
+    }
+
+    %% Entidades Principales
+    class User {
+        +UUID id
+        +String email
+        +String username
+        +String password_hash
+        +String first_name
+        +String last_name
+        +String phone
+        +DateTime date_of_birth
+        +String gender
+        +String professional_license
+        +String specialization
+        +Integer experience_years
+        +Boolean is_freelance
+        +Integer hourly_rate
+        +String availability
+        +Boolean is_verified
+        +Boolean is_active
+        +DateTime last_login
+        +Integer institution_id
         +authenticate()
         +hasRole(role)
         +getPermissions()
@@ -112,129 +287,192 @@ classDiagram
         +hasPermission(permission)
     }
 
-    class CaredPerson {
-        +UUID id
+    class UserRole {
         +UUID user_id
-        +String care_type
-        +String disability_type
-        +JSONB medical_conditions
-        +JSONB medications
-        +JSONB emergency_contacts
-        +JSONB care_preferences
-        +JSONB accessibility_needs
-        +JSONB guardian_info
-        +Boolean is_self_care
-        +getCaregivers()
-        +getDevices()
-        +getProtocols()
+        +UUID role_id
+        +DateTime assigned_at
+        +UUID assigned_by
+        +DateTime expires_at
+        +Boolean is_active
     }
 
     class Institution {
-        +UUID id
+        +Integer id
         +String name
+        +String description
         +String institution_type
         +String address
         +String phone
         +String email
+        +String website
+        +Float latitude
+        +Float longitude
+        +String tax_id
+        +String license_number
         +Integer capacity
-        +Integer current_occupancy
-        +Integer staff_count
-        +JSONB services_offered
-        +JSONB operating_hours
-        +JSONB emergency_protocols
-        +Boolean is_active
-        +getUsers()
-        +getServices()
-        +getDevices()
+        +Boolean is_verified
     }
 
-    class Service {
+    class CaredPerson {
         +UUID id
-        +String name
-        +String service_type
-        +String description
-        +Decimal price_monthly
-        +JSONB features
-        +Integer device_limit
-        +Integer user_limit
-        +Integer storage_limit_gb
-        +Boolean is_active
-        +isWithinLimits()
-        +getFeatures()
+        +String first_name
+        +String last_name
+        +Date date_of_birth
+        +String gender
+        +String identification_number
+        +String phone
+        +String email
+        +String emergency_contact
+        +String emergency_phone
+        +String blood_type
+        +Integer care_type_id
+        +String care_level
+        +String special_needs
+        +String mobility_level
+        +String address
+        +Float latitude
+        +Float longitude
+        +UUID user_id
+        +Integer institution_id
+        +String medical_contact_name
+        +String medical_contact_phone
+        +String family_contact_name
+        +String family_contact_phone
+        +String medical_notes
+        +getCaregivers()
+        +getDevices()
+        +getProtocols()
+        +full_name()
+        +age()
+        +is_self_care()
+        +is_delegated_care()
+    }
+
+    class CaregiverAssignment {
+        +UUID id
+        +UUID caregiver_id
+        +UUID cared_person_id
+        +Date start_date
+        +Date end_date
+        +String schedule
+        +Integer caregiver_assignment_type_id
+        +String responsibilities
+        +String special_requirements
+        +Integer hourly_rate
+        +String payment_frequency
+        +Boolean is_insured
+        +String insurance_provider
+        +Integer client_rating
+        +String client_feedback
+        +Integer caregiver_self_rating
+        +String caregiver_notes
+        +String primary_doctor
+        +String medical_contact
+        +String emergency_protocol
+        +Integer status_type_id
+        +Boolean is_primary
+        +UUID assigned_by
+        +DateTime assigned_at
+        +String notes
+        +is_active()
+        +duration_days()
+        +hourly_rate_decimal()
     }
 
     class Device {
         +UUID id
         +String device_id
         +String name
-        +String device_type
+        +Integer device_type_id
         +String model
         +String manufacturer
         +String firmware_version
-        +JSONB config
+        +String config
         +String location
         +Integer battery_level
         +DateTime last_maintenance
         +DateTime warranty_expiry
-        +JSONB accessibility_features
+        +String accessibility_features
         +Boolean is_active
+        +DateTime last_seen
+        +UUID user_id
+        +UUID cared_person_id
+        +Integer institution_id
+        +Integer status_type_id
         +sendCommand(command)
         +getStatus()
         +updateFirmware()
-    }
-
-    class Protocol {
-        +UUID id
-        +String name
-        +String protocol_type
-        +String description
-        +JSONB contact_sequence
-        +JSONB escalation_times
-        +JSONB automatic_actions
-        +Boolean is_active
-        +UUID created_by
-        +execute(event)
-        +escalate(level)
+        +is_online()
     }
 
     class Event {
         +UUID id
-        +String event_type
+        +Integer event_type_id
+        +String event_subtype
         +String severity
-        +String device_id
+        +String event_data
+        +String message
+        +String source
+        +Float latitude
+        +Float longitude
+        +Float altitude
+        +DateTime event_time
+        +DateTime processed_at
+        +UUID user_id
         +UUID cared_person_id
-        +JSONB location_data
-        +JSONB sensor_data
-        +DateTime timestamp
-        +Boolean processed
-        +String notes
+        +UUID device_id
         +process()
         +generateAlerts()
     }
 
     class Alert {
         +UUID id
-        +UUID event_id
-        +String alert_type
+        +Integer alert_type_id
+        +String alert_subtype
         +String severity
-        +String status
-        +JSONB recipients
-        +DateTime sent_at
+        +String title
+        +String message
+        +String alert_data
+        +Integer status_type_id
         +DateTime acknowledged_at
         +DateTime resolved_at
+        +Integer priority
         +Integer escalation_level
-        +send()
-        +acknowledge()
-        +resolve()
-        +escalate()
+        +UUID user_id
+        +UUID cared_person_id
+        +UUID device_id
+        +UUID event_id
+        +is_active()
+        +status()
+        +is_critical()
+    }
+
+    class Reminder {
+        +UUID id
+        +Integer reminder_type_id
+        +String title
+        +String description
+        +DateTime scheduled_time
+        +Date due_date
+        +String repeat_pattern
+        +Integer status_type_id
+        +DateTime completed_at
+        +UUID completed_by
+        +Integer priority
+        +Boolean is_important
+        +String reminder_data
+        +String notes
+        +UUID user_id
+        +UUID cared_person_id
     }
 
     class LocationTracking {
         +UUID id
+        +UUID user_id
         +UUID cared_person_id
-        +String device_id
-        +Decimal latitude
-        +Decimal longitude
+        +UUID device_id
+        +Float latitude
+        +Float longitude
         +Float accuracy
         +DateTime timestamp
         +String location_type
@@ -244,33 +482,338 @@ classDiagram
 
     class Geofence {
         +UUID id
-        +UUID cared_person_id
         +String name
-        +Decimal center_latitude
-        +Decimal center_longitude
-        +Integer radius_meters
-        +Boolean alert_on_exit
-        +Boolean alert_on_enter
+        +String geofence_type
+        +String description
+        +Float center_latitude
+        +Float center_longitude
+        +Float radius
+        +String polygon_coordinates
+        +String trigger_action
+        +String alert_message
         +Boolean is_active
+        +DateTime start_time
+        +DateTime end_time
+        +String days_of_week
+        +UUID user_id
+        +UUID cared_person_id
+        +Integer institution_id
         +isPointInside(lat, lng)
         +triggerAlert(action)
     }
 
-    %% Relaciones
-    User ||--o{ Role : has
-    User ||--o{ CaredPerson : is
+    class ShiftObservation {
+        +UUID id
+        +Integer shift_observation_type_id
+        +String shift_type
+        +DateTime shift_start
+        +DateTime shift_end
+        +DateTime observation_date
+        +String physical_condition
+        +String mobility_level
+        +Integer pain_level
+        +JSONB vital_signs
+        +String skin_condition
+        +Integer hygiene_status_type_id
+        +String mental_state
+        +String mood
+        +String behavior_notes
+        +String cognitive_function
+        +String communication_ability
+        +String appetite
+        +String food_intake
+        +String fluid_intake
+        +Boolean swallowing_difficulty
+        +String special_diet_notes
+        +String bowel_movement
+        +String urinary_output
+        +Integer incontinence_episodes
+        +Integer catheter_status_type_id
+        +JSONB medications_taken
+        +JSONB medications_missed
+        +String side_effects_observed
+        +String medication_notes
+        +JSONB activities_participated
+        +String social_interaction
+        +Boolean exercise_performed
+        +String exercise_details
+        +String safety_concerns
+        +Boolean incidents_occurred
+        +String incident_details
+        +String fall_risk_assessment
+        +Boolean restraint_used
+        +String restraint_details
+        +Boolean family_contact
+        +String family_notes
+        +Boolean doctor_contact
+        +String doctor_notes
+        +String handover_notes
+        +JSONB attached_files
+        +Integer status_type_id
+        +Boolean is_verified
+        +UUID verified_by
+        +DateTime verified_at
+        +UUID cared_person_id
+        +UUID caregiver_id
+        +Integer institution_id
+        +DateTime created_at
+        +DateTime updated_at
+        +Boolean is_active
+        +status()
+    }
+
+    class Package {
+        +UUID id
+        +String package_type
+        +String name
+        +String description
+        +Integer price_monthly
+        +Integer price_yearly
+        +String currency
+        +Integer max_users
+        +Integer max_devices
+        +Integer max_storage_gb
+        +JSONB features
+        +JSONB limitations
+        +JSONB customizable_options
+        +JSONB add_ons_available
+        +JSONB base_configuration
+        +Boolean is_customizable
+        +String support_level
+        +Integer response_time_hours
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class UserPackage {
+        +UUID id
+        +UUID user_id
+        +UUID package_id
+        +Date start_date
+        +Date end_date
+        +Boolean auto_renew
+        +String billing_cycle
+        +Integer current_amount
+        +Date next_billing_date
+        +Integer status_type_id
+        +JSONB custom_configuration
+        +JSONB selected_features
+        +JSONB custom_limits
+        +Boolean legal_capacity_verified
+        +UUID legal_representative_id
+        +DateTime verification_date
+        +String referral_code_used
+        +Boolean referral_commission_applied
+    }
+
+    class Report {
+        +UUID id
+        +String title
+        +String description
+        +Integer report_type_id
+        +JSONB attached_files
+        +DateTime created_at
+        +DateTime updated_at
+        +UUID cared_person_id
+        +UUID created_by_id
+        +Boolean is_autocuidado
+    }
+
+    class Diagnosis {
+        +UUID id
+        +UUID cared_person_id
+        +String diagnosis_name
+        +String description
+        +String severity_level
+        +DateTime diagnosis_date
+        +String doctor_name
+        +String medical_notes
+        +String cie10_code
+        +JSONB attachments
+        +Boolean is_active
+        +UUID created_by_id
+        +DateTime created_at
+        +UUID updated_by_id
+        +DateTime updated_at
+    }
+
+    class MedicalProfile {
+        +UUID id
+        +UUID cared_person_id
+        +String blood_type
+        +String allergies
+        +String chronic_conditions
+        +JSONB emergency_info
+        +JSONB medical_preferences
+        +JSONB insurance_info
+        +Boolean is_active
+    }
+
+    class MedicationSchedule {
+        +UUID id
+        +UUID cared_person_id
+        +String medication_name
+        +String dosage
+        +String frequency
+        +Date start_date
+        +Date end_date
+        +String instructions
+        +UUID prescribed_by
+        +Boolean is_active
+        +JSONB schedule_details
+        +String side_effects
+    }
+
+    class RestraintProtocol {
+        +UUID id
+        +UUID cared_person_id
+        +Integer institution_id
+        +UUID created_by_id
+        +String protocol_type
+        +String title
+        +String description
+        +String justification
+        +String risk_assessment
+        +DateTime start_date
+        +DateTime end_date
+        +String review_frequency
+        +DateTime next_review_date
+        +String responsible_professional
+        +String professional_license
+        +String supervising_doctor
+        +Integer status_type_id
+        +String compliance_status
+        +String notes
+        +DateTime last_compliance_check
+        +JSONB attached_files
+        +DateTime created_at
+        +UUID updated_by_id
+        +DateTime updated_at
+    }
+
+    %% Relaciones entre Catálogos y Entidades
+    StatusType ||--o{ User : has_status
+    StatusType ||--o{ Device : has_status
+    StatusType ||--o{ Alert : has_status
+    StatusType ||--o{ Reminder : has_status
+    StatusType ||--o{ CaregiverAssignment : has_status
+    StatusType ||--o{ UserPackage : has_status
+    StatusType ||--o{ BillingRecord : has_status
+    StatusType ||--o{ ShiftObservation : has_status
+    StatusType ||--o{ ShiftObservation : hygiene_status
+    StatusType ||--o{ ShiftObservation : catheter_status
+    StatusType ||--o{ CaredPersonInstitution : has_status
+    StatusType ||--o{ CaregiverInstitution : has_status
+    StatusType ||--o{ Referral : has_status
+    StatusType ||--o{ MedicalReferral : has_status
+    StatusType ||--o{ RestraintProtocol : has_status
+
+    CareType ||--o{ CaredPerson : has_care_type
+
+    DeviceType ||--o{ Device : has_device_type
+
+    AlertType ||--o{ Alert : has_alert_type
+
+    EventType ||--o{ Event : has_event_type
+
+    ReminderType ||--o{ Reminder : has_reminder_type
+
+    ServiceType ||--o{ ServiceSubscription : has_service_type
+    ServiceType ||--o{ CaredPersonInstitution : has_service_type
+    ServiceType ||--o{ CaregiverReview : has_service_type
+    ServiceType ||--o{ InstitutionReview : has_service_type
+
+    CaregiverAssignmentType ||--o{ CaregiverAssignment : has_assignment_type
+
+    ShiftObservationType ||--o{ ShiftObservation : has_observation_type
+
+    ReferralType ||--o{ Referral : has_referral_type
+
+    RelationshipType ||--o{ CaregiverInstitution : has_relationship_type
+
+    ReportType ||--o{ Report : has_report_type
+
+    ActivityType ||--o{ Activity : has_activity_type
+
+    DifficultyLevel ||--o{ Activity : has_difficulty_level
+
+    EnumerationType ||--o{ EnumerationValue : has_values
+
+    %% Relaciones Principales
+    User ||--o{ UserRole : has_roles
+    Role ||--o{ UserRole : assigned_to_users
+    User ||--o{ CaredPerson : is_representative
     User ||--o{ Institution : belongs_to
-    User ||--o{ Service : subscribes_to
-    Institution ||--o{ Service : subscribes_to
-    CaredPerson ||--o{ Device : uses
+    User ||--o{ CaregiverAssignment : is_caregiver
+    User ||--o{ CaregiverInstitution : is_caregiver
+    User ||--o{ Device : owns
+    User ||--o{ Event : triggers
+    User ||--o{ Alert : receives
+    User ||--o{ Reminder : creates
+    User ||--o{ LocationTracking : tracks
+    User ||--o{ Geofence : configures
+    User ||--o{ ShiftObservation : observes
+    User ||--o{ UserPackage : subscribes
+    User ||--o{ Report : creates
+    User ||--o{ Diagnosis : creates
+    User ||--o{ RestraintProtocol : creates
+    User ||--o{ UserPackage : is_legal_representative
+
+    Institution ||--o{ User : employs
+    Institution ||--o{ CaredPerson : serves
+    Institution ||--o{ CaredPersonInstitution : provides_services
+    Institution ||--o{ CaregiverInstitution : contracts
     Institution ||--o{ Device : owns
-    Device ||--o{ Event : generates
+    Institution ||--o{ ServiceSubscription : subscribes
+    Institution ||--o{ BillingRecord : bills
+    Institution ||--o{ Geofence : configures
+    Institution ||--o{ RestraintProtocol : implements
+    Institution ||--o{ ShiftObservation : conducts
+
+    CaredPerson ||--o{ CaregiverAssignment : has_caregivers
+    CaredPerson ||--o{ CaredPersonInstitution : attends
+    CaredPerson ||--o{ Device : uses
     CaredPerson ||--o{ Event : triggers
+    CaredPerson ||--o{ Alert : generates
+    CaredPerson ||--o{ Reminder : receives
+    CaredPerson ||--o{ LocationTracking : tracked
+    CaredPerson ||--o{ Geofence : monitored_by
+    CaredPerson ||--o{ ShiftObservation : observed
+    CaredPerson ||--o{ Report : reported_on
+    CaredPerson ||--o{ Diagnosis : diagnosed
+    CaredPerson ||--o{ MedicalProfile : has_profile
+    CaredPerson ||--o{ MedicationSchedule : has_schedule
+    CaredPerson ||--o{ RestraintProtocol : has_protocol
+
+    Device ||--o{ Event : generates
+    Device ||--o{ Alert : triggers
+    Device ||--o{ LocationTracking : provides_location
+    Device ||--o{ DeviceConfig : has_config
+
     Event ||--o{ Alert : generates
-    CaredPerson ||--o{ LocationTracking : has
-    CaredPerson ||--o{ Geofence : has
-    User ||--o{ Protocol : uses
-    Institution ||--o{ Protocol : uses
+
+    Package ||--o{ UserPackage : subscribed_by_users
+
+    %% Relaciones de Scoring y Reviews
+    User ||--o{ CaregiverScore : scored_as_caregiver
+    User ||--o{ CaregiverReview : reviewed_as_caregiver
+    User ||--o{ CaregiverReview : gives_review
+    User ||--o{ InstitutionReview : gives_review
+    CaredPerson ||--o{ CaregiverReview : receives_care
+    CaredPerson ||--o{ InstitutionReview : receives_service
+    Institution ||--o{ InstitutionScore : scored
+    Institution ||--o{ InstitutionReview : reviewed
+
+    %% Relaciones de Referidos
+    User ||--o{ Referral : makes_referral
+    Referral ||--o{ ReferralCommission : generates_commission
+
+    %% Relaciones de Actividades
+    ActivityType ||--o{ Activity : defines_type
+    DifficultyLevel ||--o{ Activity : defines_difficulty
+    Activity ||--o{ ActivityParticipation : participated_by
+    CaredPerson ||--o{ ActivityParticipation : participates
 ```
 
 ### 2.2 Clases de Servicio
@@ -283,6 +826,8 @@ classDiagram
         +escalateAlert(alert)
         +acknowledgeAlert(alert)
         +resolveAlert(alert)
+        +getAlertsByType(type_id)
+        +getAlertsByStatus(status_id)
     }
 
     class ProtocolService {
@@ -294,10 +839,11 @@ classDiagram
 
     class DeviceService {
         +registerDevice(device)
-        +updateDeviceStatus(device_id, status)
+        +updateDeviceStatus(device_id, status_id)
         +sendCommand(device_id, command)
         +getDeviceHealth(device_id)
         +scheduleMaintenance(device_id)
+        +getDevicesByType(type_id)
     }
 
     class LocationService {
@@ -320,6 +866,7 @@ classDiagram
         +generateActivityReport(person_id, period)
         +generateInstitutionalReport(institution_id, period)
         +exportReport(report, format)
+        +getReportsByType(type_id)
     }
 
     class IOTService {
@@ -327,6 +874,24 @@ classDiagram
         +processSensorData(device_id, data)
         +handleDeviceEvent(device_id, event)
         +updateDeviceFirmware(device_id)
+    }
+
+    class CatalogService {
+        +initializeCatalogs()
+        +getStatusTypes(category)
+        +getCareTypes()
+        +getDeviceTypes()
+        +getAlertTypes()
+        +getEventTypes()
+        +getReminderTypes()
+        +getServiceTypes()
+        +getCaregiverAssignmentTypes()
+        +getShiftObservationTypes()
+        +getReferralTypes()
+        +getRelationshipTypes()
+        +getReportTypes()
+        +getActivityTypes()
+        +getDifficultyLevels()
     }
 ```
 
@@ -359,6 +924,10 @@ graph TB
         ReportService[Report Service<br/>FastAPI]
         NotificationService[Notification Service<br/>FastAPI]
         IOTService[IoT Service<br/>FastAPI]
+        CatalogService[Catalog Service<br/>FastAPI]
+        PackageService[Package Service<br/>FastAPI]
+        ScoringService[Scoring Service<br/>FastAPI]
+        ReferralService[Referral Service<br/>FastAPI]
     end
 
     subgraph "Data Layer"
@@ -396,6 +965,10 @@ graph TB
     Gateway --> ReportService
     Gateway --> NotificationService
     Gateway --> IOTService
+    Gateway --> CatalogService
+    Gateway --> PackageService
+    Gateway --> ScoringService
+    Gateway --> ReferralService
 
     UserService --> PostgreSQL
     DeviceService --> PostgreSQL
@@ -405,6 +978,10 @@ graph TB
     ReportService --> PostgreSQL
     NotificationService --> Redis
     IOTService --> MQTT
+    CatalogService --> PostgreSQL
+    PackageService --> PostgreSQL
+    ScoringService --> PostgreSQL
+    ReferralService --> PostgreSQL
 
     NotificationService --> Twilio
     NotificationService --> SendGrid
@@ -435,9 +1012,9 @@ sequenceDiagram
     participant Emergency as Servicios de Emergencia
 
     Device->>IOT: Detectar evento (caída)
-    IOT->>Event: Crear evento
+    IOT->>Event: Crear evento con event_type_id
     Event->>Protocol: Buscar protocolo para evento
-    Protocol->>Alert: Generar alerta según protocolo
+    Protocol->>Alert: Generar alerta según protocolo con alert_type_id
     Alert->>Notification: Enviar notificación a cuidador
     Notification->>Caregiver: Push notification + SMS
     
@@ -469,6 +1046,41 @@ sequenceDiagram
     Database->>Protocol: Confirmar guardado
     Protocol->>WebApp: Protocolo configurado
     WebApp->>Admin: Confirmación visual
+```
+
+### 4.3 Flujo de Inicialización de Catálogos
+
+```mermaid
+sequenceDiagram
+    participant System as Sistema
+    participant CatalogService as Catalog Service
+    participant Database as Database
+    participant StatusType as StatusType
+    participant CareType as CareType
+    participant DeviceType as DeviceType
+
+    System->>CatalogService: Inicializar catálogos
+    CatalogService->>Database: Verificar catálogos existentes
+    
+    alt Catálogos no existen
+        CatalogService->>StatusType: Crear tipos de estado
+        CatalogService->>CareType: Crear tipos de cuidado
+        CatalogService->>DeviceType: Crear tipos de dispositivo
+        CatalogService->>AlertType: Crear tipos de alerta
+        CatalogService->>EventType: Crear tipos de evento
+        CatalogService->>ReminderType: Crear tipos de recordatorio
+        CatalogService->>ServiceType: Crear tipos de servicio
+        CatalogService->>CaregiverAssignmentType: Crear tipos de asignación
+        CatalogService->>ShiftObservationType: Crear tipos de observación
+        CatalogService->>ReferralType: Crear tipos de referido
+        CatalogService->>RelationshipType: Crear tipos de relación
+        CatalogService->>ReportType: Crear tipos de reporte
+        CatalogService->>ActivityType: Crear tipos de actividad
+        CatalogService->>DifficultyLevel: Crear niveles de dificultad
+    end
+    
+    Database->>CatalogService: Confirmar inicialización
+    CatalogService->>System: Catálogos listos
 ```
 
 ---
@@ -552,6 +1164,7 @@ graph TB
 - **Observer Pattern**: Para eventos y notificaciones
 - **Factory Pattern**: Para creación de dispositivos
 - **Strategy Pattern**: Para diferentes tipos de protocolos
+- **Catalog Pattern**: Para gestión de catálogos normalizados
 
 ### 6.2 Principios SOLID
 - **Single Responsibility**: Cada servicio tiene una responsabilidad específica
@@ -566,8 +1179,15 @@ graph TB
 - **Caching Strategy**: Redis para datos frecuentemente accedidos
 - **Message Queues**: Para procesamiento asíncrono de eventos
 
+### 6.4 Normalización de Datos
+- **Catálogos Normalizados**: Todos los tipos y estados referenciados por ID
+- **Compatibilidad Legacy**: Propiedades string mantenidas para compatibilidad
+- **Integridad Referencial**: 83+ claves foráneas activas
+- **Inicialización Automática**: Catálogos se crean automáticamente al inicializar BD
+
 ---
 
-*Documento en desarrollo - Versión 1.0*
-*Última actualización: [Fecha]*
-*Próxima revisión: [Fecha]* 
+*Documento actualizado - Versión 3.0*
+*Última actualización: Diciembre 2024*
+*Estado: Normalización completa implementada*
+*Tests: 98/98 pasando (100%)* 

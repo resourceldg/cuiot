@@ -1,14 +1,23 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import Optional, Dict, Any
 from datetime import datetime, date
 from uuid import UUID
 
 class CaregiverReviewBase(BaseModel):
     """Base schema for caregiver review"""
-    rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
-    comment: Optional[str] = Field(None, max_length=1000, description="Review comment")
-    categories: Optional[Dict[str, int]] = Field(None, description="Category ratings")
-    is_recommended: bool = Field(..., description="Whether the caregiver is recommended")
+    caregiver_id: UUID
+    reviewer_id: UUID
+    cared_person_id: Optional[UUID] = None
+    caregiver_score_id: Optional[UUID] = None
+    rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5")
+    comment: Optional[str] = None
+    categories: Optional[Dict[str, int]] = None
+    is_recommended: bool
+    service_date: Optional[date] = None
+    service_hours: Optional[float] = None
+    service_type_id: Optional[int] = None
+    is_verified: bool = False
+    is_public: bool = True
 
 class CaregiverReviewCreate(CaregiverReviewBase):
     """Schema for creating a caregiver review"""
@@ -16,28 +25,23 @@ class CaregiverReviewCreate(CaregiverReviewBase):
     cared_person_id: Optional[UUID] = Field(None, description="ID of the cared person if applicable")
     service_date: Optional[date] = Field(None, description="Date of the service")
     service_hours: Optional[float] = Field(None, ge=0.0, description="Hours of service provided")
-    service_type: Optional[str] = Field(None, description="Type of service provided")
+    service_type_id: Optional[int] = Field(None, description="Type of service provided")
 
 class CaregiverReviewUpdate(BaseModel):
     """Schema for updating a caregiver review"""
-    rating: Optional[int] = Field(None, ge=1, le=5, description="Rating from 1 to 5 stars")
-    comment: Optional[str] = Field(None, max_length=1000, description="Review comment")
-    categories: Optional[Dict[str, int]] = Field(None, description="Category ratings")
-    is_recommended: Optional[bool] = Field(None, description="Whether the caregiver is recommended")
-    is_public: Optional[bool] = Field(None, description="Whether the review is public")
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    comment: Optional[str] = None
+    categories: Optional[Dict[str, int]] = None
+    is_recommended: Optional[bool] = None
+    service_date: Optional[date] = None
+    service_hours: Optional[float] = None
+    service_type_id: Optional[int] = None
+    is_verified: Optional[bool] = None
+    is_public: Optional[bool] = None
 
 class CaregiverReview(CaregiverReviewBase):
     """Schema for caregiver review response"""
     id: UUID
-    caregiver_id: UUID
-    reviewer_id: UUID
-    cared_person_id: Optional[UUID] = None
-    caregiver_score_id: Optional[UUID] = None
-    service_date: Optional[date] = None
-    service_hours: Optional[float] = None
-    service_type: Optional[str] = None
-    is_verified: bool = False
-    is_public: bool = True
     created_at: datetime
     updated_at: Optional[datetime] = None
     

@@ -29,7 +29,7 @@ wait_for_database() {
     attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if docker-compose exec -T $DB_HOST pg_isready -U $DB_USER -d $DB_NAME >/dev/null 2>&1; then
+        if pg_isready -h $DB_HOST -U $DB_USER -d $DB_NAME >/dev/null 2>&1; then
             echo "✅ Base de datos lista!"
             return 0
         fi

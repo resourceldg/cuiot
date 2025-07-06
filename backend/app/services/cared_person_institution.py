@@ -53,17 +53,31 @@ class CaredPersonInstitutionService:
     @staticmethod
     def get_active_relationships_by_cared_person(db: Session, cared_person_id: UUID) -> List[CaredPersonInstitution]:
         """Get active relationships for a cared person"""
+        from app.services.status_type import StatusTypeService
+        
+        # Get active status type
+        active_status = StatusTypeService.get_status_by_name(db, "active")
+        if not active_status:
+            return []
+        
         return db.query(CaredPersonInstitution).filter(
             CaredPersonInstitution.cared_person_id == cared_person_id,
-            CaredPersonInstitution.status == "active"
+            CaredPersonInstitution.status_type_id == active_status.id
         ).all()
     
     @staticmethod
     def get_active_relationships_by_institution(db: Session, institution_id: int) -> List[CaredPersonInstitution]:
         """Get active relationships for an institution"""
+        from app.services.status_type import StatusTypeService
+        
+        # Get active status type
+        active_status = StatusTypeService.get_status_by_name(db, "active")
+        if not active_status:
+            return []
+        
         return db.query(CaredPersonInstitution).filter(
             CaredPersonInstitution.institution_id == institution_id,
-            CaredPersonInstitution.status == "active"
+            CaredPersonInstitution.status_type_id == active_status.id
         ).all()
     
     @staticmethod
@@ -124,7 +138,7 @@ class CaredPersonInstitutionService:
             "primary_doctor": db_relationship.primary_doctor,
             "medical_notes": db_relationship.medical_notes,
             "treatment_plan": db_relationship.treatment_plan,
-            "status": db_relationship.status,
+            "status_type_id": db_relationship.status_type_id,
             "is_primary": db_relationship.is_primary,
             "is_active": db_relationship.is_active,
             "total_cost": db_relationship.total_cost,
@@ -192,7 +206,7 @@ class CaredPersonInstitutionService:
                            cared_person_id: Optional[UUID] = None,
                            institution_id: Optional[int] = None,
                            service_type: Optional[str] = None,
-                           status: Optional[str] = None,
+                           status_type_id: Optional[int] = None,
                            is_primary: Optional[bool] = None,
                            skip: int = 0, 
                            limit: int = 100) -> List[CaredPersonInstitution]:
@@ -208,8 +222,8 @@ class CaredPersonInstitutionService:
         if service_type:
             query = query.filter(CaredPersonInstitution.service_type == service_type)
         
-        if status:
-            query = query.filter(CaredPersonInstitution.status == status)
+        if status_type_id:
+            query = query.filter(CaredPersonInstitution.status_type_id == status_type_id)
         
         if is_primary is not None:
             query = query.filter(CaredPersonInstitution.is_primary == is_primary)

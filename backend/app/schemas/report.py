@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict
 from datetime import datetime
 from app.schemas.cared_person import CaredPersonResponse
@@ -29,23 +29,15 @@ class ReportBase(BaseModel):
     """
     title: str
     description: Optional[str] = None
-    report_type: str = Field('general', description="Tipo de reporte clínico o de cuidado. Valores sugeridos: higiene, alimentacion, evacuacion, conducta, estado_animo, incidente, turno, clinico, general, otro.")
+    report_type_id: Optional[int] = Field(None, description="ID del tipo de reporte (normalizado)")
     attached_files: List[FileMeta] = Field(default_factory=list, description="Lista de metadatos de archivos adjuntos (filename, url, content_type, size)")
     is_autocuidado: bool = False
     cared_person_id: Optional[int] = None
 
-    @classmethod
-    def allowed_report_types(cls) -> list:
-        return [
-            'higiene', 'alimentacion', 'evacuacion', 'conducta', 'estado_animo',
-            'incidente', 'turno', 'clinico', 'general', 'otro'
-        ]
-
-    @classmethod
-    def validate_report_type(cls, v):
-        allowed = cls.allowed_report_types()
-        if v not in allowed:
-            raise ValueError(f"report_type debe ser uno de: {allowed}")
+    @field_validator('report_type_id')
+    def validate_report_type_id(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError("ID del tipo de reporte debe ser un entero positivo")
         return v
 
 class ReportCreate(ReportBase):
@@ -60,6 +52,7 @@ class ReportResponse(BaseResponse):
     updated_at: Optional[datetime] = None
     created_by_id: UUID
     cared_person: Optional[CaredPersonResponse] = None
+    report_type: Optional[str] = None  # Nombre del tipo de reporte (opcional, para respuesta)
 
     class Config:
         from_attributes = True 

@@ -62,7 +62,7 @@ class RestraintProtocolService:
         cared_person_id: Optional[UUID] = None,
         institution_id: Optional[int] = None,
         protocol_type: Optional[str] = None,
-        status: Optional[str] = None,
+        status_type_id: Optional[int] = None,
         active_only: bool = False
     ) -> List[RestraintProtocol]:
         """Get restraint protocols with filters"""
@@ -78,18 +78,27 @@ class RestraintProtocolService:
         if protocol_type:
             query = query.filter(RestraintProtocol.protocol_type == protocol_type)
         
-        if status:
-            query = query.filter(RestraintProtocol.status == status)
+        if status_type_id:
+            query = query.filter(RestraintProtocol.status_type_id == status_type_id)
         
         if active_only:
-            query = query.filter(RestraintProtocol.status == "active")
+            from app.services.status_type import StatusTypeService
+            active_status = StatusTypeService.get_status_by_name(db, "active")
+            if active_status:
+                query = query.filter(RestraintProtocol.status_type_id == active_status.id)
         
         return query.offset(skip).limit(limit).all()
     
     @staticmethod
     def get_active_restraint_protocols(db: Session, cared_person_id: Optional[UUID] = None) -> List[RestraintProtocol]:
         """Get active restraint protocols"""
-        query = db.query(RestraintProtocol).filter(RestraintProtocol.status == "active")
+        from app.services.status_type import StatusTypeService
+        
+        active_status = StatusTypeService.get_status_by_name(db, "active")
+        if not active_status:
+            return []
+        
+        query = db.query(RestraintProtocol).filter(RestraintProtocol.status_type_id == active_status.id)
         
         if cared_person_id:
             query = query.filter(RestraintProtocol.cared_person_id == cared_person_id)
@@ -99,10 +108,16 @@ class RestraintProtocolService:
     @staticmethod
     def get_protocols_requiring_review(db: Session) -> List[RestraintProtocol]:
         """Get protocols that require review"""
+        from app.services.status_type import StatusTypeService
+        
         now = datetime.now()
+        active_status = StatusTypeService.get_status_by_name(db, "active")
+        if not active_status:
+            return []
+        
         return db.query(RestraintProtocol).filter(
             and_(
-                RestraintProtocol.status == "active",
+                RestraintProtocol.status_type_id == active_status.id,
                 RestraintProtocol.next_review_date <= now
             )
         ).all()
@@ -154,11 +169,16 @@ class RestraintProtocolService:
     @staticmethod
     def suspend_restraint_protocol(db: Session, protocol_id: UUID, updated_by: User, reason: str = None) -> Optional[RestraintProtocol]:
         """Suspend a restraint protocol"""
+        from app.services.status_type import StatusTypeService
+        
         protocol = db.query(RestraintProtocol).filter(RestraintProtocol.id == protocol_id).first()
         if not protocol:
             return None
         
-        protocol.status = "suspended"
+        suspended_status = StatusTypeService.get_status_by_name(db, "suspended")
+        if suspended_status:
+            protocol.status_type_id = suspended_status.id
+        
         protocol.updated_by_id = updated_by.id
         protocol.updated_at = datetime.now()
         
@@ -173,11 +193,16 @@ class RestraintProtocolService:
     @staticmethod
     def complete_restraint_protocol(db: Session, protocol_id: UUID, updated_by: User, completion_notes: str = None) -> Optional[RestraintProtocol]:
         """Complete a restraint protocol"""
+        from app.services.status_type import StatusTypeService
+        
         protocol = db.query(RestraintProtocol).filter(RestraintProtocol.id == protocol_id).first()
         if not protocol:
             return None
         
-        protocol.status = "completed"
+        completed_status = StatusTypeService.get_status_by_name(db, "completed")
+        if completed_status:
+            protocol.status_type_id = completed_status.id
+        
         protocol.end_date = datetime.now()
         protocol.updated_by_id = updated_by.id
         protocol.updated_at = datetime.now()
@@ -224,13 +249,19 @@ class RestraintProtocolService:
     @staticmethod
     def get_protocol_summary(db: Session, cared_person_id: Optional[UUID] = None) -> RestraintProtocolSummary:
         """Get summary statistics for restraint protocols"""
+        from app.services.status_type import StatusTypeService
         
         query = db.query(RestraintProtocol)
         if cared_person_id:
             query = query.filter(RestraintProtocol.cared_person_id == cared_person_id)
         
         total_protocols = query.count()
-        active_protocols = query.filter(RestraintProtocol.status == "active").count()
+        
+        # Get active protocols
+        active_status = StatusTypeService.get_status_by_name(db, "active")
+        active_protocols = 0
+        if active_status:
+            active_protocols = query.filter(RestraintProtocol.status_type_id == active_status.id).count()
         
         # Protocols by type
         protocols_by_type = {}
@@ -239,21 +270,24 @@ class RestraintProtocolService:
             if count > 0:
                 protocols_by_type[protocol_type] = count
         
-        # Protocols by status
+        # Protocols by status (using status types)
         protocols_by_status = {}
-        for status in RestraintProtocol.get_status_types():
-            count = query.filter(RestraintProtocol.status == status).count()
+        status_types = StatusTypeService.get_status_types(db)
+        for status_type in status_types:
+            count = query.filter(RestraintProtocol.status_type_id == status_type.id).count()
             if count > 0:
-                protocols_by_status[status] = count
+                protocols_by_status[status_type.name] = count
         
         # Protocols requiring review
         now = datetime.now()
-        protocols_requiring_review = query.filter(
-            and_(
-                RestraintProtocol.status == "active",
-                RestraintProtocol.next_review_date <= now
-            )
-        ).count()
+        protocols_requiring_review = 0
+        if active_status:
+            protocols_requiring_review = query.filter(
+                and_(
+                    RestraintProtocol.status_type_id == active_status.id,
+                    RestraintProtocol.next_review_date <= now
+                )
+            ).count()
         
         return RestraintProtocolSummary(
             total_protocols=total_protocols,

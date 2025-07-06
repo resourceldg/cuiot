@@ -36,56 +36,58 @@ async def admin_auth(async_client, db_session):
         raise Exception("Could not find admin user in database")
     
     # Create admin role if it doesn't exist
-    admin_role = Role(
-        name="admin",
-        description="Administrator role",
-        permissions=json.dumps({
-            "users": {
-                "read": True,
-                "write": True,
-                "delete": True,
-                "create": True,
-                "update": True,
-                "manage": True
-            },
-            "cared_persons": {
-                "read": True,
-                "write": True,
-                "delete": True
-            },
-            "institutions": {
-                "read": True,
-                "write": True,
-                "delete": True
-            },
-            "devices": {
-                "read": True,
-                "write": True,
-                "delete": True
-            },
-            "protocols": {
-                "read": True,
-                "write": True,
-                "delete": True
-            },
-            "reports": {
-                "read": True,
-                "write": True
-            },
-            "system": {
-                "read": True,
-                "write": True,
-                "delete": True
-            },
-            "admin": True,
-            "super_admin": True
-        }),
-        created_at=datetime.now(),
-        updated_at=datetime.now()
-    )
-    db.add(admin_role)
-    db.commit()
-    db.refresh(admin_role)
+    admin_role = db.query(Role).filter_by(name="admin").first()
+    if not admin_role:
+        admin_role = Role(
+            name="admin",
+            description="Administrator role",
+            permissions=json.dumps({
+                "users": {
+                    "read": True,
+                    "write": True,
+                    "delete": True,
+                    "create": True,
+                    "update": True,
+                    "manage": True
+                },
+                "cared_persons": {
+                    "read": True,
+                    "write": True,
+                    "delete": True
+                },
+                "institutions": {
+                    "read": True,
+                    "write": True,
+                    "delete": True
+                },
+                "devices": {
+                    "read": True,
+                    "write": True,
+                    "delete": True
+                },
+                "protocols": {
+                    "read": True,
+                    "write": True,
+                    "delete": True
+                },
+                "reports": {
+                    "read": True,
+                    "write": True
+                },
+                "system": {
+                    "read": True,
+                    "write": True,
+                    "delete": True
+                },
+                "admin": True,
+                "super_admin": True
+            }),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        db.add(admin_role)
+        db.commit()
+        db.refresh(admin_role)
     
     # Check if user already has admin role
     existing_role = db.query(UserRole).filter_by(

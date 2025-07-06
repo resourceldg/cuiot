@@ -12,7 +12,7 @@ class MedicationScheduleService:
     @staticmethod
     def create(db: Session, medication_schedule: MedicationScheduleCreate) -> MedicationSchedule:
         """Create a new medication schedule"""
-        db_medication_schedule = MedicationSchedule(**medication_schedule.dict())
+        db_medication_schedule = MedicationSchedule(**medication_schedule.model_dump())
         db.add(db_medication_schedule)
         db.commit()
         db.refresh(db_medication_schedule)
@@ -66,7 +66,7 @@ class MedicationScheduleService:
         if not db_medication_schedule:
             raise NotFoundException(f"Medication schedule with id {schedule_id} not found")
         
-        update_data = medication_schedule.dict(exclude_unset=True)
+        update_data = medication_schedule.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_medication_schedule, field, value)
         

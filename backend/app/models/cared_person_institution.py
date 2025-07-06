@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
 from sqlalchemy.dialects.postgresql import UUID
+from app.models.service_type import ServiceType
 
 class CaredPersonInstitution(BaseModel):
     """CaredPersonInstitution model for multiple institutions per cared person"""
@@ -13,7 +14,7 @@ class CaredPersonInstitution(BaseModel):
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
     
     # Service details
-    service_type = Column(String(50), nullable=False)  # inpatient, outpatient, day_care, emergency, consultation
+    service_type_id = Column(Integer, ForeignKey('service_types.id'), nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=True)  # None for ongoing services
     
@@ -33,8 +34,8 @@ class CaredPersonInstitution(BaseModel):
     medical_notes = Column(Text, nullable=True)
     treatment_plan = Column(Text, nullable=True)
     
-    # Status
-    status = Column(String(50), default="active", nullable=False)  # active, paused, completed, terminated
+    # Status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     is_primary = Column(Boolean, default=False, nullable=False)  # Primary institution for this person
     
     # Admin info
@@ -46,6 +47,8 @@ class CaredPersonInstitution(BaseModel):
     cared_person = relationship("CaredPerson", back_populates="cared_person_institutions")
     institution = relationship("Institution", back_populates="cared_person_institutions")
     registered_by_user = relationship("User", foreign_keys=[registered_by])
+    service_type = relationship("ServiceType")
+    status_type = relationship("StatusType")
     
     def __repr__(self):
         return f"<CaredPersonInstitution(cared_person_id={self.cared_person_id}, institution_id={self.institution_id})>"
@@ -78,7 +81,7 @@ class CaredPersonInstitution(BaseModel):
     
     @classmethod
     def get_service_types(cls) -> list:
-        """Returns available service types"""
+        """Returns available service types - DEPRECATED: Use ServiceType model instead"""
         return [
             "inpatient", "outpatient", "day_care", "emergency", "consultation",
             "rehabilitation", "therapy", "nursing", "social_work", "nutrition",

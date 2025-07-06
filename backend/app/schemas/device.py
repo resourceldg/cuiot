@@ -7,11 +7,11 @@ from .base import BaseResponse, BaseCreate, BaseUpdate
 class DeviceBase(BaseModel):
     device_id: str = Field(..., min_length=1, max_length=100)
     name: str = Field(..., max_length=100)
-    device_type: str = Field(..., max_length=50)
+    device_type_id: Optional[int] = Field(None, description="ID del tipo de dispositivo")
     model: Optional[str] = Field(None, max_length=100)
     manufacturer: Optional[str] = Field(None, max_length=100)
     serial_number: Optional[str] = Field(None, max_length=100)
-    status: str = Field(default="active", max_length=50)
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     battery_level: Optional[int] = Field(None, ge=0, le=100)
     signal_strength: Optional[int] = Field(None, ge=0, le=100)
     last_seen: Optional[datetime] = None
@@ -32,11 +32,11 @@ class DeviceCreate(DeviceBase, BaseCreate):
 class DeviceUpdate(BaseUpdate):
     device_id: Optional[str] = Field(None, min_length=1, max_length=100)
     name: Optional[str] = Field(None, max_length=100)
-    device_type: Optional[str] = Field(None, max_length=50)
+    device_type_id: Optional[int] = Field(None, description="ID del tipo de dispositivo")
     model: Optional[str] = Field(None, max_length=100)
     manufacturer: Optional[str] = Field(None, max_length=100)
     serial_number: Optional[str] = Field(None, max_length=100)
-    status: Optional[str] = Field(None, max_length=50)
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     battery_level: Optional[int] = Field(None, ge=0, le=100)
     signal_strength: Optional[int] = Field(None, ge=0, le=100)
     last_seen: Optional[datetime] = None

@@ -5,7 +5,8 @@ from uuid import UUID
 from datetime import datetime, time
 
 from app.models.reminder import Reminder
-from app.models.elderly_person import ElderlyPerson
+from app.models.cared_person import CaredPerson
+from app.models.status_type import StatusType
 from app.schemas.reminder import ReminderCreate, ReminderUpdate
 from app.core.exceptions import NotFoundException, ValidationException
 
@@ -27,24 +28,34 @@ class ReminderService:
         Raises:
             NotFoundException: Si el adulto mayor no existe
         """
-        # Verificar que el adulto mayor existe
-        elderly_person = db.query(ElderlyPerson).filter(
-            ElderlyPerson.id == reminder_data.elderly_person_id
+        # Verificar que la persona bajo cuidado existe
+        cared_person = db.query(CaredPerson).filter(
+            CaredPerson.id == reminder_data.cared_person_id
         ).first()
         
-        if not elderly_person:
-            raise NotFoundException(f"Adulto mayor con ID {reminder_data.elderly_person_id} no encontrado")
+        if not cared_person:
+            raise NotFoundException(f"Persona bajo cuidado con ID {reminder_data.cared_person_id} no encontrada")
+        
+        # Obtener el status_type_id por defecto (pending)
+        default_status = db.query(StatusType).filter(StatusType.name == "pending").first()
+        if not default_status:
+            raise ValidationException("Status type 'pending' no encontrado en la base de datos")
         
         # Crear el recordatorio
         db_reminder = Reminder(
-            elderly_person_id=reminder_data.elderly_person_id,
+            cared_person_id=reminder_data.cared_person_id,
+            user_id=reminder_data.user_id,
             title=reminder_data.title,
             description=reminder_data.description,
-            reminder_type=reminder_data.reminder_type,
+            reminder_type_id=reminder_data.reminder_type_id,
             scheduled_time=reminder_data.scheduled_time,
-            days_of_week=reminder_data.days_of_week,
-            created_by_id=reminder_data.created_by_id,
-            received_by_id=reminder_data.received_by_id
+            due_date=reminder_data.due_date,
+            repeat_pattern=reminder_data.repeat_pattern,
+            status_type_id=reminder_data.status_type_id or default_status.id,
+            priority=reminder_data.priority,
+            is_important=reminder_data.is_important,
+            reminder_data=reminder_data.reminder_data,
+            notes=reminder_data.notes
         )
         
         db.add(db_reminder)
@@ -72,11 +83,11 @@ class ReminderService:
         db: Session, 
         skip: int = 0, 
         limit: int = 100,
-        elderly_person_id: Optional[UUID] = None,
-        reminder_type: Optional[str] = None,
+        cared_person_id: Optional[UUID] = None,
+        user_id: Optional[UUID] = None,
+        reminder_type_id: Optional[int] = None,
         is_active: Optional[bool] = None,
-        created_by_id: Optional[UUID] = None,
-        received_by_id: Optional[UUID] = None
+        status_type_id: Optional[int] = None
     ) -> tuple[List[Reminder], int]:
         """
         Obtener lista de recordatorios con filtros opcionales
@@ -85,11 +96,11 @@ class ReminderService:
             db: Sesión de base de datos
             skip: Número de registros a saltar
             limit: Límite de registros a retornar
-            elderly_person_id: Filtrar por adulto mayor
-            reminder_type: Filtrar por tipo de recordatorio
+            cared_person_id: Filtrar por adulto mayor
+            reminder_type_id: Filtrar por tipo de recordatorio
             is_active: Filtrar por estado activo
-            created_by_id: Filtrar por usuario creador
-            received_by_id: Filtrar por usuario receptor
+            user_id: Filtrar por usuario creador
+            status_type_id: Filtrar por tipo de status
             
         Returns:
             tuple: (lista de recordatorios, total de registros)
@@ -97,20 +108,20 @@ class ReminderService:
         query = db.query(Reminder)
         
         # Aplicar filtros
-        if elderly_person_id:
-            query = query.filter(Reminder.elderly_person_id == elderly_person_id)
+        if cared_person_id:
+            query = query.filter(Reminder.cared_person_id == cared_person_id)
         
-        if reminder_type:
-            query = query.filter(Reminder.reminder_type == reminder_type)
+        if user_id:
+            query = query.filter(Reminder.user_id == user_id)
+        
+        if reminder_type_id:
+            query = query.filter(Reminder.reminder_type_id == reminder_type_id)
         
         if is_active is not None:
             query = query.filter(Reminder.is_active == is_active)
         
-        if created_by_id:
-            query = query.filter(Reminder.created_by_id == created_by_id)
-        
-        if received_by_id:
-            query = query.filter(Reminder.received_by_id == received_by_id)
+        if status_type_id:
+            query = query.filter(Reminder.status_type_id == status_type_id)
         
         # Obtener total antes de aplicar paginación
         total = query.count()
@@ -121,9 +132,9 @@ class ReminderService:
         return reminders, total
     
     @staticmethod
-    def get_reminders_by_elderly_person(
+    def get_reminders_by_cared_person(
         db: Session, 
-        elderly_person_id: UUID,
+        cared_person_id: UUID,
         skip: int = 0,
         limit: int = 100
     ) -> tuple[List[Reminder], int]:
@@ -143,7 +154,7 @@ class ReminderService:
             db=db,
             skip=skip,
             limit=limit,
-            elderly_person_id=elderly_person_id
+            cared_person_id=cared_person_id
         )
     
     @staticmethod
@@ -151,9 +162,7 @@ class ReminderService:
         db: Session, 
         user_id: UUID,
         skip: int = 0,
-        limit: int = 100,
-        created_only: bool = False,
-        received_only: bool = False
+        limit: int = 100
     ) -> tuple[List[Reminder], int]:
         """
         Obtener recordatorios por usuario (creados o recibidos)
@@ -169,17 +178,7 @@ class ReminderService:
         Returns:
             tuple: (lista de recordatorios, total de registros)
         """
-        query = db.query(Reminder)
-        
-        if created_only:
-            query = query.filter(Reminder.created_by_id == user_id)
-        elif received_only:
-            query = query.filter(Reminder.received_by_id == user_id)
-        else:
-            # Ambos: creados o recibidos
-            query = query.filter(
-                (Reminder.created_by_id == user_id) | (Reminder.received_by_id == user_id)
-            )
+        query = db.query(Reminder).filter(Reminder.user_id == user_id)
         
         # Obtener total antes de aplicar paginación
         total = query.count()
@@ -277,7 +276,7 @@ class ReminderService:
         )
     
     @staticmethod
-    def get_active_reminders(db: Session, elderly_person_id: Optional[UUID] = None) -> List[Reminder]:
+    def get_active_reminders(db: Session, cared_person_id: Optional[UUID] = None) -> List[Reminder]:
         """
         Obtener recordatorios activos
         
@@ -290,7 +289,7 @@ class ReminderService:
         """
         reminders, _ = ReminderService.get_reminders(
             db=db,
-            elderly_person_id=elderly_person_id,
+            cared_person_id=cared_person_id,
             is_active=True
         )
         return reminders
@@ -299,7 +298,7 @@ class ReminderService:
     def get_reminders_by_type(
         db: Session, 
         reminder_type: str, 
-        elderly_person_id: Optional[UUID] = None
+        cared_person_id: Optional[UUID] = None
     ) -> List[Reminder]:
         """
         Obtener recordatorios por tipo
@@ -314,13 +313,13 @@ class ReminderService:
         """
         reminders, _ = ReminderService.get_reminders(
             db=db,
-            elderly_person_id=elderly_person_id,
-            reminder_type=reminder_type
+            cared_person_id=cared_person_id,
+            reminder_type_id=reminder_type
         )
         return reminders
     
     @staticmethod
-    def get_medication_reminders(db: Session, elderly_person_id: Optional[UUID] = None) -> List[Reminder]:
+    def get_medication_reminders(db: Session, cared_person_id: Optional[UUID] = None) -> List[Reminder]:
         """
         Obtener recordatorios de medicación
         
@@ -333,6 +332,6 @@ class ReminderService:
         """
         return ReminderService.get_reminders_by_type(
             db=db,
-            reminder_type="medication",
-            elderly_person_id=elderly_person_id
+            reminder_type_id="medication",
+            cared_person_id=cared_person_id
         ) 

@@ -32,7 +32,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post('/', response_model=ShiftObservationResponse, status_code=status.HTTP_201_CREATED)
 def create_shift_observation(
-    shift_type: str = Form(..., description="Tipo de turno: morning, afternoon, night, 24h"),
+    shift_type: Optional[str] = Form(None, description="Tipo de turno: morning, afternoon, night, 24h"),
+    shift_observation_type_id: Optional[int] = Form(None, description="ID del tipo de observación de turno normalizado"),
     shift_start: str = Form(..., description="Inicio del turno (ISO format)"),
     shift_end: str = Form(..., description="Fin del turno (ISO format)"),
     observation_date: Optional[str] = Form(None, description="Fecha de observación (ISO format, opcional)"),
@@ -43,7 +44,7 @@ def create_shift_observation(
     pain_level: Optional[int] = Form(None, ge=0, le=10, description="Nivel de dolor (0-10)"),
     vital_signs: Optional[str] = Form(None, description="Signos vitales (JSON)"),
     skin_condition: Optional[str] = Form(None, max_length=200, description="Condición de la piel"),
-    hygiene_status: Optional[str] = Form(None, description="Estado de higiene: excellent, good, fair, poor"),
+    hygiene_status_type_id: Optional[int] = Form(None, description="ID del tipo de status de higiene normalizado"),
     
     # Estado mental y conductual
     mental_state: Optional[str] = Form(None, description="Estado mental: alert, confused, drowsy, agitated, calm"),
@@ -112,19 +113,51 @@ def create_shift_observation(
     Requiere autenticación y permisos de cuidador para la persona bajo cuidado.
     """
     
-    # Validate shift_type before creating Pydantic model
-    valid_shift_types = ['morning', 'afternoon', 'night', '24h']
-    if shift_type not in valid_shift_types:
+    # Validate shift_type if provided
+    if shift_type:
+        valid_shift_types = ['morning', 'afternoon', 'night', '24h']
+        if shift_type not in valid_shift_types:
+            raise HTTPException(
+                status_code=422,
+                detail=[
+                    {
+                        "loc": ["body", "shift_type"],
+                        "msg": f"shift_type debe ser uno de: {valid_shift_types}",
+                        "type": "value_error"
+                    }
+                ]
+            )
+    
+    # Ensure we have either shift_type or shift_observation_type_id
+    if not shift_type and not shift_observation_type_id:
         raise HTTPException(
             status_code=422,
             detail=[
                 {
                     "loc": ["body", "shift_type"],
-                    "msg": f"shift_type debe ser uno de: {valid_shift_types}",
+                    "msg": "Se requiere shift_type o shift_observation_type_id",
                     "type": "value_error"
                 }
             ]
         )
+    
+    # If shift_observation_type_id is not provided, use the first available one
+    if not shift_observation_type_id:
+        from app.models.shift_observation_type import ShiftObservationType
+        first_type = db.query(ShiftObservationType).first()
+        if first_type:
+            shift_observation_type_id = first_type.id
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=[
+                    {
+                        "loc": ["body", "shift_observation_type_id"],
+                        "msg": "No hay tipos de observación de turno disponibles",
+                        "type": "value_error"
+                    }
+                ]
+            )
     
     # Parse dates
     try:
@@ -184,10 +217,11 @@ def create_shift_observation(
     # Create observation data
     try:
         observation_data = ShiftObservationCreate(
-            shift_type=shift_type,
+            shift_type=shift_type or "morning",  # Default value if not provided
             shift_start=shift_start_parsed,
             shift_end=shift_end_parsed,
             observation_date=observation_date_parsed,
+            shift_observation_type_id=shift_observation_type_id,
             
             # Estado físico
             physical_condition=physical_condition,
@@ -195,7 +229,7 @@ def create_shift_observation(
             pain_level=pain_level,
             vital_signs=vital_signs_parsed,
             skin_condition=skin_condition,
-            hygiene_status=hygiene_status,
+            hygiene_status_type_id=hygiene_status_type_id,
             
             # Estado mental y conductual
             mental_state=mental_state,
@@ -280,7 +314,7 @@ def get_shift_observations(
     caregiver_id: Optional[str] = Query(None, description="Filtrar por cuidador"),
     institution_id: Optional[int] = Query(None, description="Filtrar por institución"),
     shift_type: Optional[str] = Query(None, description="Filtrar por tipo de turno"),
-    status: Optional[str] = Query(None, description="Filtrar por estado"),
+    status_type_id: Optional[int] = Query(None, description="Filtrar por ID de tipo de estado"),
     start_date: Optional[str] = Query(None, description="Fecha de inicio (ISO format)"),
     end_date: Optional[str] = Query(None, description="Fecha de fin (ISO format)"),
     incidents_only: Optional[bool] = Query(None, description="Solo observaciones con incidentes"),
@@ -331,12 +365,7 @@ def get_shift_observations(
             shift_type_enum = ShiftType(shift_type)
         except ValueError:
             raise HTTPException(status_code=400, detail="shift_type inválido")
-    status_enum = None
-    if status:
-        try:
-            status_enum = ObservationStatus(status)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="status inválido")
+    # status_type_id is already an integer, no need for enum conversion
     
     try:
         observations = ShiftObservationService.get_shift_observations(
@@ -347,7 +376,7 @@ def get_shift_observations(
             caregiver_id=caregiver_uuid,
             institution_id=institution_id,
             shift_type=shift_type_enum,
-            status=status_enum,
+            status_type_id=status_type_id,
             start_date=start_date_parsed,
             end_date=end_date_parsed,
             incidents_only=incidents_only

@@ -18,6 +18,9 @@ from .medical_profile import MedicalProfileService
 from .medication_schedule import MedicationScheduleService
 from .medication_log import MedicationLogService
 
+# Status services
+from .status_type import StatusTypeService
+
 __all__ = [
     "AuthService",
     "UserService", 
@@ -33,4 +36,6 @@ __all__ = [
     "MedicalProfileService",
     "MedicationScheduleService", 
     "MedicationLogService",
+    # Status services
+    "StatusTypeService",
 ]

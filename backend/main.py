@@ -114,7 +114,18 @@ async def general_exception_handler(request, exc):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     # Decodifica el body y los errores si contienen bytes
     errors = decode_bytes(exc.errors())
-    body = decode_bytes(exc.body)
+    
+    # Manejar el body de forma segura
+    try:
+        body = decode_bytes(exc.body)
+        # Si el body es FormData, convertirlo a string
+        if hasattr(body, '__class__') and 'FormData' in str(body.__class__):
+            body = str(body)
+        elif not isinstance(body, (str, dict, list, int, float, bool, type(None))):
+            body = str(body)
+    except Exception:
+        body = "Unable to serialize body"
+    
     logger.error(
         "Validation Error (422)",
         errors=errors,
@@ -123,7 +134,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
     return JSONResponse(
         status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": errors, "body": body}
+        content={"detail": errors}
     )
 
 if __name__ == "__main__":

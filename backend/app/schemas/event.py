@@ -5,7 +5,7 @@ from uuid import UUID
 from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class EventBase(BaseModel):
-    event_type: str = Field(..., max_length=50)
+    event_type_id: int = Field(..., description="ID del tipo de evento")
     event_subtype: Optional[str] = Field(None, max_length=50)
     severity: str = Field(default="info", max_length=20)
     event_data: Optional[str] = None  # JSON string
@@ -24,7 +24,7 @@ class EventCreate(EventBase, BaseCreate):
     pass
 
 class EventUpdate(EventBase, BaseUpdate):
-    event_type: Optional[str] = Field(None, max_length=50)
+    event_type_id: Optional[int] = Field(None, description="ID del tipo de evento")
     event_subtype: Optional[str] = Field(None, max_length=50)
     severity: Optional[str] = Field(None, max_length=20)
     event_time: Optional[datetime] = None

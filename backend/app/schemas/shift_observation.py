@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator, ValidationInfo
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
@@ -146,7 +146,7 @@ class HygieneStatus(str, Enum):
 class ShiftObservationBase(BaseModel):
     """Esquema base para observaciones de turno"""
     
-    shift_type: ShiftType = Field(..., description="Tipo de turno")
+    shift_type: Optional[ShiftType] = Field(None, description="Tipo de turno")
     shift_start: datetime = Field(..., description="Inicio del turno")
     shift_end: datetime = Field(..., description="Fin del turno")
     observation_date: datetime = Field(default_factory=datetime.utcnow, description="Fecha de la observación")
@@ -157,7 +157,7 @@ class ShiftObservationBase(BaseModel):
     pain_level: Optional[int] = Field(None, ge=0, le=10, description="Nivel de dolor (0-10)")
     vital_signs: Optional[Dict[str, Any]] = Field(None, description="Signos vitales")
     skin_condition: Optional[str] = Field(None, max_length=200, description="Condición de la piel")
-    hygiene_status: Optional[HygieneStatus] = Field(None, description="Estado de higiene")
+    hygiene_status_type_id: Optional[int] = Field(None, description="ID del tipo de status de higiene normalizado")
     
     # Estado mental y conductual
     mental_state: Optional[MentalState] = Field(None, description="Estado mental")
@@ -177,7 +177,7 @@ class ShiftObservationBase(BaseModel):
     bowel_movement: Optional[BowelMovement] = Field(None, description="Movimiento intestinal")
     urinary_output: Optional[UrinaryOutput] = Field(None, description="Producción urinaria")
     incontinence_episodes: Optional[int] = Field(0, ge=0, description="Episodios de incontinencia")
-    catheter_status: Optional[CatheterStatus] = Field(None, description="Estado de catéter")
+    catheter_status_type_id: Optional[int] = Field(None, description="ID del tipo de status de catéter normalizado")
     
     # Medicación
     medications_taken: Optional[List[Dict[str, Any]]] = Field(None, description="Medicamentos tomados")
@@ -209,28 +209,31 @@ class ShiftObservationBase(BaseModel):
     # Archivos adjuntos
     attached_files: Optional[List[Dict[str, Any]]] = Field(None, description="Archivos adjuntos")
     
-    # Estado
-    status: Optional[ObservationStatus] = Field(ObservationStatus.DRAFT, description="Estado de la observación")
+    # Estado (normalizado)
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de status normalizado")
     
     # Relaciones
     cared_person_id: UUID = Field(..., description="ID de la persona bajo cuidado")
     institution_id: Optional[int] = Field(None, description="ID de la institución")
     
-    @validator('shift_end')
-    def validate_shift_end(cls, v, values):
+    shift_observation_type_id: int = Field(..., description="ID del tipo de observación de turno normalizado")
+    
+    @field_validator('shift_end')
+    def validate_shift_end(cls, v, values: ValidationInfo):
         """Validar que el fin del turno sea posterior al inicio"""
-        if 'shift_start' in values and v <= values['shift_start']:
+        shift_start = values.data.get('shift_start') if hasattr(values, 'data') else None
+        if shift_start is not None and v <= shift_start:
             raise ValueError('El fin del turno debe ser posterior al inicio')
         return v
     
-    @validator('pain_level')
+    @field_validator('pain_level')
     def validate_pain_level(cls, v):
         """Validar nivel de dolor entre 0 y 10"""
         if v is not None and (v < 0 or v > 10):
             raise ValueError('El nivel de dolor debe estar entre 0 y 10')
         return v
     
-    @validator('incontinence_episodes')
+    @field_validator('incontinence_episodes')
     def validate_incontinence_episodes(cls, v):
         """Validar episodios de incontinencia no negativos"""
         if v is not None and v < 0:
@@ -257,7 +260,7 @@ class ShiftObservationUpdate(BaseModel):
     pain_level: Optional[int] = Field(None, ge=0, le=10)
     vital_signs: Optional[Dict[str, Any]] = None
     skin_condition: Optional[str] = Field(None, max_length=200)
-    hygiene_status: Optional[HygieneStatus] = None
+    hygiene_status_type_id: Optional[int] = Field(None, description="ID del tipo de status de higiene normalizado")
     
     # Estado mental y conductual
     mental_state: Optional[MentalState] = None
@@ -277,7 +280,7 @@ class ShiftObservationUpdate(BaseModel):
     bowel_movement: Optional[BowelMovement] = None
     urinary_output: Optional[UrinaryOutput] = None
     incontinence_episodes: Optional[int] = Field(None, ge=0)
-    catheter_status: Optional[CatheterStatus] = None
+    catheter_status_type_id: Optional[int] = Field(None, description="ID del tipo de status de catéter normalizado")
     
     # Medicación
     medications_taken: Optional[List[Dict[str, Any]]] = None
@@ -309,8 +312,10 @@ class ShiftObservationUpdate(BaseModel):
     # Archivos adjuntos
     attached_files: Optional[List[Dict[str, Any]]] = None
     
-    # Estado
-    status: Optional[ObservationStatus] = None
+    # Estado (normalizado)
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de status normalizado")
+    
+    shift_observation_type_id: Optional[int] = Field(None, description="ID del tipo de observación de turno normalizado")
 
 
 class ShiftObservationResponse(ShiftObservationBase):

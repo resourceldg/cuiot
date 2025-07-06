@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from app.models.alert_type import AlertType
 import uuid
 
 class Alert(BaseModel):
@@ -12,7 +13,7 @@ class Alert(BaseModel):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Alert identification
-    alert_type = Column(String(50), nullable=False, index=True)  # health_alert, security_alert, etc.
+    alert_type_id = Column(Integer, ForeignKey('alert_types.id'), nullable=False, index=True)
     alert_subtype = Column(String(50), nullable=True, index=True)  # fall_detected, temperature_high, etc.
     severity = Column(String(20), default="medium", nullable=False)  # low, medium, high, critical
     
@@ -21,8 +22,8 @@ class Alert(BaseModel):
     message = Column(Text, nullable=True)
     alert_data = Column(Text, nullable=True)  # JSON string with alert details
     
-    # Alert status
-    status = Column(String(20), default="active", nullable=False)  # active, acknowledged, resolved, dismissed
+    # Alert status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     acknowledged_at = Column(DateTime(timezone=True), nullable=True)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     
@@ -41,6 +42,8 @@ class Alert(BaseModel):
     cared_person = relationship("CaredPerson", back_populates="alerts")
     device = relationship("Device", back_populates="alerts")
     event = relationship("Event", back_populates="alerts")
+    status_type = relationship("StatusType")
+    alert_type = relationship("AlertType")
     
     def __repr__(self):
         return f"<Alert(type='{self.alert_type}', severity='{self.severity}', status='{self.status}')>"
@@ -48,7 +51,14 @@ class Alert(BaseModel):
     @property
     def is_active(self) -> bool:
         """Check if alert is currently active"""
-        return self.status == "active"
+        return self.status_type and self.status_type.name == "active"
+    
+    @property
+    def status(self) -> str:
+        """Get status as string for backward compatibility"""
+        if self.status_type:
+            return self.status_type.name
+        return "unknown"
     
     @property
     def is_critical(self) -> bool:
@@ -57,7 +67,7 @@ class Alert(BaseModel):
     
     @classmethod
     def get_alert_types(cls) -> list:
-        """Returns available alert types"""
+        """Returns available alert types - DEPRECATED: Use AlertType model instead"""
         return [
             "health_alert", "security_alert", "environmental_alert", "device_alert",
             "location_alert", "medication_alert", "appointment_alert", "system_alert",
@@ -71,5 +81,5 @@ class Alert(BaseModel):
     
     @classmethod
     def get_status_types(cls) -> list:
-        """Returns available status types"""
+        """Returns available status types (deprecated - use status_types table)"""
         return ["active", "acknowledged", "resolved", "dismissed", "escalated"]

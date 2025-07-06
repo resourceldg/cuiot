@@ -14,6 +14,8 @@ from app.models import (
     EmergencyProtocol, Alert, User, CaregiverAssignment
 )
 from app.models.device import Device
+from app.models.care_type import CareType
+from app.models.status_type import StatusType
 
 
 class DebugUtilities:
@@ -35,9 +37,15 @@ class DebugUtilities:
         Returns:
             CaredPerson: Persona creada para pruebas
         """
+        # Buscar el ID del care_type "elderly"
+        elderly_care_type = self.db.query(CareType).filter(CareType.name == "elderly").first()
+        if not elderly_care_type:
+            # Fallback: usar el primer care_type disponible
+            elderly_care_type = self.db.query(CareType).first()
+        
         cared_person = CaredPerson(
             user_id=user_id,
-            care_type="elderly",
+            care_type_id=elderly_care_type.id if elderly_care_type else None,
             is_self_care=False,
             is_active=True
         )
@@ -304,6 +312,12 @@ class DebugUtilities:
         self.db.query(Device).delete()
         self.db.commit()
         
+        # Buscar el ID del status_type "active"
+        active_status = self.db.query(StatusType).filter(StatusType.name == "active").first()
+        if not active_status:
+            # Fallback: usar el primer status_type disponible
+            active_status = self.db.query(StatusType).first()
+        
         # Generar un sufijo único para los device_id
         unique_suffix = str(int(time.time()))
         
@@ -314,7 +328,7 @@ class DebugUtilities:
                 device_type=["sensor", "tracker", "camera", "wearable"][i],
                 model=f"Test Model {i}",
                 manufacturer="Test Manufacturer",
-                status="active",
+                status_type_id=active_status.id if active_status else None,
                 battery_level=80 + i * 5,
                 signal_strength=90 + i * 3,
                 is_active=True

@@ -15,7 +15,8 @@ class CaredPersonBase(BaseModel):
     emergency_contact: Optional[str] = Field(None, max_length=100)
     emergency_phone: Optional[str] = Field(None, max_length=20)
     blood_type: Optional[str] = Field(None, max_length=10)
-    care_type: Optional[str] = Field("delegated", max_length=20)  # "self_care" or "delegated"
+    care_type_id: Optional[int] = Field(None, description="ID del tipo de cuidado (normalizado)")
+    care_type: Optional[str] = Field(None, description="Nombre del tipo de cuidado (para compatibilidad)")
     care_level: Optional[str] = Field(None, max_length=50)
     special_needs: Optional[str] = None
     mobility_level: Optional[str] = Field(None, max_length=50)
@@ -40,6 +41,7 @@ class CaredPersonUpdate(CaredPersonBase, BaseUpdate):
 class CaredPersonResponse(CaredPersonBase, BaseResponse):
     age: Optional[int] = None
     full_name: str
+    care_type: Optional[str] = None  # Nombre del tipo de cuidado (opcional, para respuesta)
 
 class CaredPersonInDB(CaredPersonBase, BaseResponse):
     pass

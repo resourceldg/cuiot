@@ -4,13 +4,13 @@ from datetime import datetime
 from io import BytesIO
 
 @pytest.mark.asyncio
-async def test_diagnosis_crud(async_client, auth_headers):
+async def test_diagnosis_crud(async_client, auth_headers, normalized_catalogs):
     # Crear persona bajo cuidado
     cared_person_data = {
         "first_name": "Carlos",
         "last_name": "Ramírez",
         "date_of_birth": "1955-07-20",
-        "care_type": "delegated"
+        "care_type_id": normalized_catalogs["care_type_id"]
     }
     response = await async_client.post("/api/v1/cared-persons/", json=cared_person_data, headers=auth_headers)
     assert response.status_code == 201

@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
 from sqlalchemy.dialects.postgresql import UUID
+from app.models.relationship_type import RelationshipType
 
 class CaregiverInstitution(BaseModel):
     """CaregiverInstitution model for freelance caregivers with multiple institutions"""
@@ -27,8 +28,9 @@ class CaregiverInstitution(BaseModel):
     salary = Column(Integer, nullable=True)  # Monthly salary in cents
     benefits = Column(Text, nullable=True)  # JSON string with benefits
     
-    # Status
-    status = Column(String(50), default="active", nullable=False)  # active, inactive, suspended, terminated
+    # Status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
+    relationship_type_id = Column(Integer, ForeignKey("relationship_types.id"), nullable=True, index=True)
     is_primary = Column(Boolean, default=False, nullable=False)  # Primary institution for the caregiver
     
     # Admin info
@@ -40,6 +42,8 @@ class CaregiverInstitution(BaseModel):
     caregiver = relationship("User", foreign_keys=[caregiver_id], back_populates="caregiver_institutions")
     institution = relationship("Institution", back_populates="caregiver_institutions")
     hired_by_user = relationship("User", foreign_keys=[hired_by])
+    status_type = relationship("StatusType")
+    relationship_type = relationship("RelationshipType")
     
     def __repr__(self):
         return f"<CaregiverInstitution(caregiver_id={self.caregiver_id}, institution_id={self.institution_id})>"
@@ -50,7 +54,7 @@ class CaregiverInstitution(BaseModel):
         from datetime import date
         today = date.today()
         
-        if self.status != "active":
+        if not self.status_type or self.status_type.name != "active":
             return False
         
         if self.start_date > today:

@@ -38,6 +38,7 @@ from app.models.institution_review import InstitutionReview
 
 # Referral models
 from app.models.referral import Referral, ReferralCommission
+from app.models.status_type import StatusType
 
 __all__ = [
     "Base",
@@ -75,4 +76,6 @@ __all__ = [
     # Referral models
     "Referral",
     "ReferralCommission",
+    # Status models
+    "StatusType",
 ]

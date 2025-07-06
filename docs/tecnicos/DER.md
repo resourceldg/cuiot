@@ -4,7 +4,9 @@
 
 ## Resumen Ejecutivo
 
-Este documento presenta el modelo de datos completo para el sistema de monitoreo de cuidado humano, diseñado para soportar todos los tipos de usuarios, servicios, dispositivos, protocolos y funcionalidades definidas en las reglas de negocio. **Actualizado para incluir Sistema de Paquetes como unidad central del negocio y entidades médicas avanzadas.**
+Este documento presenta el modelo de datos completo para el sistema de monitoreo de cuidado humano, diseñado para soportar todos los tipos de usuarios, servicios, dispositivos, protocolos y funcionalidades definidas en las reglas de negocio. **Actualizado para incluir Sistema de Paquetes como unidad central del negocio, entidades médicas avanzadas y normalización completa de catálogos.**
+
+**🎉 NORMALIZACIÓN COMPLETA**: Todos los campos string de catálogo han sido normalizados a claves foráneas. Se mantienen propiedades legacy para compatibilidad.
 
 ---
 
@@ -51,15 +53,29 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 **Atributos Clave**:
 - `id` (UUID, PK): Identificador único
 - `user_id` (UUID, FK): Referencia al usuario (representante legal para cuidado delegado)
-- `care_type` (VARCHAR(50)): Tipo de cuidado (self_care, delegated)
-- `disability_type` (VARCHAR(100)): Tipo de discapacidad si aplica
-- `medical_conditions` (JSONB): Condiciones médicas
-- `medications` (JSONB): Medicamentos y horarios
-- `emergency_contacts` (JSONB): Contactos de emergencia
-- `care_preferences` (JSONB): Preferencias de cuidado
-- `accessibility_needs` (JSONB): Necesidades de accesibilidad
-- `guardian_info` (JSONB): Información del tutor legal
-- `is_self_care` (BOOLEAN): Si es autocuidado
+- `care_type_id` (INTEGER, FK): Referencia a tabla normalizada de tipos de cuidado
+- `first_name` (VARCHAR(100)): Nombre
+- `last_name` (VARCHAR(100)): Apellido
+- `date_of_birth` (DATE): Fecha de nacimiento
+- `gender` (VARCHAR(20)): Género
+- `identification_number` (VARCHAR(50)): Número de identificación
+- `phone` (VARCHAR(20)): Teléfono
+- `email` (VARCHAR(100)): Email
+- `emergency_contact` (VARCHAR(100)): Contacto de emergencia
+- `emergency_phone` (VARCHAR(20)): Teléfono de emergencia
+- `blood_type` (VARCHAR(10)): Tipo de sangre
+- `care_level` (VARCHAR(50)): Nivel de cuidado (low, medium, high, critical)
+- `special_needs` (TEXT): Necesidades especiales
+- `mobility_level` (VARCHAR(50)): Nivel de movilidad
+- `address` (TEXT): Dirección
+- `latitude` (FLOAT): Latitud
+- `longitude` (FLOAT): Longitud
+- `institution_id` (INTEGER, FK): Institución principal (legacy)
+- `medical_contact_name` (VARCHAR(100)): Nombre del contacto médico
+- `medical_contact_phone` (VARCHAR(20)): Teléfono del contacto médico
+- `family_contact_name` (VARCHAR(100)): Nombre del contacto familiar
+- `family_contact_phone` (VARCHAR(20)): Teléfono del contacto familiar
+- `medical_notes` (TEXT): Notas médicas
 
 **Relaciones**:
 - Una persona bajo cuidado debe tener al menos un cuidador (CAREGIVER_ASSIGNMENTS)
@@ -506,13 +522,266 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 - `billing_date` (DATE): Fecha de facturación
 - `due_date` (DATE): Fecha de vencimiento
 - `paid_date` (DATE): Fecha de pago
-- `status` (VARCHAR(20)): Estado (pending, paid, overdue, cancelled)
+- `status_type_id` (INTEGER, FK): Estado normalizado
 - `payment_method` (VARCHAR(50)): Método de pago
 - `transaction_id` (VARCHAR(100)): ID de transacción
+- `user_id` (UUID, FK): Usuario asociado
+- `institution_id` (INTEGER, FK): Institución asociada
+- `service_subscription_id` (INTEGER, FK): Suscripción de servicio
+- `user_package_id` (UUID, FK): Paquete de usuario
 
 **Relaciones**:
-- Una factura puede estar asociada a un paquete (USER_PACKAGES o INSTITUTION_PACKAGES)
+- Una factura puede estar asociada a un paquete (USER_PACKAGES)
 - Una factura puede estar asociada a un usuario (USERS) o institución (INSTITUTIONS)
+- Una factura puede estar asociada a una suscripción de servicio (SERVICE_SUBSCRIPTIONS)
+
+---
+
+## 1.24 - 1.38 TABLAS DE CATÁLOGO NORMALIZADAS
+
+### 1.24 STATUS_TYPES (Tipos de Estado)
+**Descripción**: Catálogo normalizado para todos los estados del sistema.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del estado
+- `description` (TEXT): Descripción del estado
+- `category` (VARCHAR(50)): Categoría (alert_status, billing_status, device_status, etc.)
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por múltiples entidades para estados normalizados
+
+### 1.25 CARE_TYPES (Tipos de Cuidado)
+**Descripción**: Catálogo de tipos de cuidado disponibles.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de cuidado
+- `description` (VARCHAR(255)): Descripción
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por CARED_PERSONS (care_type_id)
+
+### 1.26 DEVICE_TYPES (Tipos de Dispositivo)
+**Descripción**: Catálogo de tipos de dispositivos IoT.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de dispositivo
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría (sensor, tracker, camera, wearable, etc.)
+- `icon_name` (VARCHAR(50)): Nombre del icono para UI
+- `color_code` (VARCHAR(7)): Código de color hex para UI
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por DEVICES (device_type_id)
+
+### 1.27 ALERT_TYPES (Tipos de Alerta)
+**Descripción**: Catálogo de tipos de alertas del sistema.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de alerta
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría (health, security, system, etc.)
+- `icon_name` (VARCHAR(50)): Nombre del icono para UI
+- `color_code` (VARCHAR(7)): Código de color hex para UI
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por ALERTS (alert_type_id)
+
+### 1.28 EVENT_TYPES (Tipos de Evento)
+**Descripción**: Catálogo de tipos de eventos del sistema.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de evento
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría (sensor_event, system_event, user_action, etc.)
+- `icon_name` (VARCHAR(50)): Nombre del icono para UI
+- `color_code` (VARCHAR(7)): Código de color hex para UI
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por EVENTS (event_type_id)
+
+### 1.29 REMINDER_TYPES (Tipos de Recordatorio)
+**Descripción**: Catálogo de tipos de recordatorios.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de recordatorio
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría (medication, appointment, task, etc.)
+- `icon_name` (VARCHAR(50)): Nombre del icono para UI
+- `color_code` (VARCHAR(7)): Código de color hex para UI
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por REMINDERS (reminder_type_id)
+
+### 1.30 SERVICE_TYPES (Tipos de Servicio)
+**Descripción**: Catálogo de tipos de servicios ofrecidos.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de servicio
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría (healthcare, caregiving, emergency, etc.)
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por SERVICE_SUBSCRIPTIONS (service_type_id)
+- Referenciado por CARED_PERSON_INSTITUTIONS (service_type_id)
+- Referenciado por CAREGIVER_REVIEWS (service_type_id)
+- Referenciado por INSTITUTION_REVIEWS (service_type_id)
+
+### 1.31 CAREGIVER_ASSIGNMENT_TYPES (Tipos de Asignación de Cuidador)
+**Descripción**: Catálogo de tipos de asignación de cuidadores.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de asignación
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por CAREGIVER_ASSIGNMENTS (caregiver_assignment_type_id)
+
+### 1.32 SHIFT_OBSERVATION_TYPES (Tipos de Observación de Turno)
+**Descripción**: Catálogo de tipos de observaciones de turno.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de observación
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por SHIFT_OBSERVATIONS (shift_observation_type_id)
+
+### 1.33 REFERRAL_TYPES (Tipos de Referido)
+**Descripción**: Catálogo de tipos de referidos.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de referido
+- `description` (VARCHAR(255)): Descripción
+- `category` (VARCHAR(50)): Categoría
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por REFERRALS (referral_type_id)
+
+### 1.34 RELATIONSHIP_TYPES (Tipos de Relación)
+**Descripción**: Catálogo de tipos de relación entre entidades.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de relación
+- `description` (VARCHAR(255)): Descripción
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por CAREGIVER_INSTITUTIONS (relationship_type_id)
+
+### 1.35 REPORT_TYPES (Tipos de Reporte)
+**Descripción**: Catálogo de tipos de reportes.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del tipo de reporte
+- `description` (VARCHAR(255)): Descripción
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por REPORTS (report_type_id)
+
+### 1.36 ACTIVITY_TYPES (Tipos de Actividad)
+**Descripción**: Catálogo de tipos de actividades.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `type_name` (VARCHAR(100), UNIQUE): Nombre del tipo de actividad
+- `description` (TEXT): Descripción
+- `requirements` (JSONB): Requisitos (equipamiento, habilidades, etc.)
+- `is_active` (BOOLEAN): Estado activo
+
+**Relaciones**:
+- Referenciado por ACTIVITIES (activity_type_id)
+
+### 1.37 DIFFICULTY_LEVELS (Niveles de Dificultad)
+**Descripción**: Catálogo de niveles de dificultad para actividades.
+
+**Atributos Clave**:
+- `id` (INTEGER, PK): Identificador único
+- `name` (VARCHAR(50), UNIQUE): Nombre del nivel de dificultad
+- `description` (VARCHAR(255)): Descripción
+- `color_code` (VARCHAR(7)): Código de color hex para UI
+- `is_active` (BOOLEAN): Estado activo
+- `created_at` (TIMESTAMP): Fecha de creación
+- `updated_at` (TIMESTAMP): Fecha de actualización
+
+**Relaciones**:
+- Referenciado por ACTIVITIES (difficulty_level_id)
+
+### 1.38 ENUMERATION_TYPES (Tipos de Enumeración)
+**Descripción**: Sistema de enumeraciones dinámicas del sistema.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `type_name` (VARCHAR(100), UNIQUE): Nombre del tipo de enumeración
+- `description` (TEXT): Descripción
+- `is_system` (BOOLEAN): Si es enumeración del sistema
+- `is_active` (BOOLEAN): Estado activo
+
+**Relaciones**:
+- Referenciado por ENUMERATION_VALUES (enumeration_type_id)
+
+### 1.39 ENUMERATION_VALUES (Valores de Enumeración)
+**Descripción**: Valores específicos para cada tipo de enumeración.
+
+**Atributos Clave**:
+- `id` (UUID, PK): Identificador único
+- `enumeration_type_id` (UUID, FK): Tipo de enumeración
+- `value_name` (VARCHAR(100)): Nombre del valor
+- `description` (TEXT): Descripción
+- `sort_order` (INTEGER): Orden de clasificación
+- `is_default` (BOOLEAN): Si es valor por defecto
+- `is_active` (BOOLEAN): Estado activo
+
+**Relaciones**:
+- Referenciado por ENUMERATION_TYPES (enumeration_type_id)
 
 ---
 
@@ -580,6 +849,64 @@ INSTITUTIONS (1) ←→ (N) INSTITUTION_REVIEWS
 
 ---
 
-*Diagrama Entidad-Relación - CUIOT v2.0*
-*Última actualización: [Fecha]*
-*Próxima revisión: [Fecha]* 
+## 4. Normalización de Datos
+
+### 4.1 Catálogos Normalizados
+El sistema utiliza **15 tablas de catálogo normalizadas** para eliminar redundancias y mejorar la integridad de datos:
+
+**Estados y Tipos:**
+- `STATUS_TYPES`: Estados normalizados para todas las entidades
+- `CARE_TYPES`: Tipos de cuidado (self_care, delegated)
+- `DEVICE_TYPES`: Tipos de dispositivos IoT
+- `ALERT_TYPES`: Tipos de alertas del sistema
+- `EVENT_TYPES`: Tipos de eventos
+- `REMINDER_TYPES`: Tipos de recordatorios
+- `SERVICE_TYPES`: Tipos de servicios
+- `CAREGIVER_ASSIGNMENT_TYPES`: Tipos de asignación de cuidadores
+- `SHIFT_OBSERVATION_TYPES`: Tipos de observación de turno
+- `REFERRAL_TYPES`: Tipos de referidos
+- `RELATIONSHIP_TYPES`: Tipos de relación
+- `REPORT_TYPES`: Tipos de reportes
+- `ACTIVITY_TYPES`: Tipos de actividades
+- `DIFFICULTY_LEVELS`: Niveles de dificultad
+- `ENUMERATION_TYPES` y `ENUMERATION_VALUES`: Sistema de enumeraciones dinámicas
+
+### 4.2 Campos Normalizados vs Legacy
+**Campos Normalizados (Recomendados):**
+- `status_type_id` (INTEGER, FK)
+- `care_type_id` (INTEGER, FK)
+- `device_type_id` (INTEGER, FK)
+- `alert_type_id` (INTEGER, FK)
+- `event_type_id` (INTEGER, FK)
+- `reminder_type_id` (INTEGER, FK)
+- `service_type_id` (INTEGER, FK)
+- `caregiver_assignment_type_id` (INTEGER, FK)
+- `shift_observation_type_id` (INTEGER, FK)
+- `referral_type_id` (INTEGER, FK)
+- `relationship_type_id` (INTEGER, FK)
+- `report_type_id` (INTEGER, FK)
+
+**Campos Legacy (Mantenidos para Compatibilidad):**
+- Propiedades `@property` en modelos que retornan strings
+- Campos string originales mantenidos temporalmente
+- Métodos de compatibilidad en servicios
+
+### 4.3 Inicialización Automática
+Los catálogos se inicializan automáticamente al crear la base de datos:
+- Datos predefinidos para todos los tipos básicos
+- Categorización automática de estados
+- Configuración de iconos y colores para UI
+- Sistema de enumeraciones extensible
+
+### 4.4 Integridad Referencial
+- **83+ claves foráneas activas**
+- **Restricciones de integridad** en todos los catálogos
+- **Cascada de eliminación** configurada apropiadamente
+- **Validaciones a nivel de aplicación** para consistencia
+
+---
+
+*Diagrama Entidad-Relación - CUIOT v3.0*
+*Última actualización: Diciembre 2024*
+*Estado: Normalización completa implementada*
+*Tests: 98/98 pasando (100%)* 

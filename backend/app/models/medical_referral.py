@@ -20,8 +20,8 @@ class MedicalReferral(BaseModel):
     referred_to = Column(String(200), nullable=False)  # Hospital/Clinic/Specialist
     reason = Column(Text, nullable=False)  # Reason for referral
     
-    # Status and dates
-    status = Column(String(20), nullable=False, default="pending")  # pending, scheduled, completed, cancelled
+    # Status and dates (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     referral_date = Column(Date, nullable=False, default=datetime.utcnow().date)
     appointment_date = Column(DateTime, nullable=True)
     completed_date = Column(DateTime, nullable=True)
@@ -33,25 +33,26 @@ class MedicalReferral(BaseModel):
     
     # Relationships
     cared_person = relationship("CaredPerson", back_populates="medical_referrals")
+    status_type = relationship("StatusType")
     
     def __repr__(self):
         return f"<MedicalReferral(type='{self.referral_type}', status='{self.status}', patient='{self.cared_person_id}')>"
     
     @property
     def is_pending(self) -> bool:
-        return self.status == "pending"
+        return self.status_type and self.status_type.name == "pending"
     
     @property
     def is_scheduled(self) -> bool:
-        return self.status == "scheduled"
+        return self.status_type and self.status_type.name == "scheduled"
     
     @property
     def is_completed(self) -> bool:
-        return self.status == "completed"
+        return self.status_type and self.status_type.name == "completed"
     
     @property
     def is_cancelled(self) -> bool:
-        return self.status == "cancelled"
+        return self.status_type and self.status_type.name == "cancelled"
     
     @property
     def is_urgent(self) -> bool:
@@ -59,14 +60,14 @@ class MedicalReferral(BaseModel):
     
     def schedule_appointment(self, appointment_date: datetime):
         """Schedule the referral appointment"""
-        self.status = "scheduled"
+        # Note: status_type_id should be set via service layer
         self.appointment_date = appointment_date
     
     def mark_completed(self):
         """Mark referral as completed"""
-        self.status = "completed"
+        # Note: status_type_id should be set via service layer
         self.completed_date = datetime.utcnow()
     
     def cancel(self):
         """Cancel the referral"""
-        self.status = "cancelled" 
+        # Note: status_type_id should be set via service layer 

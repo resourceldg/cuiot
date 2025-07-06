@@ -5,13 +5,13 @@ from uuid import UUID
 from .base import BaseResponse, BaseCreate, BaseUpdate
 
 class AlertBase(BaseModel):
-    alert_type: str = Field(..., max_length=50)
+    alert_type_id: int = Field(..., description="ID del tipo de alerta")
     alert_subtype: Optional[str] = Field(None, max_length=50)
     severity: str = Field(default="medium", max_length=20)
     title: str = Field(..., min_length=1, max_length=200)
     message: Optional[str] = None
     alert_data: Optional[str] = None  # JSON string
-    status: str = Field(default="active", max_length=20)
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     acknowledged_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
     priority: int = Field(default=5, ge=1, le=10)
@@ -25,11 +25,11 @@ class AlertCreate(AlertBase, BaseCreate):
     pass
 
 class AlertUpdate(AlertBase, BaseUpdate):
-    alert_type: Optional[str] = Field(None, max_length=50)
+    alert_type_id: Optional[int] = Field(None, description="ID del tipo de alerta")
     alert_subtype: Optional[str] = Field(None, max_length=50)
     severity: Optional[str] = Field(None, max_length=20)
     title: Optional[str] = Field(None, min_length=1, max_length=200)
-    status: Optional[str] = Field(None, max_length=20)
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     priority: Optional[int] = Field(None, ge=1, le=10)
     escalation_level: Optional[int] = Field(None, ge=0, le=5)
 

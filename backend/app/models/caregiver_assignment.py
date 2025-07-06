@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
+from app.models.caregiver_assignment_type import CaregiverAssignmentType
 from sqlalchemy.dialects.postgresql import UUID
 
 class CaregiverAssignment(BaseModel):
@@ -18,7 +19,7 @@ class CaregiverAssignment(BaseModel):
     schedule = Column(Text, nullable=True)  # JSON string with schedule details
     
     # Assignment details
-    assignment_type = Column(String(50), nullable=False)  # full_time, part_time, on_call, emergency
+    caregiver_assignment_type_id = Column(Integer, ForeignKey('caregiver_assignment_types.id'), nullable=False, index=True)
     responsibilities = Column(Text, nullable=True)
     special_requirements = Column(Text, nullable=True)  # Specific care requirements
     
@@ -39,8 +40,8 @@ class CaregiverAssignment(BaseModel):
     medical_contact = Column(String(100), nullable=True)
     emergency_protocol = Column(Text, nullable=True)  # Specific emergency procedures
     
-    # Status
-    status = Column(String(50), default="active", nullable=False)  # active, paused, completed, terminated
+    # Status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     is_primary = Column(Boolean, default=False, nullable=False)  # Primary caregiver for this person
     assigned_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -50,6 +51,8 @@ class CaregiverAssignment(BaseModel):
     caregiver = relationship("User", foreign_keys=[caregiver_id], back_populates="caregiver_assignments")
     cared_person = relationship("CaredPerson", back_populates="caregiver_assignments")
     assigned_by_user = relationship("User", foreign_keys=[assigned_by])
+    status_type = relationship("StatusType")
+    caregiver_assignment_type = relationship("CaregiverAssignmentType")
     
     def __repr__(self):
         return f"<CaregiverAssignment(caregiver_id={self.caregiver_id}, cared_person_id={self.cared_person_id})>"
@@ -60,7 +63,7 @@ class CaregiverAssignment(BaseModel):
         from datetime import date
         today = date.today()
         
-        if self.status != "active":
+        if not self.status_type or self.status_type.name != "active":
             return False
         
         if self.start_date > today:
@@ -99,7 +102,7 @@ class CaregiverAssignment(BaseModel):
     
     @classmethod
     def get_assignment_types(cls) -> list:
-        """Returns available assignment types"""
+        """Returns available assignment types - DEPRECATED: Use CaregiverAssignmentType model instead"""
         return [
             "full_time", "part_time", "on_call", "emergency", "temporary", 
             "permanent", "weekend_only", "night_shift", "day_shift", "flexible"

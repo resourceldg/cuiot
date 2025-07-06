@@ -23,8 +23,8 @@ class BillingRecord(BaseModel):
     due_date = Column(Date, nullable=True)
     paid_date = Column(Date, nullable=True)
     
-    # Payment status
-    status = Column(String(20), default="pending", nullable=False)  # pending, paid, overdue, cancelled
+    # Payment status (normalized)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     payment_method = Column(String(50), nullable=True)
     transaction_id = Column(String(100), nullable=True)
     
@@ -39,6 +39,7 @@ class BillingRecord(BaseModel):
     institution = relationship("Institution", back_populates="billing_records")
     service_subscription = relationship("ServiceSubscription", back_populates="billing_records")
     user_package = relationship("UserPackage", back_populates="billing_records")
+    status_type = relationship("StatusType")
     
     def __repr__(self):
         return f"<BillingRecord(invoice='{self.invoice_number}', amount={self.total_amount}, status='{self.status}')>"
@@ -46,14 +47,14 @@ class BillingRecord(BaseModel):
     @property
     def is_paid(self) -> bool:
         """Check if billing record is paid"""
-        return self.status == "paid"
+        return self.status_type and self.status_type.name == "paid"
     
     @property
     def is_overdue(self) -> bool:
         """Check if billing record is overdue"""
         from datetime import date
         today = date.today()
-        return self.status == "pending" and self.due_date and self.due_date < today
+        return self.status_type and self.status_type.name == "pending" and self.due_date and self.due_date < today
     
     @classmethod
     def get_billing_types(cls) -> list:

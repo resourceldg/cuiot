@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.models.base import Base
+from app.models.shift_observation_type import ShiftObservationType
 import uuid
 
 
@@ -18,6 +19,9 @@ class ShiftObservation(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
+    # Nuevo campo normalizado
+    shift_observation_type_id = Column(Integer, ForeignKey('shift_observation_types.id'), nullable=False, index=True, comment="Tipo de observación de turno normalizado")
+    
     # Información del turno
     shift_type = Column(String(50), nullable=False, comment="Tipo de turno: morning, afternoon, night, 24h")
     shift_start = Column(DateTime, nullable=False, comment="Inicio del turno")
@@ -30,7 +34,7 @@ class ShiftObservation(Base):
     pain_level = Column(Integer, comment="Nivel de dolor (0-10)")
     vital_signs = Column(JSONB, comment="Signos vitales: temperatura, presión, pulso, oxigenación")
     skin_condition = Column(String(200), comment="Condición de la piel")
-    hygiene_status = Column(String(50), comment="Estado de higiene: excellent, good, fair, poor")
+    hygiene_status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True, comment="Estado de higiene normalizado")
     
     # Estado mental y conductual
     mental_state = Column(String(50), comment="Estado mental: alert, confused, drowsy, agitated, calm")
@@ -50,7 +54,7 @@ class ShiftObservation(Base):
     bowel_movement = Column(String(50), comment="Movimiento intestinal: normal, constipated, diarrhea, none")
     urinary_output = Column(String(50), comment="Producción urinaria: normal, decreased, increased, none")
     incontinence_episodes = Column(Integer, default=0, comment="Episodios de incontinencia")
-    catheter_status = Column(String(50), comment="Estado de catéter: none, foley, suprapubic, condom")
+    catheter_status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True, comment="Estado de catéter normalizado")
     
     # Medicación
     medications_taken = Column(JSONB, comment="Medicamentos tomados durante el turno")
@@ -82,8 +86,8 @@ class ShiftObservation(Base):
     # Archivos adjuntos
     attached_files = Column(JSONB, comment="Archivos adjuntos: fotos, videos, documentos")
     
-    # Estado y validación
-    status = Column(String(50), default="draft", comment="Estado: draft, completed, reviewed, archived")
+    # Estado y validación (normalizado)
+    status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True, comment="Estado normalizado")
     is_verified = Column(Boolean, default=False, comment="Observación verificada")
     verified_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), comment="Usuario que verificó")
     verified_at = Column(DateTime, comment="Fecha de verificación")
@@ -103,6 +107,17 @@ class ShiftObservation(Base):
     caregiver = relationship("User", foreign_keys=[caregiver_id], back_populates="shift_observations")
     institution = relationship("Institution", back_populates="shift_observations")
     verifier = relationship("User", foreign_keys=[verified_by])
+    status_type = relationship("StatusType", foreign_keys=[status_type_id])
+    hygiene_status_type = relationship("StatusType", foreign_keys=[hygiene_status_type_id])
+    catheter_status_type = relationship("StatusType", foreign_keys=[catheter_status_type_id])
+    shift_observation_type = relationship("ShiftObservationType")
     
     def __repr__(self):
-        return f"<ShiftObservation(id={self.id}, cared_person_id={self.cared_person_id}, shift_type={self.shift_type}, date={self.observation_date})>" 
+        return f"<ShiftObservation(id={self.id}, cared_person_id={self.cared_person_id}, shift_type={self.shift_type}, date={self.observation_date})>"
+    
+    @property
+    def status(self) -> str:
+        """Get status as string for backward compatibility"""
+        if self.status_type:
+            return self.status_type.name
+        return "unknown" 

@@ -23,6 +23,8 @@ from app.models.reminder import Reminder
 from app.models.user_role import UserRole
 from app.models.role import Role
 from app.models.institution import Institution
+from app.models.medical_condition import MedicalCondition
+from app.models.medication import Medication
 
 # Configuración de encriptación de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -220,9 +222,19 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
         return []
     return users
 
+# Diccionario de roles por email para asignación profesional y clara
+default_user_roles = {
+    "maria.gonzalez@example.com": ["admin"],
+    "carlos.rodriguez@example.com": ["caregiver"],
+    "lucia.martinez@example.com": ["family"],
+    "roberto.lopez@example.com": ["caregiver"],
+    "patricia.sanchez@example.com": ["institution_admin"]
+}
+
 def assign_roles(db: Session, users: List[User]):
     for user in users:
-        for role_name in user.get("roles", []):
+        roles = default_user_roles.get(user.email, [])
+        for role_name in roles:
             try:
                 # Recargar el usuario desde la base de datos por email
                 db_user = db.query(User).filter_by(email=user.email).first()
@@ -242,8 +254,14 @@ def create_cared_persons(db: Session, users: List[User]) -> List[CaredPerson]:
             "date_of_birth": date(1939, 5, 12),
             "gender": "F",
             "address": "Av. Corrientes 1234, CABA",
-            "medical_conditions": "Hipertensión, Diabetes tipo 2",
-            "medications": "Enalapril 10mg, Metformina 500mg",
+            "medical_conditions": [
+                {"condition_name": "Hipertensión"},
+                {"condition_name": "Diabetes tipo 2"}
+            ],
+            "medications": [
+                {"medication_name": "Enalapril 10mg"},
+                {"medication_name": "Metformina 500mg"}
+            ],
             "care_level": "medium"
         },
         {
@@ -252,8 +270,14 @@ def create_cared_persons(db: Session, users: List[User]) -> List[CaredPerson]:
             "date_of_birth": date(1946, 8, 22),
             "gender": "M",
             "address": "Calle San Martín 567, La Plata",
-            "medical_conditions": "Artritis, Problemas cardíacos",
-            "medications": "Ibuprofeno 400mg, Aspirina 100mg",
+            "medical_conditions": [
+                {"condition_name": "Artritis"},
+                {"condition_name": "Problemas cardíacos"}
+            ],
+            "medications": [
+                {"medication_name": "Ibuprofeno 400mg"},
+                {"medication_name": "Aspirina 100mg"}
+            ],
             "care_level": "high"
         },
         {
@@ -262,8 +286,14 @@ def create_cared_persons(db: Session, users: List[User]) -> List[CaredPerson]:
             "date_of_birth": date(1932, 2, 3),
             "gender": "F",
             "address": "Belgrano 890, Rosario",
-            "medical_conditions": "Demencia senil, Osteoporosis",
-            "medications": "Donepezilo 5mg, Calcio + Vitamina D",
+            "medical_conditions": [
+                {"condition_name": "Demencia senil"},
+                {"condition_name": "Osteoporosis"}
+            ],
+            "medications": [
+                {"medication_name": "Donepezilo 5mg"},
+                {"medication_name": "Calcio + Vitamina D"}
+            ],
             "care_level": "critical"
         }
     ]
@@ -277,14 +307,26 @@ def create_cared_persons(db: Session, users: List[User]) -> List[CaredPerson]:
                 date_of_birth=data["date_of_birth"],
                 gender=data["gender"],
                 address=data["address"],
-                medical_conditions=data["medical_conditions"],
-                medications=data["medications"],
                 care_level=data["care_level"],
                 user_id=users[i % len(users)].id,
                 is_active=True
             )
             db.add(cared)
             db.flush()
+            # Insertar condiciones médicas normalizadas
+            for cond in data.get("medical_conditions", []):
+                mc = MedicalCondition(
+                    cared_person_id=cared.id,
+                    condition_name=cond["condition_name"]
+                )
+                db.add(mc)
+            # Insertar medicamentos normalizados
+            for med in data.get("medications", []):
+                m = Medication(
+                    cared_person_id=cared.id,
+                    medication_name=med["medication_name"]
+                )
+                db.add(m)
             cared_persons.append(cared)
         except Exception as e:
             print(f"⚠️ Error creando persona bajo cuidado {data['first_name']}: {e}")

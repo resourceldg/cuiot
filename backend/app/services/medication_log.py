@@ -11,7 +11,7 @@ class MedicationLogService:
     @staticmethod
     def create(db: Session, medication_log: MedicationLogCreate) -> MedicationLog:
         """Create a new medication log entry"""
-        db_medication_log = MedicationLog(**medication_log.dict())
+        db_medication_log = MedicationLog(**medication_log.model_dump())
         db.add(db_medication_log)
         db.commit()
         db.refresh(db_medication_log)
@@ -65,7 +65,7 @@ class MedicationLogService:
         if not db_medication_log:
             raise NotFoundException(f"Medication log with id {log_id} not found")
         
-        update_data = medication_log.dict(exclude_unset=True)
+        update_data = medication_log.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_medication_log, field, value)
         

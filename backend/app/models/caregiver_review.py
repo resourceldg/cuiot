@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.models.service_type import ServiceType
 import uuid
 
 class CaregiverReview(BaseModel):
@@ -26,7 +27,7 @@ class CaregiverReview(BaseModel):
     # Service details
     service_date = Column(Date, nullable=True)
     service_hours = Column(Float, nullable=True)
-    service_type = Column(String(50), nullable=True)  # hourly, daily, emergency, etc.
+    service_type_id = Column(Integer, ForeignKey('service_types.id'), nullable=True)
     
     # Status
     is_verified = Column(Boolean, default=False, nullable=False)
@@ -41,6 +42,7 @@ class CaregiverReview(BaseModel):
     reviewer = relationship("User", foreign_keys=[reviewer_id], back_populates="given_reviews")
     cared_person = relationship("CaredPerson", back_populates="caregiver_reviews")
     caregiver_score = relationship("CaregiverScore", back_populates="reviews")
+    service_type = relationship("ServiceType")
     
     def __repr__(self):
         return f"<CaregiverReview(caregiver_id={self.caregiver_id}, rating={self.rating})>"

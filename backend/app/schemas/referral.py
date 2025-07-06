@@ -5,6 +5,7 @@ from uuid import UUID
 
 class ReferralBase(BaseModel):
     """Base schema for referrals"""
+    referral_type_id: int = Field(..., description="ID del tipo de derivación normalizado")
     referral_code: str = Field(..., description="Unique referral code")
     referrer_type: str = Field(..., description="Type of referrer: caregiver, institution, family, cared_person")
     referrer_id: UUID = Field(..., description="ID of the referrer")
@@ -13,6 +14,7 @@ class ReferralBase(BaseModel):
     referred_phone: Optional[str] = Field(None, description="Phone of the referred person")
     source: Optional[str] = Field(None, description="Source of referral: email, whatsapp, phone, in_person")
     notes: Optional[str] = Field(None, description="Additional notes about the referral")
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado normalizado")
 
 class ReferralCreate(ReferralBase):
     """Schema for creating a new referral"""
@@ -20,14 +22,15 @@ class ReferralCreate(ReferralBase):
 
 class ReferralUpdate(BaseModel):
     """Schema for updating a referral"""
-    status: Optional[str] = Field(None, description="New status: pending, registered, converted, expired")
+    referral_type_id: Optional[int] = Field(None, description="ID del tipo de derivación normalizado")
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     notes: Optional[str] = Field(None, description="Additional notes")
     commission_amount: Optional[float] = Field(None, description="Commission amount when converted")
 
 class ReferralInDB(ReferralBase):
     """Schema for referral in database"""
     id: UUID
-    status: str = Field(..., description="Current status")
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     registered_at: Optional[datetime] = None
     converted_at: Optional[datetime] = None
     expired_at: Optional[datetime] = None
@@ -61,12 +64,12 @@ class ReferralCommissionCreate(ReferralCommissionBase):
 
 class ReferralCommissionUpdate(BaseModel):
     """Schema for updating a commission"""
-    status: Optional[str] = Field(None, description="New status: pending, paid, cancelled")
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
 
 class ReferralCommissionInDB(ReferralCommissionBase):
     """Schema for commission in database"""
     id: UUID
-    status: str = Field(..., description="Current status")
+    status_type_id: Optional[int] = Field(None, description="ID del tipo de estado")
     paid_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
