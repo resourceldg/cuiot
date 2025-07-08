@@ -1,140 +1,230 @@
 @import '@fontsource/fira-mono';
 
-/* === Spacing === */
+/* Variables CSS globales para el sistema de diseño */
 :root {
+    /* Colores principales */
+    --color-bg: #23272e;
+    --color-bg-card: #23272e;
+    --color-bg-sidebar: #23272e;
+    --color-bg-header: #23272e;
+    --color-bg-hover: #262a31;
+    --color-border: #2d3138;
+    --color-accent: #00e676;
+    --color-danger: #ff4d6d;
+    --color-error: #ff4d6d;
+    --color-success: #00e676;
+    --color-warning: #f1c40f;
+    --color-text: #f3f6fa;
+    --color-text-secondary: #b0b8c9;
+
+    /* Espaciado */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
     --spacing-2xl: 3rem;
-    --border-radius: 10px;
-    --card-padding: 1.5rem;
-    --card-padding-mobile: 1rem;
-    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
-    --breakpoint-sm: 480px;
-    --breakpoint-md: 768px;
-    --breakpoint-lg: 1024px;
-    --breakpoint-xl: 1280px;
-    --color-icon-action: #b0b8c9;
-    --color-bg-hover-action: rgba(176, 184, 201, 0.08);
+
+    /* Border radius */
+    --border-radius-sm: 4px;
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+
+    /* Sombras */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+    /* Transiciones */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.2s ease;
+    --transition-slow: 0.3s ease;
+
+    /* Tipografía */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+
+    /* Z-index */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
 }
 
-/* Documentación: Usar solo estas variables para paddings, gaps, border-radius y sombras en todos los componentes base. */
-
-:root {
-    --color-bg: #313633;
-    /* gris común con ligero tinte verde */
-    --color-bg-card: #343936;
-    --color-bg-sidebar: #313633;
-    --color-bg-header: #313633;
-    --color-bg-hover: #373c39;
-    --color-border: #3d4240;
-    --color-accent: #00e676;
-    --color-danger: #ff4d6d;
-    --color-success: #00e676;
-    --color-warning: #f1c40f;
-    --color-text: #f3f6fa;
-    --color-text-secondary: #b0b8c9;
+/* Reset básico */
+* {
+    box-sizing: border-box;
 }
 
+html,
 body {
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
     margin: 0;
     padding: 0;
+    font-family: var(--font-family);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.5;
 }
 
-/* Puedes agregar aquí estilos globales para scrollbars, links, etc. */
-
-main {
-    background: var(--color-bg-secondary);
-    min-height: 100vh;
+/* Utilidades comunes */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
     padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
-.card,
-.metric-card {
-    background: var(--color-card);
-    color: var(--color-text);
-    border-radius: 10px;
-    box-shadow: 0 2px 8px var(--color-shadow);
-    border: 1px solid var(--color-border);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    transition: background 0.2s, color 0.2s;
+/* Estados de carga */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
 }
 
-.card-elevated,
-.metric-card-elevated {
-    background: var(--color-card-elevated);
-    box-shadow: 0 4px 16px var(--color-shadow);
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--color-border);
+    border-top: 2px solid var(--color-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    color: var(--color-text);
-    font-weight: 600;
-    margin-top: 0;
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
-a {
-    color: var(--color-accent);
-    text-decoration: none;
-    transition: color 0.2s;
+/* Estados de error */
+.error {
+    color: var(--color-error);
+    background: rgba(255, 77, 109, 0.1);
+    border: 1px solid var(--color-error);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
 }
 
-a:hover {
-    color: var(--color-accent-hover);
+/* Estados de éxito */
+.success {
+    color: var(--color-success);
+    background: rgba(0, 230, 118, 0.1);
+    border: 1px solid var(--color-success);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
 }
 
-button,
-.btn {
-    background: var(--color-accent);
-    color: #181a1b;
-    border: none;
-    border-radius: 6px;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
+/* Estados de advertencia */
+.warning {
+    color: var(--color-warning);
+    background: rgba(241, 196, 15, 0.1);
+    border: 1px solid var(--color-warning);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
 }
 
-button:hover,
-.btn:hover {
-    background: var(--color-accent-hover);
+/* Responsive utilities */
+@media (max-width: 640px) {
+    .sm\:hidden {
+        display: none;
+    }
+
+    .sm\:block {
+        display: block;
+    }
+
+    .sm\:flex {
+        display: flex;
+    }
+
+    .sm\:grid {
+        display: grid;
+    }
 }
 
-input,
-select,
-textarea {
-    background: var(--color-surface);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    padding: 0.5em 1em;
-    margin-bottom: 1em;
-    font-size: 1em;
-    transition: border 0.2s, background 0.2s;
+@media (max-width: 768px) {
+    .md\:hidden {
+        display: none;
+    }
+
+    .md\:block {
+        display: block;
+    }
+
+    .md\:flex {
+        display: flex;
+    }
+
+    .md\:grid {
+        display: grid;
+    }
 }
 
+@media (max-width: 1024px) {
+    .lg\:hidden {
+        display: none;
+    }
+
+    .lg\:block {
+        display: block;
+    }
+
+    .lg\:flex {
+        display: flex;
+    }
+
+    .lg\:grid {
+        display: grid;
+    }
+}
+
+/* Focus styles para accesibilidad */
+button:focus,
 input:focus,
 select:focus,
-textarea:focus {
-    outline: none;
-    border-color: var(--color-accent);
+textarea:focus,
+a:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
 }
 
+/* Scrollbar personalizado */
 ::-webkit-scrollbar {
     width: 8px;
-    background: var(--color-bg-secondary);
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -142,65 +232,6 @@ textarea:focus {
     border-radius: 4px;
 }
 
-/* Remove all white backgrounds */
-* {
-    background-color: transparent;
-    box-sizing: border-box;
-}
-
-h1 {
-    font-size: 2rem;
-    text-align: center;
-}
-
-h2 {
-    font-size: 1rem;
-}
-
-pre {
-    font-size: 16px;
-    font-family: var(--font-mono);
-    background-color: rgba(255, 255, 255, 0.45);
-    border-radius: 3px;
-    box-shadow: 2px 2px 6px rgb(255 255 255 / 25%);
-    padding: 0.5em;
-    overflow-x: auto;
-    color: var(--color-text);
-}
-
-.text-column {
-    display: flex;
-    max-width: 48rem;
-    flex: 0.6;
-    flex-direction: column;
-    justify-content: center;
-    margin: 0 auto;
-}
-
-input,
-button {
-    font-size: inherit;
-    font-family: inherit;
-}
-
-button:focus:not(:focus-visible) {
-    outline: none;
-}
-
-@media (min-width: 720px) {
-    h1 {
-        font-size: 2.4rem;
-    }
-}
-
-.visually-hidden {
-    border: 0;
-    clip: rect(0 0 0 0);
-    height: auto;
-    margin: 0;
-    overflow: hidden;
-    padding: 0;
-    position: absolute;
-    width: 1px;
-    white-space: nowrap;
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
 }

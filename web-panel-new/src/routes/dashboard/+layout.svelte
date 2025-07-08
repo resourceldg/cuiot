@@ -1,5 +1,6 @@
 <script>
     import { goto } from "$app/navigation";
+    import { page } from "$app/stores";
     let userName = "Usuario Demo";
     function logout() {
         localStorage.removeItem("authToken");
@@ -62,7 +63,7 @@
             icon: `<svg viewBox='0 0 24 24' width='26' height='26' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.36.36.36.95 0 1.31z'/></svg>`,
         },
     ];
-    let current = "/dashboard/overview";
+    $: current = $page.url.pathname;
 </script>
 
 <div class="dashboard-layout">
