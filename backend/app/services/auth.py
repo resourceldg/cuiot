@@ -133,10 +133,13 @@ class AuthService:
         user.last_login = datetime.utcnow()
         db.commit()
         
+        # Obtener roles activos del usuario
+        roles = [role.name for role in user.roles if role.is_active]
+        
         # Create access token
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = AuthService.create_access_token(
-            data={"sub": str(user.id)}, expires_delta=access_token_expires
+            data={"sub": str(user.id), "roles": roles}, expires_delta=access_token_expires
         )
         
         return UserToken(access_token=access_token, user=user)

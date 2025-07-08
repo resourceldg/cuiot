@@ -25,6 +25,7 @@ from app.models.role import Role
 from app.models.institution import Institution
 from app.models.medical_condition import MedicalCondition
 from app.models.medication import Medication
+from app.models.status_type import StatusType
 
 # Configuración de encriptación de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -145,6 +146,18 @@ def create_roles(db: Session) -> List[Role]:
 
 def create_users(db: Session, institutions: List[Institution]) -> List[User]:
     users_data = [
+        # Usuario admin principal solicitado
+        {
+            "email": "admin@cuiot.com",
+            "username": "admin",
+            "first_name": "Administrador",
+            "last_name": "CUIOT",
+            "phone": "+5491100000000",
+            "is_freelance": False,
+            "institution_id": None,
+            "password": "Admin123!"
+        },
+        # Usuarios originales
         {
             "email": "maria.gonzalez@example.com",
             "username": "maria.gonzalez",
@@ -152,7 +165,8 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
             "last_name": "González",
             "phone": "+5491112345678",
             "is_freelance": False,
-            "institution_id": institutions[0].id if institutions else None
+            "institution_id": institutions[0].id if institutions else None,
+            "password": "password123"
         },
         {
             "email": "carlos.rodriguez@example.com",
@@ -161,7 +175,8 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
             "last_name": "Rodríguez",
             "phone": "+5491187654321",
             "is_freelance": True,
-            "institution_id": None
+            "institution_id": None,
+            "password": "password123"
         },
         {
             "email": "lucia.martinez@example.com",
@@ -170,7 +185,8 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
             "last_name": "Martínez",
             "phone": "+5491123456789",
             "is_freelance": False,
-            "institution_id": institutions[1].id if len(institutions) > 1 else None
+            "institution_id": institutions[1].id if len(institutions) > 1 else None,
+            "password": "password123"
         },
         {
             "email": "roberto.lopez@example.com",
@@ -179,7 +195,8 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
             "last_name": "López",
             "phone": "+5491198765432",
             "is_freelance": True,
-            "institution_id": None
+            "institution_id": None,
+            "password": "password123"
         },
         {
             "email": "patricia.sanchez@example.com",
@@ -188,7 +205,132 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
             "last_name": "Sánchez",
             "phone": "+5491134567890",
             "is_freelance": False,
-            "institution_id": institutions[0].id if institutions else None
+            "institution_id": institutions[0].id if institutions else None,
+            "password": "password123"
+        },
+        # Cuidadores adicionales
+        {
+            "email": "ana.torres@example.com",
+            "username": "ana.torres",
+            "first_name": "Ana",
+            "last_name": "Torres",
+            "phone": "+5491145678901",
+            "is_freelance": True,
+            "institution_id": None,
+            "password": "password123"
+        },
+        {
+            "email": "jorge.mendoza@example.com",
+            "username": "jorge.mendoza",
+            "first_name": "Jorge",
+            "last_name": "Mendoza",
+            "phone": "+5491156789012",
+            "is_freelance": False,
+            "institution_id": institutions[0].id if institutions else None,
+            "password": "password123"
+        },
+        {
+            "email": "silvia.ramirez@example.com",
+            "username": "silvia.ramirez",
+            "first_name": "Silvia",
+            "last_name": "Ramírez",
+            "phone": "+5491167890123",
+            "is_freelance": True,
+            "institution_id": None,
+            "password": "password123"
+        },
+        {
+            "email": "miguel.herrera@example.com",
+            "username": "miguel.herrera",
+            "first_name": "Miguel",
+            "last_name": "Herrera",
+            "phone": "+5491178901234",
+            "is_freelance": False,
+            "institution_id": institutions[1].id if len(institutions) > 1 else None,
+            "password": "password123"
+        },
+        # Familiares adicionales
+        {
+            "email": "carlos.fernandez@example.com",
+            "username": "carlos.fernandez",
+            "first_name": "Carlos",
+            "last_name": "Fernández",
+            "phone": "+5491189012345",
+            "is_freelance": False,
+            "institution_id": None,
+            "password": "password123"
+        },
+        {
+            "email": "maria.silva@example.com",
+            "username": "maria.silva",
+            "first_name": "María",
+            "last_name": "Silva",
+            "phone": "+5491190123456",
+            "is_freelance": False,
+            "institution_id": None,
+            "password": "password123"
+        },
+        {
+            "email": "juan.vargas@example.com",
+            "username": "juan.vargas",
+            "first_name": "Juan",
+            "last_name": "Vargas",
+            "phone": "+5491101234567",
+            "is_freelance": False,
+            "institution_id": None,
+            "password": "password123"
+        },
+        # Administradores de instituciones
+        {
+            "email": "director.sanmartin@example.com",
+            "username": "director.sanmartin",
+            "first_name": "Dr. Roberto",
+            "last_name": "García",
+            "phone": "+5491111111111",
+            "is_freelance": False,
+            "institution_id": institutions[0].id if institutions else None,
+            "password": "password123"
+        },
+        {
+            "email": "director.santamaria@example.com",
+            "username": "director.santamaria",
+            "first_name": "Dra. Elena",
+            "last_name": "Rodríguez",
+            "phone": "+5491122222222",
+            "is_freelance": False,
+            "institution_id": institutions[1].id if len(institutions) > 1 else None,
+            "password": "password123"
+        },
+        # Pacientes/usuarios finales
+        {
+            "email": "rosa.fernandez@example.com",
+            "username": "rosa.fernandez",
+            "first_name": "Rosa",
+            "last_name": "Fernández",
+            "phone": "+5491133333333",
+            "is_freelance": False,
+            "institution_id": None,
+            "password": "password123"
+        },
+        {
+            "email": "alberto.silva@example.com",
+            "username": "alberto.silva",
+            "first_name": "Alberto",
+            "last_name": "Silva",
+            "phone": "+5491144444444",
+            "is_freelance": False,
+            "institution_id": None,
+            "password": "password123"
+        },
+        {
+            "email": "carmen.vargas@example.com",
+            "username": "carmen.vargas",
+            "first_name": "Carmen",
+            "last_name": "Vargas",
+            "phone": "+5491155555555",
+            "is_freelance": False,
+            "institution_id": None,
+            "password": "password123"
         }
     ]
     users = []
@@ -198,7 +340,7 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
                 id=uuid.uuid4(),
                 email=user_data["email"],
                 username=user_data["username"],
-                password_hash=hash_password("password123"),
+                password_hash=hash_password(user_data.get("password", "password123")),
                 first_name=user_data["first_name"],
                 last_name=user_data["last_name"],
                 phone=user_data["phone"],
@@ -224,11 +366,30 @@ def create_users(db: Session, institutions: List[Institution]) -> List[User]:
 
 # Diccionario de roles por email para asignación profesional y clara
 default_user_roles = {
+    # Admin principal
+    "admin@cuiot.com": ["admin"],
+    # Usuarios originales
     "maria.gonzalez@example.com": ["admin"],
     "carlos.rodriguez@example.com": ["caregiver"],
     "lucia.martinez@example.com": ["family"],
     "roberto.lopez@example.com": ["caregiver"],
-    "patricia.sanchez@example.com": ["institution_admin"]
+    "patricia.sanchez@example.com": ["institution_admin"],
+    # Cuidadores adicionales
+    "ana.torres@example.com": ["caregiver"],
+    "jorge.mendoza@example.com": ["caregiver"],
+    "silvia.ramirez@example.com": ["caregiver"],
+    "miguel.herrera@example.com": ["caregiver"],
+    # Familiares adicionales
+    "carlos.fernandez@example.com": ["family"],
+    "maria.silva@example.com": ["family"],
+    "juan.vargas@example.com": ["family"],
+    # Administradores de instituciones
+    "director.sanmartin@example.com": ["institution_admin"],
+    "director.santamaria@example.com": ["institution_admin"],
+    # Pacientes/usuarios finales
+    "rosa.fernandez@example.com": ["patient"],
+    "alberto.silva@example.com": ["patient"],
+    "carmen.vargas@example.com": ["patient"]
 }
 
 def assign_roles(db: Session, users: List[User]):
@@ -248,6 +409,7 @@ def assign_roles(db: Session, users: List[User]):
 
 def create_cared_persons(db: Session, users: List[User]) -> List[CaredPerson]:
     cared_data = [
+        # Personas originales
         {
             "first_name": "Rosa",
             "last_name": "Fernández",
@@ -295,6 +457,183 @@ def create_cared_persons(db: Session, users: List[User]) -> List[CaredPerson]:
                 {"medication_name": "Calcio + Vitamina D"}
             ],
             "care_level": "critical"
+        },
+        # Personas adicionales
+        {
+            "first_name": "Elena",
+            "last_name": "González",
+            "date_of_birth": date(1941, 3, 15),
+            "gender": "F",
+            "address": "Palermo 2345, CABA",
+            "medical_conditions": [
+                {"condition_name": "Artritis reumatoide"},
+                {"condition_name": "Glaucoma"}
+            ],
+            "medications": [
+                {"medication_name": "Metotrexato 2.5mg"},
+                {"medication_name": "Timolol 0.5%"}
+            ],
+            "care_level": "high"
+        },
+        {
+            "first_name": "Manuel",
+            "last_name": "Rodríguez",
+            "date_of_birth": date(1935, 7, 8),
+            "gender": "M",
+            "address": "Villa Crespo 789, CABA",
+            "medical_conditions": [
+                {"condition_name": "EPOC"},
+                {"condition_name": "Insuficiencia cardíaca"}
+            ],
+            "medications": [
+                {"medication_name": "Salbutamol inhalador"},
+                {"medication_name": "Furosemida 40mg"}
+            ],
+            "care_level": "critical"
+        },
+        {
+            "first_name": "Isabel",
+            "last_name": "López",
+            "date_of_birth": date(1948, 11, 20),
+            "gender": "F",
+            "address": "San Telmo 456, CABA",
+            "medical_conditions": [
+                {"condition_name": "Depresión"},
+                {"condition_name": "Insomnio"}
+            ],
+            "medications": [
+                {"medication_name": "Sertralina 50mg"},
+                {"medication_name": "Zolpidem 10mg"}
+            ],
+            "care_level": "medium"
+        },
+        {
+            "first_name": "Francisco",
+            "last_name": "Martínez",
+            "date_of_birth": date(1937, 9, 3),
+            "gender": "M",
+            "address": "Recoleta 123, CABA",
+            "medical_conditions": [
+                {"condition_name": "Parkinson"},
+                {"condition_name": "Temblor esencial"}
+            ],
+            "medications": [
+                {"medication_name": "Levodopa 100mg"},
+                {"medication_name": "Propranolol 40mg"}
+            ],
+            "care_level": "high"
+        },
+        {
+            "first_name": "Dolores",
+            "last_name": "Pérez",
+            "date_of_birth": date(1943, 12, 10),
+            "gender": "F",
+            "address": "Caballito 567, CABA",
+            "medical_conditions": [
+                {"condition_name": "Osteoporosis severa"},
+                {"condition_name": "Fractura de cadera"}
+            ],
+            "medications": [
+                {"medication_name": "Alendronato 70mg"},
+                {"medication_name": "Vitamina D3 1000UI"}
+            ],
+            "care_level": "critical"
+        },
+        {
+            "first_name": "Antonio",
+            "last_name": "García",
+            "date_of_birth": date(1940, 4, 25),
+            "gender": "M",
+            "address": "Almagro 890, CABA",
+            "medical_conditions": [
+                {"condition_name": "Cáncer de próstata"},
+                {"condition_name": "Anemia"}
+            ],
+            "medications": [
+                {"medication_name": "Bicalutamida 50mg"},
+                {"medication_name": "Sulfato ferroso 325mg"}
+            ],
+            "care_level": "high"
+        },
+        {
+            "first_name": "Teresa",
+            "last_name": "Sánchez",
+            "date_of_birth": date(1934, 6, 18),
+            "gender": "F",
+            "address": "Villa Urquiza 345, CABA",
+            "medical_conditions": [
+                {"condition_name": "Alzheimer temprano"},
+                {"condition_name": "Incontinencia urinaria"}
+            ],
+            "medications": [
+                {"medication_name": "Rivastigmina 1.5mg"},
+                {"medication_name": "Oxybutinina 5mg"}
+            ],
+            "care_level": "critical"
+        },
+        {
+            "first_name": "José",
+            "last_name": "Torres",
+            "date_of_birth": date(1945, 1, 30),
+            "gender": "M",
+            "address": "Belgrano 678, CABA",
+            "medical_conditions": [
+                {"condition_name": "Diabetes tipo 1"},
+                {"condition_name": "Retinopatía diabética"}
+            ],
+            "medications": [
+                {"medication_name": "Insulina NPH"},
+                {"medication_name": "Ranibizumab inyección"}
+            ],
+            "care_level": "high"
+        },
+        {
+            "first_name": "Ana",
+            "last_name": "Ruiz",
+            "date_of_birth": date(1938, 8, 14),
+            "gender": "F",
+            "address": "Colegiales 234, CABA",
+            "medical_conditions": [
+                {"condition_name": "Hipotiroidismo"},
+                {"condition_name": "Osteoartritis"}
+            ],
+            "medications": [
+                {"medication_name": "Levotiroxina 50mcg"},
+                {"medication_name": "Glucosamina 1500mg"}
+            ],
+            "care_level": "medium"
+        },
+        {
+            "first_name": "Miguel",
+            "last_name": "Jiménez",
+            "date_of_birth": date(1936, 10, 5),
+            "gender": "M",
+            "address": "Villa Pueyrredón 456, CABA",
+            "medical_conditions": [
+                {"condition_name": "Accidente cerebrovascular"},
+                {"condition_name": "Hemiparesia derecha"}
+            ],
+            "medications": [
+                {"medication_name": "Warfarina 5mg"},
+                {"medication_name": "Atorvastatina 20mg"}
+            ],
+            "care_level": "critical"
+        },
+        {
+            "first_name": "Carmen",
+            "last_name": "Moreno",
+            "date_of_birth": date(1942, 2, 28),
+            "gender": "F",
+            "address": "Villa Devoto 789, CABA",
+            "medical_conditions": [
+                {"condition_name": "Fibromialgia"},
+                {"condition_name": "Síndrome de fatiga crónica"}
+            ],
+            "medications": [
+                {"medication_name": "Pregabalina 75mg"},
+                {"medication_name": "Amitriptilina 25mg"}
+            ],
+            "care_level": "medium"
         }
     ]
     cared_persons = []
@@ -349,11 +688,9 @@ def create_devices(db: Session, cared_persons: List[CaredPerson]) -> List[Device
             try:
                 device = Device(
                     id=uuid.uuid4(),
-                    device_id=f"{device_type}_{cared.first_name.lower()}_{i+1}",
-                    name=f"Dispositivo {device_type} de {cared.first_name}",
+                    device_id=f"{device_type}_{cared.first_name.lower()}_{cared.last_name.lower()}_{i+1}",
+                    name=f"Dispositivo {device_type} de {cared.first_name} {cared.last_name}",
                     type=device_type,
-                    device_type=device_type,
-                    status=random.choice(VALID_DEVICE_STATUSES),
                     cared_person_id=cared.id,
                     battery_level=random.randint(20, 100),
                     signal_strength=random.randint(50, 100),
@@ -406,12 +743,20 @@ def create_events(db: Session, cared_persons: List[CaredPerson], devices: List[D
         return []
     return events
 
+def get_status_type_id(db: Session, name: str, category: str) -> int:
+    status_type = db.query(StatusType).filter_by(name=name, category=category).first()
+    if not status_type:
+        raise Exception(f"No se encontró status_type para name='{name}', category='{category}'")
+    return status_type.id
+
 def create_alerts(db: Session, cared_persons: List[CaredPerson]) -> List[Alert]:
     alerts = []
     for cared in cared_persons:
         num_alerts = random.randint(1, 3)
         for i in range(num_alerts):
             try:
+                status_name = random.choice(["active", "acknowledged", "resolved"])
+                status_type_id = get_status_type_id(db, status_name, "alert_status")
                 alert = Alert(
                     id=uuid.uuid4(),
                     cared_person_id=cared.id,
@@ -420,7 +765,7 @@ def create_alerts(db: Session, cared_persons: List[CaredPerson]) -> List[Alert]:
                     title=f"Alerta {i+1} para {cared.first_name}",
                     message=f"Alerta {i+1} para {cared.first_name}",
                     severity=random.choice(["low", "medium", "high", "critical"]),
-                    status=random.choice(["active", "acknowledged", "resolved"]),
+                    status_type_id=status_type_id,
                     priority=random.randint(1, 10),
                     escalation_level=random.randint(0, 3)
                 )
@@ -444,14 +789,16 @@ def create_reminders(db: Session, cared_persons: List[CaredPerson]) -> List[Remi
         num_reminders = random.randint(2, 4)
         for i in range(num_reminders):
             try:
+                status_name = "pending"
+                status_type_id = get_status_type_id(db, status_name, "reminder_status")
                 reminder = Reminder(
                     id=uuid.uuid4(),
                     cared_person_id=cared.id,
                     title=f"Recordatorio {i+1} para {cared.first_name}",
                     description=f"Recordatorio para {cared.first_name}",
-                    reminder_type=random.choice(VALID_REMINDER_TYPES),
+                    reminder_type_id=1,  # Usar un ID válido de reminder_type
                     scheduled_time=datetime.now() + timedelta(hours=random.randint(1, 24)),
-                    status="pending",
+                    status_type_id=status_type_id,
                     priority=random.randint(1, 10),
                     is_important=random.choice([True, False]),
                     is_active=True
@@ -483,44 +830,87 @@ def print_credentials(users: List[User]) -> None:
 def cleanup_database(db: Session) -> None:
     try:
         print("🧹 Limpiando datos existentes...")
+        
+        # Limpiar en orden de dependencias (hijos primero)
         try:
             db.query(Event).delete()
+            print("   ✅ Events limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar Event: {e}")
+            print(f"   ⚠️  No se pudo limpiar Event: {e}")
+            db.rollback()
+            
         try:
             db.query(Alert).delete()
+            print("   ✅ Alerts limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar Alert: {e}")
+            print(f"   ⚠️  No se pudo limpiar Alert: {e}")
+            db.rollback()
+            
         try:
             db.query(Reminder).delete()
+            print("   ✅ Reminders limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar Reminder: {e}")
+            print(f"   ⚠️  No se pudo limpiar Reminder: {e}")
+            db.rollback()
+            
         try:
             db.query(Device).delete()
+            print("   ✅ Devices limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar Device: {e}")
+            print(f"   ⚠️  No se pudo limpiar Device: {e}")
+            db.rollback()
+            
+        try:
+            db.query(MedicalCondition).delete()
+            print("   ✅ MedicalConditions limpiados")
+        except Exception as e:
+            print(f"   ⚠️  No se pudo limpiar MedicalCondition: {e}")
+            db.rollback()
+            
+        try:
+            db.query(Medication).delete()
+            print("   ✅ Medications limpiados")
+        except Exception as e:
+            print(f"   ⚠️  No se pudo limpiar Medication: {e}")
+            db.rollback()
+            
         try:
             db.query(CaredPerson).delete()
+            print("   ✅ CaredPersons limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar CaredPerson: {e}")
+            print(f"   ⚠️  No se pudo limpiar CaredPerson: {e}")
+            db.rollback()
+            
         try:
             db.query(UserRole).delete()
+            print("   ✅ UserRoles limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar UserRole: {e}")
+            print(f"   ⚠️  No se pudo limpiar UserRole: {e}")
+            db.rollback()
+            
         try:
             db.query(User).delete()
+            print("   ✅ Users limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar User: {e}")
+            print(f"   ⚠️  No se pudo limpiar User: {e}")
+            db.rollback()
+            
         try:
             db.query(Role).delete()
+            print("   ✅ Roles limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar Role: {e}")
+            print(f"   ⚠️  No se pudo limpiar Role: {e}")
+            db.rollback()
+            
         try:
             db.query(Institution).delete()
+            print("   ✅ Institutions limpiados")
         except Exception as e:
-            print(f"⚠️  No se pudo limpiar Institution: {e}")
+            print(f"   ⚠️  No se pudo limpiar Institution: {e}")
+            db.rollback()
+            
         db.commit()
-        print("✅ Base de datos limpiada")
+        print("✅ Base de datos limpiada completamente")
     except Exception as e:
         db.rollback()
         print(f"❌ Error limpiando base de datos: {e}")

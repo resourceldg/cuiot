@@ -1,0 +1,206 @@
+@import '@fontsource/fira-mono';
+
+/* === Spacing === */
+:root {
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    --border-radius: 10px;
+    --card-padding: 1.5rem;
+    --card-padding-mobile: 1rem;
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --breakpoint-sm: 480px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+    --color-icon-action: #b0b8c9;
+    --color-bg-hover-action: rgba(176, 184, 201, 0.08);
+}
+
+/* Documentación: Usar solo estas variables para paddings, gaps, border-radius y sombras en todos los componentes base. */
+
+:root {
+    --color-bg: #313633;
+    /* gris común con ligero tinte verde */
+    --color-bg-card: #343936;
+    --color-bg-sidebar: #313633;
+    --color-bg-header: #313633;
+    --color-bg-hover: #373c39;
+    --color-border: #3d4240;
+    --color-accent: #00e676;
+    --color-danger: #ff4d6d;
+    --color-success: #00e676;
+    --color-warning: #f1c40f;
+    --color-text: #f3f6fa;
+    --color-text-secondary: #b0b8c9;
+}
+
+body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Puedes agregar aquí estilos globales para scrollbars, links, etc. */
+
+main {
+    background: var(--color-bg-secondary);
+    min-height: 100vh;
+    padding: 0;
+}
+
+.card,
+.metric-card {
+    background: var(--color-card);
+    color: var(--color-text);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px var(--color-shadow);
+    border: 1px solid var(--color-border);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.card-elevated,
+.metric-card-elevated {
+    background: var(--color-card-elevated);
+    box-shadow: 0 4px 16px var(--color-shadow);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--color-text);
+    font-weight: 600;
+    margin-top: 0;
+}
+
+a {
+    color: var(--color-accent);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: var(--color-accent-hover);
+}
+
+button,
+.btn {
+    background: var(--color-accent);
+    color: #181a1b;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6em 1.2em;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+button:hover,
+.btn:hover {
+    background: var(--color-accent-hover);
+}
+
+input,
+select,
+textarea {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 0.5em 1em;
+    margin-bottom: 1em;
+    font-size: 1em;
+    transition: border 0.2s, background 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+}
+
+/* Remove all white backgrounds */
+* {
+    background-color: transparent;
+    box-sizing: border-box;
+}
+
+h1 {
+    font-size: 2rem;
+    text-align: center;
+}
+
+h2 {
+    font-size: 1rem;
+}
+
+pre {
+    font-size: 16px;
+    font-family: var(--font-mono);
+    background-color: rgba(255, 255, 255, 0.45);
+    border-radius: 3px;
+    box-shadow: 2px 2px 6px rgb(255 255 255 / 25%);
+    padding: 0.5em;
+    overflow-x: auto;
+    color: var(--color-text);
+}
+
+.text-column {
+    display: flex;
+    max-width: 48rem;
+    flex: 0.6;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+input,
+button {
+    font-size: inherit;
+    font-family: inherit;
+}
+
+button:focus:not(:focus-visible) {
+    outline: none;
+}
+
+@media (min-width: 720px) {
+    h1 {
+        font-size: 2.4rem;
+    }
+}
+
+.visually-hidden {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: auto;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+    white-space: nowrap;
+}

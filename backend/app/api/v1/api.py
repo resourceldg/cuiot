@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals, packages, diagnoses_router, medical_profile, medication_schedule, medication_log, restraint_protocols, shift_observations, status_types_router, caregiver_assignments, service_subscriptions, care_types, relationship_types, report_types, reminder_types, shift_observation_types, referral_types, caregiver_assignment_types, service_types, alert_types, event_types, device_types, catalogs
+from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals, packages, diagnoses_router, medical_profile, medication_schedule, medication_log, restraint_protocols, shift_observations, status_types_router, caregiver_assignments, service_subscriptions, care_types, relationship_types, report_types, reminder_types, shift_observation_types, referral_types, caregiver_assignment_types, service_types, alert_types, event_types, device_types, catalogs, dashboard_router
 
 api_router = APIRouter()
 
@@ -40,3 +40,6 @@ api_router.include_router(referral_types.router, prefix="/referral-types", tags=
 api_router.include_router(caregiver_assignment_types.router, prefix="/caregiver-assignment-types", tags=["caregiver-assignment-types"])
 api_router.include_router(service_types.router, prefix="/service-types", tags=["service-types"])
 api_router.include_router(catalogs.router, prefix="/catalogs", tags=["catalogs"])
+
+# Dashboard summary endpoint
+api_router.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
