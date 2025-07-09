@@ -8,10 +8,12 @@
     import AdminKPIRow from "./AdminKPIRow.svelte";
     import AdminNotificationsPanel from "./AdminNotificationsPanel.svelte";
     import AdminQuickActions from "./AdminQuickActions.svelte";
+    import UserHierarchyGuide from "./UserHierarchyGuide.svelte";
 
     // Estados de carga
     let dashboardLoading = true;
     let dashboardError = null;
+    let showUserGuide = false;
 
     onMount(async () => {
         try {
@@ -26,6 +28,27 @@
 
     function goTo(section) {
         goto(`/dashboard/${section}`);
+    }
+
+    function handleQuickAction(event) {
+        switch (event.detail) {
+            case "showUserGuide":
+                showUserGuide = true;
+                break;
+            case "createUser":
+                goto("/dashboard/users/create");
+                break;
+            case "manageUsers":
+                goto("/dashboard/users");
+                break;
+            case "systemSettings":
+                goto("/dashboard/settings");
+                break;
+        }
+    }
+
+    function closeUserGuide() {
+        showUserGuide = false;
     }
 </script>
 
@@ -49,7 +72,12 @@
             <AdminCriticalAlerts />
         </div>
         <div class="dashboard-section dashboard-quickactions">
-            <AdminQuickActions />
+            <AdminQuickActions
+                on:showUserGuide={handleQuickAction}
+                on:createUser={handleQuickAction}
+                on:manageUsers={handleQuickAction}
+                on:systemSettings={handleQuickAction}
+            />
         </div>
         <div class="admin-dashboard-header">
             <SectionHeader
@@ -67,6 +95,15 @@
         </div>
         <div class="dashboard-section dashboard-activity">
             <AdminActivityChart />
+        </div>
+    </div>
+{/if}
+
+<!-- Modal de Guía de Jerarquía -->
+{#if showUserGuide}
+    <div class="modal-overlay" on:click={closeUserGuide}>
+        <div class="modal-content" on:click|stopPropagation>
+            <UserHierarchyGuide on:close={closeUserGuide} />
         </div>
     </div>
 {/if}
@@ -166,5 +203,26 @@
 
     .error-container button:hover {
         opacity: 0.9;
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: var(--spacing-md);
+    }
+
+    .modal-content {
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: auto;
     }
 </style>

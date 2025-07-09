@@ -1,184 +1,174 @@
 <script>
     import { goto } from "$app/navigation";
-    import Card from "$lib/ui/Card.svelte";
-    import AdminIcon from "$lib/ui/icons/AdminIcon.svelte";
-    import DeviceIcon from "$lib/ui/icons/DeviceIcon.svelte";
+    import BookIcon from "$lib/ui/icons/BookIcon.svelte";
+    import BuildingIcon from "$lib/ui/icons/BuildingIcon.svelte";
+    import EventToastIcon from "$lib/ui/icons/EventToastIcon.svelte";
     import PackageIcon from "$lib/ui/icons/PackageIcon.svelte";
-    import ReportIcon from "$lib/ui/icons/ReportIcon.svelte";
     import SettingsIcon from "$lib/ui/icons/SettingsIcon.svelte";
-    import UserIcon from "$lib/ui/icons/UserIcon.svelte";
+    import ShieldIcon from "$lib/ui/icons/ShieldIcon.svelte";
+    import UsersIcon from "$lib/ui/icons/UsersIcon.svelte";
+    import { createEventDispatcher } from "svelte";
+    import SectionHeader from "../../shared/ui/SectionHeader.svelte";
 
-    const quickActions = [
-        {
-            label: "Paquetes",
-            icon: PackageIcon,
-            action: () => goto("/dashboard/packages"),
-            description: "Gestionar paquetes de servicios",
-        },
-        {
-            label: "Usuarios",
-            icon: UserIcon,
-            action: () => goto("/dashboard/users"),
-            description: "Administrar usuarios del sistema",
-        },
-        {
-            label: "Instituciones",
-            icon: AdminIcon,
-            action: () => goto("/dashboard/institutions"),
-            description: "Gestionar instituciones",
-        },
-        {
-            label: "Dispositivos",
-            icon: DeviceIcon,
-            action: () => goto("/dashboard/devices"),
-            description: "Monitorear dispositivos IoT",
-        },
-        {
-            label: "Reportes",
-            icon: ReportIcon,
-            action: () => goto("/dashboard/reports"),
-            description: "Ver reportes y analytics",
-        },
-        {
-            label: "Configuración",
-            icon: SettingsIcon,
-            action: () => goto("/dashboard/settings"),
-            description: "Configuración del sistema",
-        },
-    ];
+    const dispatch = createEventDispatcher();
+
+    function showUserGuide() {
+        dispatch("showUserGuide");
+    }
+
+    function goToUsers() {
+        goto("/dashboard/users");
+    }
+    function goToPackages() {
+        goto("/dashboard/packages");
+    }
+    function goToInstitutions() {
+        goto("/dashboard/institutions");
+    }
+    function goToEvents() {
+        goto("/dashboard/events");
+    }
+    function goToSettings() {
+        goto("/dashboard/settings");
+    }
 </script>
 
-<Card style="flex:1; min-width:260px; margin-left:var(--spacing-lg);">
-    <h3 style="margin-bottom:var(--spacing-md);">Gestión rápida</h3>
+<div class="quick-actions">
+    <SectionHeader
+        title="Acciones Rápidas"
+        subtitle="Accesos directos a las principales secciones"
+    >
+        <span slot="icon">
+            <SettingsIcon size={24} />
+        </span>
+    </SectionHeader>
 
-    <div class="quick-actions">
-        {#each quickActions as action}
-            <button
-                class="quick-action-btn"
-                on:click={action.action}
-                title={action.description}
-            >
-                <div class="action-icon">
-                    <svelte:component this={action.icon} size={20} />
-                </div>
-                <div class="action-content">
-                    <span class="action-label">{action.label}</span>
-                    <span class="action-description">{action.description}</span>
-                </div>
-            </button>
-        {/each}
-    </div>
+    <div class="actions-grid">
+        <button class="action-card" on:click={goToUsers}>
+            <div class="action-icon">
+                <UsersIcon size={24} />
+            </div>
+            <div class="action-content">
+                <h3>Usuarios</h3>
+                <p>Ver, editar y administrar usuarios</p>
+            </div>
+        </button>
 
-    <div class="quick-stats">
-        <div class="stat-item">
-            <span class="stat-label">Sistema</span>
-            <span class="stat-value">Operativo</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">Última actualización</span>
-            <span class="stat-value">Hace 2 min</span>
-        </div>
+        <button class="action-card" on:click={goToPackages}>
+            <div class="action-icon">
+                <PackageIcon size={24} />
+            </div>
+            <div class="action-content">
+                <h3>Paquetes</h3>
+                <p>Gestionar paquetes y servicios</p>
+            </div>
+        </button>
+
+        <button class="action-card" on:click={goToInstitutions}>
+            <div class="action-icon">
+                <BuildingIcon size={24} />
+            </div>
+            <div class="action-content">
+                <h3>Instituciones</h3>
+                <p>Administrar instituciones y relaciones</p>
+            </div>
+        </button>
+
+        <button class="action-card" on:click={goToEvents}>
+            <div class="action-icon">
+                <EventToastIcon size={24} />
+            </div>
+            <div class="action-content">
+                <h3>Eventos</h3>
+                <p>Ver y gestionar eventos del sistema</p>
+            </div>
+        </button>
+
+        <button class="action-card" on:click={showUserGuide}>
+            <div class="action-icon">
+                <ShieldIcon size={24} />
+            </div>
+            <div class="action-content">
+                <h3>Guía de Jerarquía</h3>
+                <p>Ver reglas de negocio y permisos</p>
+            </div>
+        </button>
+
+        <button class="action-card" on:click={goToSettings}>
+            <div class="action-icon">
+                <BookIcon size={24} />
+            </div>
+            <div class="action-content">
+                <h3>Configuración</h3>
+                <p>Ajustes del sistema y parámetros</p>
+            </div>
+        </button>
     </div>
-</Card>
+</div>
 
 <style>
     .quick-actions {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-        margin-bottom: var(--spacing-lg);
+        background: var(--color-bg-card);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        padding: var(--spacing-lg);
     }
 
-    .quick-action-btn {
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-lg);
+    }
+
+    .action-card {
         display: flex;
         align-items: center;
         gap: var(--spacing-md);
-        background: var(--color-bg-card);
+        padding: var(--spacing-md);
+        background: var(--color-bg);
         border: 1px solid var(--color-border);
         border-radius: var(--border-radius);
-        padding: var(--spacing-md);
-        font-size: 1rem;
-        color: var(--color-text);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.2s;
         text-align: left;
-        width: 100%;
     }
 
-    .quick-action-btn:hover {
-        background: var(--color-bg-hover);
+    .action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
         border-color: var(--color-accent);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 230, 118, 0.1);
     }
 
     .action-icon {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--color-bg-hover);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
-        background: var(--color-bg-hover);
-        border-radius: var(--border-radius-sm);
         color: var(--color-accent);
-        flex-shrink: 0;
     }
 
-    .action-content {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-        flex: 1;
-    }
-
-    .action-label {
+    .action-content h3 {
+        margin: 0 0 4px 0;
+        font-size: 1rem;
         font-weight: 600;
         color: var(--color-text);
     }
 
-    .action-description {
+    .action-content p {
+        margin: 0;
         font-size: 0.85rem;
-        color: var(--color-text-secondary);
-        line-height: 1.3;
-    }
-
-    .quick-stats {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-        padding-top: var(--spacing-md);
-        border-top: 1px solid var(--color-border);
-    }
-
-    .stat-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-xs) 0;
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: var(--color-text-secondary);
-    }
-
-    .stat-value {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--color-success);
+        color: var(--color-text-muted);
+        line-height: 1.4;
     }
 
     @media (max-width: 768px) {
-        .quick-action-btn {
-            justify-content: flex-start;
-        }
-
-        .action-content {
-            min-width: 0;
-        }
-
-        .action-description {
-            display: none;
+        .actions-grid {
+            grid-template-columns: 1fr;
         }
     }
 </style>
