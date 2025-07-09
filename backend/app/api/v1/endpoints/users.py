@@ -15,6 +15,114 @@ from app.models.user import User
 
 router = APIRouter()
 
+# === ROLES ENDPOINTS (deben ir antes de cualquier endpoint con /{user_id}) ===
+
+@router.get("/roles", response_model=List[dict])
+def get_roles(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.get_current_active_user)
+):
+    """Obtener lista de todos los roles del sistema"""
+    if not current_user.has_permission("users.read", db):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver roles")
+    roles = db.query(Role).offset(skip).limit(limit).all()
+    return [
+        {
+            "id": str(role.id),
+            "name": role.name,
+            "description": role.description,
+            "permissions": role.permissions,
+            "is_system": role.is_system,
+            "created_at": role.created_at.isoformat() if role.created_at else None,
+            "updated_at": role.updated_at.isoformat() if role.updated_at else None,
+            "is_active": role.is_active
+        }
+        for role in roles
+    ]
+
+@router.post("/roles", status_code=201)
+def create_role(
+    role_data: RoleBase,
+    db: Session = Depends(get_db),
+    request: Request = None
+):
+    """Crear un nuevo rol (solo admin, excepto el primero)."""
+    from app.models.role import Role
+    role_count = db.query(Role).count()
+    if role_count == 0:
+        # Permitir crear el primer rol sin autenticación
+        pass
+    else:
+        # Si ya hay roles, exigir autenticación y permiso
+        auth_header = request.headers.get("authorization") if request else None
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=403, detail="Not authenticated")
+        token = auth_header.split(" ", 1)[1]
+        current_user = AuthService.get_current_user_from_token(db, token)
+        if not current_user or not current_user.has_permission("users.write", db):
+            raise HTTPException(status_code=403, detail="No tiene permisos para crear roles")
+        if not current_user.has_role("admin"):
+            raise HTTPException(status_code=403, detail="Solo administradores pueden crear roles")
+    # Verificar si ya existe
+    existing = db.query(Role).filter_by(name=role_data.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="El rol ya existe")
+    import json
+    from datetime import datetime
+    # Serializar permissions si es dict
+    permissions = role_data.permissions
+    if isinstance(permissions, dict):
+        permissions = json.dumps(permissions)
+    role = Role(
+        name=role_data.name,
+        description=role_data.description,
+        permissions=permissions,
+        is_system=role_data.is_system,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+        is_active=True
+    )
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+    return {"message": "Rol creado exitosamente", "role_id": str(role.id)}
+
+@router.delete("/roles/{role_id}")
+def delete_role(
+    role_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.require_permission("users.write"))
+):
+    """Eliminar un rol por id (solo admin)"""
+    if not current_user.has_role("admin"):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar roles")
+    role = db.query(Role).filter_by(id=role_id).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    db.delete(role)
+    db.commit()
+    return {"message": "Rol eliminado exitosamente", "role_id": role_id}
+
+@router.get("/roles/{role_name}")
+def get_role(role_name: str, db: Session = Depends(get_db)):
+    """Obtener un rol por nombre."""
+    from app.models.role import Role
+    role = db.query(Role).filter_by(name=role_name).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    return {
+        "id": str(role.id),
+        "name": role.name,
+        "description": role.description,
+        "permissions": role.permissions,
+        "is_system": role.is_system,
+        "created_at": role.created_at.isoformat() if role.created_at else None,
+        "updated_at": role.updated_at.isoformat() if role.updated_at else None,
+        "is_active": role.is_active
+    }
+
 @router.get("/", response_model=List[UserResponse])
 def get_users(
     skip: int = Query(0, ge=0),
@@ -157,85 +265,3 @@ def change_password(
     user.password_hash = AuthService.get_password_hash(data.new_password)
     db.commit()
     return {"ok": True, "message": "Contraseña cambiada correctamente"}
-
-@router.post("/roles", status_code=201)
-def create_role(
-    role_data: RoleBase,
-    db: Session = Depends(get_db),
-    request: Request = None
-):
-    """Crear un nuevo rol (solo admin, excepto el primero)."""
-    from app.models.role import Role
-    role_count = db.query(Role).count()
-    if role_count == 0:
-        # Permitir crear el primer rol sin autenticación
-        pass
-    else:
-        # Si ya hay roles, exigir autenticación y permiso
-        auth_header = request.headers.get("authorization") if request else None
-        if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=403, detail="Not authenticated")
-        token = auth_header.split(" ", 1)[1]
-        current_user = AuthService.get_current_user_from_token(db, token)
-        if not current_user or not current_user.has_permission("users.write", db):
-            raise HTTPException(status_code=403, detail="No tiene permisos para crear roles")
-        if not current_user.has_role("admin"):
-            raise HTTPException(status_code=403, detail="Solo administradores pueden crear roles")
-    
-    # Verificar si ya existe
-    existing = db.query(Role).filter_by(name=role_data.name).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="El rol ya existe")
-    import json
-    from datetime import datetime
-    # Serializar permissions si es dict
-    permissions = role_data.permissions
-    if isinstance(permissions, dict):
-        permissions = json.dumps(permissions)
-    role = Role(
-        name=role_data.name,
-        description=role_data.description,
-        permissions=permissions,
-        is_system=role_data.is_system,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-        is_active=True
-    )
-    db.add(role)
-    db.commit()
-    db.refresh(role)
-    return {"message": "Rol creado exitosamente", "role_id": str(role.id)}
-
-@router.delete("/roles/{role_id}")
-def delete_role(
-    role_id: str,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.require_permission("users.write"))
-):
-    """Eliminar un rol por id (solo admin)"""
-    if not current_user.has_role("admin"):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar roles")
-    role = db.query(Role).filter_by(id=role_id).first()
-    if not role:
-        raise HTTPException(status_code=404, detail="Rol no encontrado")
-    db.delete(role)
-    db.commit()
-    return {"message": "Rol eliminado exitosamente", "role_id": role_id}
-
-@router.get("/roles/{role_name}")
-def get_role(role_name: str, db: Session = Depends(get_db)):
-    """Obtener un rol por nombre."""
-    from app.models.role import Role
-    role = db.query(Role).filter_by(name=role_name).first()
-    if not role:
-        raise HTTPException(status_code=404, detail="Role not found")
-    return {
-        "id": str(role.id),
-        "name": role.name,
-        "description": role.description,
-        "permissions": role.permissions,
-        "is_system": role.is_system,
-        "created_at": role.created_at.isoformat() if role.created_at else None,
-        "updated_at": role.updated_at.isoformat() if role.updated_at else None,
-        "is_active": role.is_active
-    }
