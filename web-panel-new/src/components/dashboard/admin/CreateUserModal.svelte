@@ -10,6 +10,7 @@
     import XIcon from "$lib/ui/icons/XIcon.svelte";
     import CheckIcon from "$lib/ui/icons/CheckIcon.svelte";
     import AlertIcon from "$lib/ui/icons/AlertIcon.svelte";
+    import { validateFullUser } from "$lib/validations/userValidations";
 
     const dispatch = createEventDispatcher();
 
@@ -109,7 +110,6 @@
             roles = await getRoles();
         } catch (err) {
             error = "Error al cargar roles";
-            console.error(err);
         }
     }
 
@@ -118,7 +118,6 @@
             institutions = await getInstitutions();
         } catch (err) {
             error = "Error al cargar instituciones";
-            console.error(err);
         }
     }
 
@@ -127,77 +126,17 @@
             packages = await getPackages();
         } catch (err) {
             error = "Error al cargar paquetes";
-            console.error(err);
         }
     }
 
-    function validateForm(): boolean {
-        errors = {};
+    function validateForm() {
+        errors = validateFullUser(form, "create");
+    }
 
-        // Validaciones básicas
-        if (!form.first_name.trim()) errors.first_name = "Nombre es requerido";
-        if (!form.last_name.trim()) errors.last_name = "Apellido es requerido";
-        if (!form.email.trim()) {
-            errors.email = "Email es requerido";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-            errors.email = "Email inválido";
-        }
-        
-        if (!form.phone.trim()) {
-            errors.phone = "Teléfono es requerido";
-        } else if (!/^\+?[\d\s\-\(\)]+$/.test(form.phone)) {
-            errors.phone = "Teléfono inválido";
-        }
-
-        if (!form.password) {
-            errors.password = "Contraseña es requerida";
-        } else if (form.password.length < 8) {
-            errors.password = "Contraseña debe tener al menos 8 caracteres";
-        }
-
-        if (form.password !== form.confirm_password) {
-            errors.confirm_password = "Las contraseñas no coinciden";
-        }
-
-        if (!form.date_of_birth) {
-            errors.date_of_birth = "Fecha de nacimiento es requerida";
-        } else {
-            const age = calculateAge(form.date_of_birth);
-            if (age < 18) {
-                errors.date_of_birth = "Debe ser mayor de 18 años";
-            }
-        }
-
-        if (!form.gender) {
-            errors.gender = "Género es requerido";
-        }
-
-        if (!form.role) {
-            errors.role = "Rol es requerido";
-        }
-
-        // Validaciones específicas por rol
-        if (isCaregiver) {
-            if (!form.professional_license.trim()) {
-                errors.professional_license = "Licencia profesional es requerida para cuidadores";
-            }
-            if (form.experience_years < 0) {
-                errors.experience_years = "Años de experiencia no pueden ser negativos";
-            }
-            if (form.hourly_rate < 0) {
-                errors.hourly_rate = "Tarifa por hora no puede ser negativa";
-            }
-        }
-
-        if (requiresRepresentative && !form.legal_representative_id) {
-            errors.legal_representative_id = "Representante legal es requerido para cuidado delegado";
-        }
-
-        if (!form.terms_accepted) {
-            errors.terms_accepted = "Debe aceptar los términos y condiciones";
-        }
-
-        return Object.keys(errors).length === 0;
+    // Llamar a validateForm en cada cambio de campo
+    function updateField(field: string, value: any) {
+        form[field] = value;
+        validateForm();
     }
 
     function calculateAge(birthDate: string): number {
@@ -214,7 +153,10 @@
     }
 
     async function handleSubmit() {
-        if (!validateForm()) return;
+        validateForm();
+        if (Object.keys(errors).length > 0) {
+            return;
+        }
 
         submitting = true;
         error = "";
@@ -344,7 +286,7 @@
                                 <input
                                     id="first_name"
                                     type="text"
-                                    bind:value={form.first_name}
+                                    on:input={e => updateField('first_name', e.target.value)}
                                     class:error={errors.first_name}
                                     placeholder="Ingrese el nombre"
                                 />
@@ -358,7 +300,7 @@
                                 <input
                                     id="last_name"
                                     type="text"
-                                    bind:value={form.last_name}
+                                    on:input={e => updateField('last_name', e.target.value)}
                                     class:error={errors.last_name}
                                     placeholder="Ingrese el apellido"
                                 />
@@ -372,7 +314,7 @@
                                 <input
                                     id="email"
                                     type="email"
-                                    bind:value={form.email}
+                                    on:input={e => updateField('email', e.target.value)}
                                     class:error={errors.email}
                                     placeholder="usuario@ejemplo.com"
                                 />
@@ -386,7 +328,7 @@
                                 <input
                                     id="phone"
                                     type="tel"
-                                    bind:value={form.phone}
+                                    on:input={e => updateField('phone', e.target.value)}
                                     class:error={errors.phone}
                                     placeholder="+54 11 1234-5678"
                                 />
@@ -400,7 +342,7 @@
                                 <input
                                     id="date_of_birth"
                                     type="date"
-                                    bind:value={form.date_of_birth}
+                                    on:input={e => updateField('date_of_birth', e.target.value)}
                                     class:error={errors.date_of_birth}
                                 />
                                 {#if errors.date_of_birth}
@@ -412,7 +354,7 @@
                                 <label for="gender">Género *</label>
                                 <select
                                     id="gender"
-                                    bind:value={form.gender}
+                                    on:change={e => updateField('gender', e.target.value)}
                                     class:error={errors.gender}
                                 >
                                     <option value="">Seleccionar género</option>
@@ -438,7 +380,7 @@
                                     <input
                                         id="password"
                                         type={showPassword ? "text" : "password"}
-                                        bind:value={form.password}
+                                        on:input={e => updateField('password', e.target.value)}
                                         class:error={errors.password}
                                         placeholder="Mínimo 8 caracteres"
                                     />
@@ -456,7 +398,7 @@
                                 <input
                                     id="confirm_password"
                                     type="password"
-                                    bind:value={form.confirm_password}
+                                    on:input={e => updateField('confirm_password', e.target.value)}
                                     class:error={errors.confirm_password}
                                     placeholder="Repita la contraseña"
                                 />
@@ -475,7 +417,7 @@
                                 <label for="role">Rol *</label>
                                 <select
                                     id="role"
-                                    bind:value={form.role}
+                                    on:change={e => updateField('role', e.target.value)}
                                     class:error={errors.role}
                                 >
                                     <option value="">Seleccionar rol</option>
@@ -494,7 +436,7 @@
                                     <input
                                         id="is_active"
                                         type="checkbox"
-                                        bind:checked={form.is_active}
+                                        on:change={e => updateField('is_active', e.target.checked)}
                                     />
                                     <label for="is_active">Usuario activo</label>
                                 </div>
@@ -510,7 +452,7 @@
                                 <label for="institution">Institución</label>
                                 <select
                                     id="institution"
-                                    bind:value={form.institution_id}
+                                    on:change={e => updateField('institution_id', e.target.value ? parseInt(e.target.value, 10) : null)}
                                 >
                                     <option value={null}>Sin institución</option>
                                     {#each institutions as institution}
@@ -523,7 +465,7 @@
                                 <label for="package">Paquete</label>
                                 <select
                                     id="package"
-                                    bind:value={form.package_id}
+                                    on:change={e => updateField('package_id', e.target.value)}
                                 >
                                     <option value={null}>Sin paquete</option>
                                     {#each packages as package}
@@ -544,7 +486,7 @@
                                     <input
                                         id="professional_license"
                                         type="text"
-                                        bind:value={form.professional_license}
+                                        on:input={e => updateField('professional_license', e.target.value)}
                                         class:error={errors.professional_license}
                                         placeholder="Número de licencia"
                                     />
@@ -558,7 +500,7 @@
                                     <input
                                         id="specialization"
                                         type="text"
-                                        bind:value={form.specialization}
+                                        on:input={e => updateField('specialization', e.target.value)}
                                         placeholder="Ej: Geriatría, Pediatría"
                                     />
                                 </div>
@@ -568,7 +510,7 @@
                                     <input
                                         id="experience_years"
                                         type="number"
-                                        bind:value={form.experience_years}
+                                        on:input={e => updateField('experience_years', e.target.value ? parseInt(e.target.value, 10) : 0)}
                                         class:error={errors.experience_years}
                                         min="0"
                                         max="50"
@@ -583,7 +525,7 @@
                                     <input
                                         id="hourly_rate"
                                         type="number"
-                                        bind:value={form.hourly_rate}
+                                        on:input={e => updateField('hourly_rate', e.target.value ? parseInt(e.target.value, 10) : 0)}
                                         class:error={errors.hourly_rate}
                                         min="0"
                                         step="100"
@@ -599,7 +541,7 @@
                                         <input
                                             id="is_freelance"
                                             type="checkbox"
-                                            bind:checked={form.is_freelance}
+                                            on:change={e => updateField('is_freelance', e.target.checked)}
                                         />
                                         <label for="is_freelance">Freelance/Independiente</label>
                                     </div>
@@ -609,7 +551,7 @@
                                     <label for="availability">Disponibilidad</label>
                                     <textarea
                                         id="availability"
-                                        bind:value={form.availability}
+                                        on:input={e => updateField('availability', e.target.value)}
                                         placeholder="Horarios disponibles, días de trabajo, etc."
                                         rows="3"
                                     ></textarea>
@@ -626,7 +568,7 @@
                                 <label for="legal_representative">Representante Legal *</label>
                                 <select
                                     id="legal_representative"
-                                    bind:value={form.legal_representative_id}
+                                    on:change={e => updateField('legal_representative_id', e.target.value)}
                                     class:error={errors.legal_representative_id}
                                 >
                                     <option value="">Seleccionar representante legal</option>
@@ -652,7 +594,7 @@
                                     <input
                                         id="legal_capacity_verified"
                                         type="checkbox"
-                                        bind:checked={form.legal_capacity_verified}
+                                        on:change={e => updateField('legal_capacity_verified', e.target.checked)}
                                     />
                                     <label for="legal_capacity_verified">Capacidad legal verificada</label>
                                 </div>
@@ -663,7 +605,7 @@
                                     <input
                                         id="terms_accepted"
                                         type="checkbox"
-                                        bind:checked={form.terms_accepted}
+                                        on:change={e => updateField('terms_accepted', e.target.checked)}
                                         class:error={errors.terms_accepted}
                                     />
                                     <label for="terms_accepted">Acepto los términos y condiciones *</label>

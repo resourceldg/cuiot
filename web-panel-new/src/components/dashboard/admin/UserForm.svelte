@@ -3,6 +3,7 @@
     import { getRoles } from "$lib/api/roles";
     import { assignRole, updateUser } from "$lib/api/users";
     import PlusIcon from "$lib/ui/icons/PlusIcon.svelte";
+    import { validateFullUser } from "$lib/validations/userValidations";
     import { createEventDispatcher, onMount } from "svelte";
 
     const dispatch = createEventDispatcher();
@@ -93,6 +94,10 @@
 
     // Validaciones
     let errors: Record<string, string> = {};
+
+    function validateForm() {
+        errors = validateFullUser(form, "edit");
+    }
 
     // Secciones expandibles
     let expandedSections: {
@@ -268,71 +273,6 @@
         };
     }
 
-    function validateMinimumData(): boolean {
-        errors = {};
-
-        if (!form.first_name.trim()) errors.first_name = "Nombre es requerido";
-        if (!form.last_name.trim()) errors.last_name = "Apellido es requerido";
-        if (!form.email.trim()) {
-            errors.email = "Email es requerido";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-            errors.email = "Email inválido";
-        }
-        if (!form.phone.trim()) {
-            errors.phone = "Teléfono es requerido";
-        } else if (!/^\+?[\d\s\-\(\)]+$/.test(form.phone)) {
-            errors.phone = "Teléfono inválido";
-        }
-        if (!editMode) {
-            if (!form.password) {
-                errors.password = "Contraseña es requerida";
-            } else if (form.password.length < 8) {
-                errors.password = "Contraseña debe tener al menos 8 caracteres";
-            }
-            if (form.password !== form.confirm_password) {
-                errors.confirm_password = "Las contraseñas no coinciden";
-            }
-        }
-        if (!form.role) {
-            errors.role = "Rol es requerido";
-        }
-
-        return Object.keys(errors).length === 0;
-    }
-
-    function validateFullForm(): boolean {
-        if (!validateMinimumData()) return false;
-
-        // Validaciones adicionales
-        if (form.date_of_birth) {
-            const age = calculateAge(form.date_of_birth);
-            if (age < 18) {
-                errors.date_of_birth = "Debe ser mayor de 18 años";
-            }
-        }
-
-        if (isCaregiver) {
-            if (!form.professional_license.trim()) {
-                errors.professional_license =
-                    "Licencia profesional es requerida para cuidadores";
-            }
-            if (form.experience_years < 0) {
-                errors.experience_years =
-                    "Años de experiencia no pueden ser negativos";
-            }
-            if (form.hourly_rate < 0) {
-                errors.hourly_rate = "Tarifa por hora no puede ser negativa";
-            }
-        }
-
-        if (requiresRepresentative && !form.legal_representative_id) {
-            errors.legal_representative_id =
-                "Representante legal es requerido para cuidado delegado";
-        }
-
-        return Object.keys(errors).length === 0;
-    }
-
     function calculateAge(birthDate: string): number {
         const today = new Date();
         const birth = new Date(birthDate);
@@ -351,12 +291,8 @@
 
     // --- Guardar usuario y rol ---
     async function handleSubmit() {
-        console.log("handleSubmit ejecutado");
-        const isValid = expandedSections.validation
-            ? validateFullForm()
-            : validateMinimumData();
-        if (!isValid) {
-            console.log("Formulario no válido", errors, form);
+        validateForm();
+        if (Object.keys(errors).length > 0) {
             return;
         }
         submitting = true;
@@ -397,28 +333,11 @@
 
     function updateForm(field: string, value: any) {
         form[field] = value;
+        validateForm();
     }
 </script>
 
 <div class="user-form-container">
-    {#if editMode}
-        <pre
-            style="background:#222;color:#0f0;padding:1em;overflow:auto;max-width:100%;font-size:0.9em;">
-            <strong>DEBUG INFO:</strong>
-            sessionUserRole: "{sessionUserRole}"
-            isFieldEditable("first_name"): {isFieldEditable("first_name")}
-            isFieldEditable("email"): {isFieldEditable("email")}
-            form.role: "{form.role}"
-            
-            <strong>FORM DATA:</strong>
-            {JSON.stringify(form, null, 2)}
-        </pre>
-    {/if}
-    {#if typeof disabled !== "undefined"}
-        <p style="color:yellow;background:#222;padding:4px;">
-            DEBUG: disabled prop = {disabled ? "true" : "false"}
-        </p>
-    {/if}
     {#if loading}
         <div class="loading-container">
             <div class="loading-spinner"></div>
@@ -454,6 +373,8 @@
                             id="first_name"
                             type="text"
                             bind:value={form.first_name}
+                            on:input={(e) =>
+                                updateForm("first_name", e.target.value)}
                             class:error={errors.first_name}
                             class:debug-not-editable={!isFieldEditable(
                                 "first_name",
@@ -475,7 +396,8 @@
                             id="last_name"
                             type="text"
                             bind:value={form.last_name}
-                            class:error={errors.last_name}
+                            on:input={(e) =>
+                                updateForm("last_name", e.target.value)}
                             placeholder="Ingrese el apellido"
                             disabled={!isFieldEditable("last_name")}
                         />
@@ -489,7 +411,8 @@
                             id="email"
                             type="email"
                             bind:value={form.email}
-                            class:error={errors.email}
+                            on:input={(e) =>
+                                updateForm("email", e.target.value)}
                             placeholder="usuario@ejemplo.com"
                             disabled={!isFieldEditable("email")}
                         />
@@ -503,7 +426,8 @@
                             id="phone"
                             type="tel"
                             bind:value={form.phone}
-                            class:error={errors.phone}
+                            on:input={(e) =>
+                                updateForm("phone", e.target.value)}
                             placeholder="+54 11 1234-5678"
                             disabled={!isFieldEditable("phone")}
                         />
@@ -516,6 +440,8 @@
                         <select
                             id="gender"
                             bind:value={form.gender}
+                            on:change={(e) =>
+                                updateForm("gender", e.target.value)}
                             disabled={!isFieldEditable("gender")}
                         >
                             <option value="">Seleccionar</option>
@@ -530,6 +456,8 @@
                             id="date_of_birth"
                             type="date"
                             bind:value={form.date_of_birth}
+                            on:input={(e) =>
+                                updateForm("date_of_birth", e.target.value)}
                             disabled={!isFieldEditable("date_of_birth")}
                         />
                     </div>
@@ -538,6 +466,8 @@
                         <select
                             id="role"
                             bind:value={form.role}
+                            on:change={(e) =>
+                                updateForm("role", e.target.value)}
                             class:error={errors.role}
                             disabled={!isFieldEditable("role")}
                         >
@@ -567,7 +497,6 @@
                             id="is_active"
                             type="checkbox"
                             checked={form.is_active}
-                            disabled={!isFieldEditable("is_active")}
                             on:change={(e) =>
                                 updateForm(
                                     "is_active",
@@ -591,6 +520,11 @@
                             id="professional_license"
                             type="text"
                             bind:value={form.professional_license}
+                            on:input={(e) =>
+                                updateForm(
+                                    "professional_license",
+                                    e.target.value,
+                                )}
                             class:error={errors.professional_license}
                             placeholder="Ingrese la licencia profesional"
                             disabled={!isFieldEditable("professional_license")}
@@ -607,6 +541,8 @@
                             id="specialization"
                             type="text"
                             bind:value={form.specialization}
+                            on:input={(e) =>
+                                updateForm("specialization", e.target.value)}
                             disabled={!isFieldEditable("specialization")}
                         />
                     </div>
@@ -618,6 +554,8 @@
                             type="number"
                             min="0"
                             bind:value={form.experience_years}
+                            on:input={(e) =>
+                                updateForm("experience_years", e.target.value)}
                             disabled={!isFieldEditable("experience_years")}
                         />
                     </div>
@@ -627,7 +565,6 @@
                             id="is_freelance"
                             type="checkbox"
                             checked={form.is_freelance}
-                            disabled={!isFieldEditable("is_freelance")}
                             on:change={(e) =>
                                 updateForm(
                                     "is_freelance",
@@ -642,6 +579,8 @@
                             type="number"
                             min="0"
                             bind:value={form.hourly_rate}
+                            on:input={(e) =>
+                                updateForm("hourly_rate", e.target.value)}
                             disabled={!isFieldEditable("hourly_rate")}
                         />
                     </div>
@@ -651,6 +590,8 @@
                             id="availability"
                             type="text"
                             bind:value={form.availability}
+                            on:input={(e) =>
+                                updateForm("availability", e.target.value)}
                             disabled={!isFieldEditable("availability")}
                         />
                     </div>
@@ -660,7 +601,6 @@
                             id="is_verified"
                             type="checkbox"
                             checked={form.is_verified}
-                            disabled={!isFieldEditable("is_verified")}
                             on:change={(e) =>
                                 updateForm(
                                     "is_verified",
@@ -673,6 +613,8 @@
                         <select
                             id="institution_id"
                             bind:value={form.institution_id}
+                            on:change={(e) =>
+                                updateForm("institution_id", e.target.value)}
                             disabled={!isFieldEditable("institution_id")}
                         >
                             {#if institutions.length === 0}
