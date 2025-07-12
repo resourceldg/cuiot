@@ -32,6 +32,11 @@
         }
     });
 
+    // Actualizar el campo role cuando los roles se cargan
+    $: if (form && Array.isArray(form.roles)) {
+        form.role = form.roles.length > 0 ? form.roles[0] : "";
+    }
+
     function validateForm() {
         errors = {};
 

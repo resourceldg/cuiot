@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
+    import { createUser } from "$lib/api/users";
     import ArrowLeftIcon from "$lib/ui/icons/ArrowLeftIcon.svelte";
     import UserIcon from "$lib/ui/icons/UserIcon.svelte";
     import UserForm from "../../../../components/dashboard/admin/UserForm.svelte";
@@ -8,7 +9,7 @@
 
     // Estados
     let showGuide = false;
-    let formData = {};
+    let formData: any = {};
     let loading = false;
     let error = "";
     let success = "";
@@ -17,10 +18,62 @@
         goto("/dashboard/users");
     }
 
-    function handleFormSubmit(event) {
+    async function handleFormSubmit(event: any) {
         formData = event.detail;
-        // Aquí se procesaría la creación del usuario
-        console.log("Datos del formulario:", formData);
+        loading = true;
+        error = "";
+        success = "";
+
+        try {
+            // Preparar datos para la API
+            const userData = {
+                email: formData.email,
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                phone: formData.phone,
+                password: formData.password,
+                username: formData.username || null,
+                date_of_birth: formData.date_of_birth || null,
+                gender: formData.gender || null,
+                professional_license: formData.professional_license || null,
+                specialization: formData.specialization || null,
+                experience_years: formData.experience_years || null,
+                is_freelance: formData.is_freelance || false,
+                hourly_rate: formData.hourly_rate || null,
+                availability: formData.availability || null,
+                is_verified: formData.is_verified || false,
+                institution_id: formData.institution_id || null,
+                is_active:
+                    formData.is_active !== undefined
+                        ? formData.is_active
+                        : true,
+            };
+
+            console.log("Enviando datos a la API:", userData);
+
+            const { data, error: apiError } = await createUser(userData);
+
+            if (apiError) {
+                error = apiError;
+                console.error("Error al crear usuario:", apiError);
+            } else {
+                success = "Usuario creado exitosamente";
+                console.log("Usuario creado:", data);
+
+                // Redirigir a la lista de usuarios después de 2 segundos
+                setTimeout(() => {
+                    goto("/dashboard/users");
+                }, 2000);
+            }
+        } catch (err) {
+            error =
+                err instanceof Error
+                    ? err.message
+                    : "Error desconocido al crear usuario";
+            console.error("Error inesperado:", err);
+        } finally {
+            loading = false;
+        }
     }
 
     function toggleGuide() {
@@ -64,7 +117,14 @@
     {/if}
 
     <div class="page-content">
-        <UserForm on:submit={handleFormSubmit} />
+        <UserForm on:submit={handleFormSubmit} disabled={loading} />
+
+        {#if loading}
+            <div class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p>Creando usuario...</p>
+            </div>
+        {/if}
     </div>
 </div>
 
@@ -151,6 +211,7 @@
         border-radius: var(--border-radius);
         box-shadow: var(--shadow-md);
         overflow: hidden;
+        position: relative;
     }
 
     .modal-overlay {
@@ -171,6 +232,46 @@
         max-width: 90vw;
         max-height: 90vh;
         overflow: auto;
+    }
+
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+        border-radius: var(--border-radius);
+    }
+
+    .loading-spinner {
+        border: 4px solid var(--color-border);
+        border-top: 4px solid var(--color-accent);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .loading-overlay p {
+        color: var(--color-text);
+        font-weight: 500;
+        margin: 0;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     @media (max-width: 768px) {

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.services.auth import AuthService
-from app.schemas.user import UserCreate, UserLogin, UserToken, UserResponse
+from app.schemas.user import UserCreate, UserLogin, UserToken, UserResponse, UserWithRoles
 
 router = APIRouter()
 
@@ -40,9 +40,39 @@ def login_user(
             detail=f"Login failed: {str(e)}"
         )
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserWithRoles)
 def get_current_user(
+    db: Session = Depends(get_db),
     current_user = Depends(AuthService.get_current_active_user)
 ):
-    """Get current authenticated user"""
-    return current_user
+    """Get current authenticated user with roles"""
+    # Obtener los nombres de los roles activos
+    roles = [role.name for role in current_user.roles if hasattr(role, 'is_active') and role.is_active]
+    print("DEBUG /auth/me - current_user:", current_user)
+    print("DEBUG /auth/me - roles:", roles)
+    # Serializar el usuario como UserWithRoles (campos explícitos)
+    user_data = UserWithRoles(
+        id=current_user.id,
+        email=current_user.email,
+        username=current_user.username,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        phone=current_user.phone,
+        date_of_birth=current_user.date_of_birth,
+        gender=current_user.gender,
+        professional_license=current_user.professional_license,
+        specialization=current_user.specialization,
+        experience_years=current_user.experience_years,
+        is_freelance=current_user.is_freelance,
+        hourly_rate=current_user.hourly_rate,
+        availability=current_user.availability,
+        is_verified=current_user.is_verified,
+        institution_id=current_user.institution_id,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+        is_active=current_user.is_active,
+        last_login=current_user.last_login,
+        roles=roles
+    )
+    print("DEBUG /auth/me - user_data:", user_data)
+    return user_data

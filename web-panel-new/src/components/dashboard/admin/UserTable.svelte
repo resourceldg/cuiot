@@ -7,7 +7,9 @@
         getUsers,
         updateUser,
     } from "$lib/api/users";
+    import { user as sessionUser } from "$lib/sessionStore.js";
     import { onMount } from "svelte";
+    import EditUserModal from "./EditUserModal.svelte";
 
     // Tipos explícitos para usuarios y roles
     interface Role {
@@ -19,11 +21,25 @@
     }
     interface User {
         id: string;
-        name: string;
         email: string;
-        roles: Role[];
+        username?: string;
+        first_name: string;
+        last_name?: string;
+        phone?: string;
+        date_of_birth?: string;
+        gender?: string;
+        professional_license?: string;
+        specialization?: string;
+        experience_years?: number;
+        is_freelance: boolean;
+        hourly_rate?: number;
+        availability?: string;
+        is_verified: boolean;
+        institution_id?: number;
         is_active: boolean;
-        [key: string]: any;
+        last_login?: string;
+        created_at: string;
+        updated_at: string;
     }
 
     // Estados
@@ -36,7 +52,27 @@
     let showModal = false;
     let showDeleteModal = false;
     let showRoleModal = false;
+    // Cambia la declaración de selectedUser para aceptar null
     let selectedUser: User | null = null;
+
+    // Filtros
+    let searchTerm = "";
+    let statusFilter = "";
+    let roleFilter = "";
+    let filterTimeout: number;
+
+    // Aplicar filtros con debounce
+    $: if (
+        searchTerm !== undefined ||
+        statusFilter !== undefined ||
+        roleFilter !== undefined
+    ) {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(() => {
+            loadUsers();
+        }, 300);
+    }
+
     let form = {
         name: "",
         email: "",
@@ -93,14 +129,30 @@
     async function loadUsers() {
         loading = true;
         error = "";
-        try {
-            users = await getUsers();
-        } catch (err) {
-            error = getErrorMessage(err);
-            console.error("Error loading users:", err);
-        } finally {
-            loading = false;
+        const { data, error: apiError } = await getUsers({
+            search: searchTerm || undefined,
+            status: statusFilter || undefined,
+            role: roleFilter || undefined,
+        });
+        console.log("Respuesta getUsers:", data);
+        if (apiError) {
+            error = apiError;
+            users = [];
+        } else if (data) {
+            // Mapear roles para compatibilidad
+            users = Array.isArray(data)
+                ? data.map((user) => ({
+                      ...user,
+                      role:
+                          Array.isArray(user.roles) && user.roles.length > 0
+                              ? user.roles[0]
+                              : "",
+                  }))
+                : [];
+        } else {
+            users = [];
         }
+        loading = false;
     }
 
     async function loadRoles() {
@@ -120,10 +172,10 @@
         selectedUser = user;
         if (user) {
             form = {
-                name: user.name || "",
+                name: `${user.first_name} ${user.last_name || ""}`.trim(),
                 email: user.email || "",
                 password: "",
-                role: user.roles?.[0]?.name || "",
+                role: "", // Los roles se manejan por separado
                 status: user.is_active ? "activo" : "inactivo",
             };
         } else {
@@ -216,40 +268,58 @@
     }
 
     async function saveUser() {
-        try {
-            if (selectedUser) {
-                // Editar usuario existente
-                await updateUser(selectedUser.id, {
-                    name: form.name,
-                    email: form.email,
-                    is_active: form.status === "activo",
-                });
-            } else {
-                // Crear nuevo usuario
-                await createUser({
-                    name: form.name,
-                    email: form.email,
-                    password: form.password,
-                    role: form.role,
-                });
+        error = "";
+        if (selectedUser) {
+            // Actualizar usuario existente
+            const updateData = {
+                email: form.email,
+                first_name: form.name.split(" ")[0] || "",
+                last_name: form.name.split(" ").slice(1).join(" ") || "",
+                is_active: form.status === "activo",
+            };
+
+            const { error: updateError } = await updateUser(
+                selectedUser.id,
+                updateData,
+            );
+            if (updateError) {
+                error = updateError;
+                return;
             }
-            await loadUsers();
-            closeModal();
-        } catch (err) {
-            error = getErrorMessage(err);
-            console.error("Error saving user:", err);
+        } else {
+            // Crear nuevo usuario
+            const createData = {
+                email: form.email,
+                first_name: form.name.split(" ")[0] || "",
+                last_name: form.name.split(" ").slice(1).join(" ") || "",
+                password: form.password,
+                is_active: form.status === "activo",
+            };
+
+            const { error: createError } = await createUser(createData);
+            if (createError) {
+                error = createError;
+                return;
+            }
         }
+        await loadUsers();
+        closeModal();
     }
 
     async function deleteUserHandler() {
-        try {
-            await deleteUser(selectedUser?.id || "");
-            await loadUsers();
-            closeDeleteModal();
-        } catch (err) {
-            error = getErrorMessage(err);
-            console.error("Error deleting user:", err);
+        error = "";
+        if (!selectedUser?.id) {
+            error = "Usuario no seleccionado";
+            return;
         }
+
+        const { error: delError } = await deleteUser(selectedUser.id);
+        if (delError) {
+            error = delError;
+            return;
+        }
+        await loadUsers();
+        closeDeleteModal();
     }
 
     async function saveRole() {
@@ -347,6 +417,34 @@
         allPackages = [];
         packageError = "";
     }
+
+    let showEditModal = false;
+    let sessionUserRole = "";
+    $: sessionUserRole =
+        Array.isArray($sessionUser?.roles) && $sessionUser.roles.length > 0
+            ? $sessionUser.roles[0]
+            : "";
+
+    function openEditModal(user: User) {
+        console.log("openEditModal llamado con:", user);
+        selectedUser = user;
+        showEditModal = true;
+        console.log(
+            "showEditModal:",
+            showEditModal,
+            "selectedUser:",
+            selectedUser,
+        );
+    }
+    function closeEditModal() {
+        showEditModal = false;
+        selectedUser = null;
+    }
+    // Reemplaza handleEditSave para solo refrescar usuarios y cerrar el modal
+    async function handleEditSave() {
+        await loadUsers();
+        closeEditModal();
+    }
 </script>
 
 <div class="user-table-section">
@@ -443,8 +541,14 @@
             type="text"
             placeholder="Buscar por nombre o email..."
             class="filter-input"
+            bind:value={searchTerm}
         />
-        <select class="filter-select">
+        <select class="filter-select" bind:value={statusFilter}>
+            <option value="">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+        </select>
+        <select class="filter-select" bind:value={roleFilter}>
             <option value="">Todos los roles</option>
             {#each roles as role}
                 <option value={role.name}
@@ -464,7 +568,15 @@
             <option value="inst2">Santa María</option>
             <option value="inst3">CUIOT Central</option>
         </select>
-        <button class="btn-secondary">Limpiar filtros</button>
+        <button
+            class="btn-secondary"
+            on:click={() => {
+                searchTerm = "";
+                statusFilter = "";
+                roleFilter = "";
+                loadUsers();
+            }}>Limpiar filtros</button
+        >
     </div>
 
     <!-- Sección de Usuarios -->
@@ -474,7 +586,7 @@
             <div class="loading">Cargando usuarios...</div>
         {:else if error}
             <div class="error">{error}</div>
-        {:else if users.length === 0}
+        {:else if Array.isArray(users) && users.length === 0}
             <div class="empty">No hay usuarios registrados.</div>
         {:else}
             <table class="user-table">
@@ -540,7 +652,7 @@
                                     <button
                                         class="action-btn"
                                         title="Editar usuario"
-                                        on:click={() => openModal(user)}
+                                        on:click={() => openEditModal(user)}
                                     >
                                         <svg
                                             width="20"
@@ -579,18 +691,22 @@
                                     </button>
                                 </div>
                             </td>
-                            <td>{user.name}</td>
+                            <td
+                                >{`${user.first_name} ${user.last_name || ""}`.trim()}</td
+                            >
                             <td>{user.email}</td>
                             <td>
                                 <div class="user-roles">
-                                    {#each user.roles || [] as role}
-                                        <span class="role-badge"
-                                            >{ROLE_LABELS[role.name] ||
-                                                role.name}</span
+                                    <span class="role-badge">Usuario</span>
+                                    {#if user.is_freelance}
+                                        <span class="role-badge freelance"
+                                            >Freelance</span
                                         >
-                                    {/each}
-                                    {#if !user.roles || user.roles.length === 0}
-                                        <span class="no-role">Sin roles</span>
+                                    {/if}
+                                    {#if user.is_verified}
+                                        <span class="role-badge verified"
+                                            >Verificado</span
+                                        >
                                     {/if}
                                 </div>
                             </td>
@@ -617,93 +733,6 @@
         {/if}
     </div>
 
-    <!-- Modal de Usuario -->
-    {#if showModal}
-        <div class="modal-backdrop" on:click={closeModal}></div>
-        <div
-            class="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-title"
-        >
-            <button class="modal-close" on:click={closeModal} title="Cerrar"
-                >&times;</button
-            >
-            <h3 id="modal-title">
-                {selectedUser ? "Editar usuario" : "Nuevo usuario"}
-            </h3>
-            <form
-                class="modal-form"
-                on:submit|preventDefault={saveUser}
-                autocomplete="off"
-            >
-                <label>
-                    Nombre completo
-                    <input
-                        type="text"
-                        bind:value={form.name}
-                        placeholder="Nombre completo"
-                        required
-                        autofocus
-                    />
-                </label>
-                <label>
-                    Email
-                    <input
-                        type="email"
-                        bind:value={form.email}
-                        placeholder="Email"
-                        required
-                    />
-                </label>
-                {#if !selectedUser}
-                    <label>
-                        Contraseña
-                        <input
-                            type="password"
-                            bind:value={form.password}
-                            placeholder="Contraseña"
-                            required
-                        />
-                    </label>
-                {/if}
-                <label>
-                    Rol
-                    <select bind:value={form.role} required>
-                        <option value="">Seleccionar rol</option>
-                        {#each roles as role}
-                            <option value={role.name}
-                                >{ROLE_LABELS[role.name] || role.name}</option
-                            >
-                        {/each}
-                    </select>
-                </label>
-                <label>
-                    Estado
-                    <select bind:value={form.status} required>
-                        <option value="activo">Activo</option>
-                        <option value="inactivo">Inactivo</option>
-                    </select>
-                </label>
-                {#if error}
-                    <div class="form-error">{error}</div>
-                {/if}
-                <div class="modal-actions">
-                    <button type="submit" class="btn-primary"
-                        >{selectedUser
-                            ? "Guardar cambios"
-                            : "Crear usuario"}</button
-                    >
-                    <button
-                        type="button"
-                        class="btn-secondary"
-                        on:click={closeModal}>Cancelar</button
-                    >
-                </div>
-            </form>
-        </div>
-    {/if}
-
     <!-- Modal de Confirmación de Eliminación de Usuario -->
     {#if showDeleteModal}
         <div class="modal-backdrop" on:click={closeDeleteModal}></div>
@@ -721,7 +750,9 @@
             <h3 id="delete-modal-title">Eliminar usuario</h3>
             <p>
                 ¿Estás seguro que deseas eliminar el usuario <strong
-                    >{selectedUser?.name}</strong
+                    >{selectedUser
+                        ? `${selectedUser.first_name} ${selectedUser.last_name || ""}`.trim()
+                        : ""}</strong
                 >?
             </p>
             {#if error}
@@ -1176,6 +1207,29 @@
             {/if}
         </div>
     {/if}
+
+    <!-- Elimina el modal clásico de usuario -->
+    <!-- Mantén solo el modal avanzado: -->
+    <EditUserModal
+        user={selectedUser}
+        open={showEditModal}
+        {loading}
+        {sessionUserRole}
+        on:save={handleEditSave}
+        on:cancel={closeEditModal}
+    />
+
+    <!-- DEBUG: Estado del modal de edición -->
+    <details>
+        <summary>DEBUG: Modal edición</summary>
+        <div style="background:#222;color:#0f0;padding:1em;font-size:0.9em;">
+            <div><b>showEditModal:</b> {showEditModal ? "true" : "false"}</div>
+            <div><b>selectedUser:</b></div>
+            <pre>{selectedUser
+                    ? JSON.stringify(selectedUser, null, 2)
+                    : "null"}</pre>
+        </div>
+    </details>
 </div>
 
 <style>

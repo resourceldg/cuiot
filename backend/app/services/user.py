@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from uuid import UUID
+from sqlalchemy.orm import joinedload
 
 from app.models.user import User
 from app.models.role import Role
@@ -201,3 +202,50 @@ class UserService:
         }
         
         return UserWithRoles(**user_dict)
+
+    @staticmethod
+    def get_users_with_roles(
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        institution_id: Optional[int] = None,
+        is_freelance: Optional[bool] = None
+    ) -> List[UserWithRoles]:
+        """Get list of users with their roles"""
+        query = db.query(User).options(
+            joinedload(User.user_roles).joinedload(UserRole.role)
+        )
+        if institution_id is not None:
+            query = query.filter(User.institution_id == institution_id)
+        if is_freelance is not None:
+            query = query.filter(User.is_freelance == is_freelance)
+        users = query.offset(skip).limit(limit).all()
+        result = []
+        for user in users:
+            roles = [role.name for role in user.roles]
+            print(f"[DEBUG] Usuario: {user.id} | Email: {user.email} | Roles: {roles}")
+            user_dict = {
+                'id': user.id,
+                'email': user.email,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'phone': user.phone,
+                'date_of_birth': user.date_of_birth,
+                'gender': user.gender,
+                'professional_license': user.professional_license,
+                'specialization': user.specialization,
+                'experience_years': user.experience_years,
+                'is_freelance': user.is_freelance,
+                'hourly_rate': user.hourly_rate,
+                'availability': user.availability,
+                'is_verified': user.is_verified,
+                'is_active': user.is_active,
+                'last_login': user.last_login,
+                'institution_id': user.institution_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'roles': roles
+            }
+            result.append(UserWithRoles(**user_dict))
+        return result

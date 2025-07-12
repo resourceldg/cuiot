@@ -1,17 +1,17 @@
 <script lang="ts">
     import { getInstitutions } from "$lib/api/institutions";
-    import { getPackages } from "$lib/api/packages";
     import { getRoles } from "$lib/api/roles";
-    import CheckIcon from "$lib/ui/icons/CheckIcon.svelte";
+    import { assignRole, updateUser } from "$lib/api/users";
     import PlusIcon from "$lib/ui/icons/PlusIcon.svelte";
     import { createEventDispatcher, onMount } from "svelte";
-    import InstitutionSection from "./form-sections/InstitutionSection.svelte";
-    import LegalSection from "./form-sections/LegalSection.svelte";
-    import PersonalDataSection from "./form-sections/PersonalDataSection.svelte";
-    import ProfessionalSection from "./form-sections/ProfessionalSection.svelte";
-    import ValidationSection from "./form-sections/ValidationSection.svelte";
 
     const dispatch = createEventDispatcher();
+
+    // Props
+    export let disabled = false;
+    export let initialData: any = null;
+    export let editMode: boolean = false;
+    export let sessionUserRole: string = "";
 
     // Tipos
     interface Role {
@@ -41,15 +41,16 @@
     let loading = false;
     let submitting = false;
     let error = "";
+    let debugResult = null;
 
     // Datos de referencia
     let roles: Role[] = [];
     let institutions: Institution[] = [];
-    let packages: Package[] = [];
+    let rolesLoadError = false;
+    let institutionsLoadError = false;
 
-    // Formulario
+    // Inicialización robusta SOLO cuando cambia initialData y editMode
     let form = {
-        // Datos básicos (mínimos necesarios)
         first_name: "",
         last_name: "",
         email: "",
@@ -58,28 +59,52 @@
         confirm_password: "",
         role: "",
         is_active: true,
-
-        // Datos adicionales (expandibles)
         date_of_birth: "",
         gender: "",
-        institution_id: null as number | null,
-        package_id: null as string | null,
+        institution_id: null,
         professional_license: "",
         specialization: "",
         experience_years: 0,
         is_freelance: false,
         hourly_rate: 0,
         availability: "",
-        legal_representative_id: null as string | null,
+        legal_representative_id: null,
         legal_capacity_verified: false,
         terms_accepted: false,
+        is_verified: false,
     };
+
+    // Precarga robusta SOLO al abrir en modo edición
+    $: if (editMode && initialData && initialData.id !== form.id) {
+        form = { ...form, ...initialData };
+        // Mapear roles para compatibilidad
+        if (Array.isArray(initialData.roles) && initialData.roles.length > 0) {
+            form.role = initialData.roles[0];
+        } else if (initialData.role) {
+            form.role = initialData.role;
+        } else {
+            form.role = "";
+        }
+        // Asegura que el id esté presente en el form
+        if (initialData.id) {
+            form.id = initialData.id;
+        }
+    }
 
     // Validaciones
     let errors: Record<string, string> = {};
 
     // Secciones expandibles
-    let expandedSections = {
+    let expandedSections: {
+        [key: string]: boolean;
+        personal: boolean;
+        security: boolean;
+        role: boolean;
+        institution: boolean;
+        professional: boolean;
+        legal: boolean;
+        validation: boolean;
+    } = {
         personal: false,
         security: false,
         role: false,
@@ -88,6 +113,19 @@
         legal: false,
         validation: false,
     };
+
+    // Expandir todas las secciones automáticamente en modo edición
+    $: if (editMode) {
+        expandedSections = {
+            personal: true,
+            security: true,
+            role: true,
+            institution: true,
+            professional: true,
+            legal: true,
+            validation: true,
+        };
+    }
 
     // Filtros según rol seleccionado
     $: availableRoles = roles.filter(
@@ -103,11 +141,96 @@
         form.last_name &&
         form.email &&
         form.phone &&
-        form.password &&
         form.role;
 
+    // --- Lógica de edición por rol ---
+    function isFieldEditable(field: string): boolean {
+        // Si el usuario logueado es admin o sysadmin, todo editable
+        if (sessionUserRole === "admin" || sessionUserRole === "sysadmin")
+            return true;
+        // Si no hay rol, todo editable (modo desarrollo)
+        if (!form.role) return true;
+        // Caregiver: solo datos personales y profesionales
+        if (form.role === "caregiver") {
+            return [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "gender",
+                "date_of_birth",
+                "professional_license",
+                "specialization",
+                "experience_years",
+                "is_freelance",
+                "hourly_rate",
+                "availability",
+                "is_active",
+                "is_verified",
+            ].includes(field);
+        }
+        // Family: solo personales y legales
+        if (form.role === "family") {
+            return [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "gender",
+                "date_of_birth",
+                "legal_representative_id",
+                "legal_capacity_verified",
+                "terms_accepted",
+                "is_active",
+                "is_verified",
+            ].includes(field);
+        }
+        // Institution: solo institucionales y paquetes
+        if (form.role === "institution") {
+            return ["institution_id", "is_active", "is_verified"].includes(
+                field,
+            );
+        }
+        // Cared person: solo personales y salud
+        if (form.role === "cared_person") {
+            return [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "gender",
+                "date_of_birth",
+                "is_active",
+                "is_verified",
+            ].includes(field);
+        }
+        // Por defecto, editable
+        return true;
+    }
+
+    // --- Ajuste del botón Actualizar ---
+    $: canUpdate =
+        form.first_name &&
+        form.last_name &&
+        form.email &&
+        form.phone &&
+        (form.role || !editMode);
+
     onMount(async () => {
-        await Promise.all([loadRoles(), loadInstitutions(), loadPackages()]);
+        try {
+            roles = await getRoles();
+            rolesLoadError = false;
+        } catch (err) {
+            roles = [];
+            rolesLoadError = true;
+        }
+        try {
+            institutions = await getInstitutions();
+            institutionsLoadError = false;
+        } catch (err) {
+            institutions = [];
+            institutionsLoadError = true;
+        }
     });
 
     async function loadRoles() {
@@ -124,15 +247,6 @@
             institutions = await getInstitutions();
         } catch (err) {
             error = "Error al cargar instituciones";
-            console.error(err);
-        }
-    }
-
-    async function loadPackages() {
-        try {
-            packages = await getPackages();
-        } catch (err) {
-            error = "Error al cargar paquetes";
             console.error(err);
         }
     }
@@ -169,13 +283,15 @@
         } else if (!/^\+?[\d\s\-\(\)]+$/.test(form.phone)) {
             errors.phone = "Teléfono inválido";
         }
-        if (!form.password) {
-            errors.password = "Contraseña es requerida";
-        } else if (form.password.length < 8) {
-            errors.password = "Contraseña debe tener al menos 8 caracteres";
-        }
-        if (form.password !== form.confirm_password) {
-            errors.confirm_password = "Las contraseñas no coinciden";
+        if (!editMode) {
+            if (!form.password) {
+                errors.password = "Contraseña es requerida";
+            } else if (form.password.length < 8) {
+                errors.password = "Contraseña debe tener al menos 8 caracteres";
+            }
+            if (form.password !== form.confirm_password) {
+                errors.confirm_password = "Las contraseñas no coinciden";
+            }
         }
         if (!form.role) {
             errors.role = "Rol es requerido";
@@ -214,10 +330,6 @@
                 "Representante legal es requerido para cuidado delegado";
         }
 
-        if (!form.terms_accepted) {
-            errors.terms_accepted = "Debe aceptar los términos y condiciones";
-        }
-
         return Object.keys(errors).length === 0;
     }
 
@@ -237,18 +349,42 @@
         return age;
     }
 
-    function handleSubmit() {
+    // --- Guardar usuario y rol ---
+    async function handleSubmit() {
+        console.log("handleSubmit ejecutado");
         const isValid = expandedSections.validation
             ? validateFullForm()
             : validateMinimumData();
-
-        if (!isValid) return;
-
+        if (!isValid) {
+            console.log("Formulario no válido", errors, form);
+            return;
+        }
         submitting = true;
         error = "";
-
+        debugResult = {};
+        let updateResult, assignResult;
         try {
-            dispatch("submit", form);
+            // Guardar usuario (sin el campo 'role')
+            const userUpdateData = { ...form };
+            delete userUpdateData.role;
+            // Elimina password si está vacío
+            if (!userUpdateData.password) delete userUpdateData.password;
+            // Elimina date_of_birth si está vacío
+            if (!userUpdateData.date_of_birth)
+                delete userUpdateData.date_of_birth;
+            updateResult = await updateUser(form.id, userUpdateData);
+            debugResult.updateResult = updateResult;
+            // Si el rol cambió y el usuario es admin, asignar rol
+            if (
+                editMode &&
+                isFieldEditable("role") &&
+                form.role &&
+                form.role !== initialData.role
+            ) {
+                assignResult = await assignRole(form.id, form.role);
+                debugResult.assignResult = assignResult;
+            }
+            dispatch("submit", { ...form, debugResult });
         } catch (err) {
             error =
                 err instanceof Error
@@ -265,34 +401,47 @@
 </script>
 
 <div class="user-form-container">
+    {#if editMode}
+        <pre
+            style="background:#222;color:#0f0;padding:1em;overflow:auto;max-width:100%;font-size:0.9em;">
+            <strong>DEBUG INFO:</strong>
+            sessionUserRole: "{sessionUserRole}"
+            isFieldEditable("first_name"): {isFieldEditable("first_name")}
+            isFieldEditable("email"): {isFieldEditable("email")}
+            form.role: "{form.role}"
+            
+            <strong>FORM DATA:</strong>
+            {JSON.stringify(form, null, 2)}
+        </pre>
+    {/if}
+    {#if typeof disabled !== "undefined"}
+        <p style="color:yellow;background:#222;padding:4px;">
+            DEBUG: disabled prop = {disabled ? "true" : "false"}
+        </p>
+    {/if}
     {#if loading}
         <div class="loading-container">
             <div class="loading-spinner"></div>
             <p>Cargando datos...</p>
         </div>
     {:else}
-        {#if error}
-            <div class="error-message">
-                <span>{error}</span>
-            </div>
-        {/if}
-
-        <div class="form-header">
-            <div class="form-info">
-                <h2>Crear Usuario</h2>
-                <p>
-                    Complete los datos mínimos requeridos o expanda las
-                    secciones para información adicional
-                </p>
-            </div>
-            <button class="expand-all-btn" on:click={expandAllSections}>
-                <PlusIcon size={16} />
-                Expandir Todo
-            </button>
-        </div>
-
         <form on:submit|preventDefault={handleSubmit} class="user-form">
-            <!-- Datos Mínimos (siempre visibles) -->
+            <div class="form-header">
+                <div class="form-info">
+                    <h2>{editMode ? "Editar usuario" : "Crear Usuario"}</h2>
+                    <p>
+                        {editMode
+                            ? "Modifica los datos necesarios y actualiza el usuario."
+                            : "Complete los datos mínimos requeridos o expanda las secciones para información adicional"}
+                    </p>
+                </div>
+                {#if !editMode}
+                    <button class="expand-all-btn" on:click={expandAllSections}>
+                        <PlusIcon size={16} />
+                        Expandir Todo
+                    </button>
+                {/if}
+            </div>
             <div class="form-section required">
                 <div class="section-header">
                     <h3>📋 Datos Mínimos Requeridos</h3>
@@ -304,289 +453,286 @@
                         <input
                             id="first_name"
                             type="text"
-                            value={form.first_name}
-                            on:input={(e) =>
-                                updateForm("first_name", e.target.value)}
+                            bind:value={form.first_name}
                             class:error={errors.first_name}
+                            class:debug-not-editable={!isFieldEditable(
+                                "first_name",
+                            )}
                             placeholder="Ingrese el nombre"
                         />
-                        {#if errors.first_name}
-                            <span class="error-text">{errors.first_name}</span>
+                        {#if !isFieldEditable("first_name")}
+                            <span style="color:red;font-weight:bold;"
+                                >NO EDITABLE POR PERMISOS</span
+                            >
                         {/if}
+                        {#if errors.first_name}<span class="error-text"
+                                >{errors.first_name}</span
+                            >{/if}
                     </div>
-
                     <div class="form-group">
                         <label for="last_name">Apellido *</label>
                         <input
                             id="last_name"
                             type="text"
-                            value={form.last_name}
-                            on:input={(e) =>
-                                updateForm("last_name", e.target.value)}
+                            bind:value={form.last_name}
                             class:error={errors.last_name}
                             placeholder="Ingrese el apellido"
+                            disabled={!isFieldEditable("last_name")}
                         />
-                        {#if errors.last_name}
-                            <span class="error-text">{errors.last_name}</span>
-                        {/if}
+                        {#if errors.last_name}<span class="error-text"
+                                >{errors.last_name}</span
+                            >{/if}
                     </div>
-
                     <div class="form-group">
                         <label for="email">Email *</label>
                         <input
                             id="email"
                             type="email"
-                            value={form.email}
-                            on:input={(e) =>
-                                updateForm("email", e.target.value)}
+                            bind:value={form.email}
                             class:error={errors.email}
                             placeholder="usuario@ejemplo.com"
+                            disabled={!isFieldEditable("email")}
                         />
-                        {#if errors.email}
-                            <span class="error-text">{errors.email}</span>
-                        {/if}
+                        {#if errors.email}<span class="error-text"
+                                >{errors.email}</span
+                            >{/if}
                     </div>
-
                     <div class="form-group">
                         <label for="phone">Teléfono *</label>
                         <input
                             id="phone"
                             type="tel"
-                            value={form.phone}
-                            on:input={(e) =>
-                                updateForm("phone", e.target.value)}
+                            bind:value={form.phone}
                             class:error={errors.phone}
                             placeholder="+54 11 1234-5678"
+                            disabled={!isFieldEditable("phone")}
                         />
-                        {#if errors.phone}
-                            <span class="error-text">{errors.phone}</span>
-                        {/if}
+                        {#if errors.phone}<span class="error-text"
+                                >{errors.phone}</span
+                            >{/if}
                     </div>
-
                     <div class="form-group">
-                        <label for="password">Contraseña *</label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={form.password}
-                            on:input={(e) =>
-                                updateForm("password", e.target.value)}
-                            class:error={errors.password}
-                            placeholder="Mínimo 8 caracteres"
-                        />
-                        {#if errors.password}
-                            <span class="error-text">{errors.password}</span>
-                        {/if}
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirm_password"
-                            >Confirmar Contraseña *</label
+                        <label for="gender">Género</label>
+                        <select
+                            id="gender"
+                            bind:value={form.gender}
+                            disabled={!isFieldEditable("gender")}
                         >
-                        <input
-                            id="confirm_password"
-                            type="password"
-                            value={form.confirm_password}
-                            on:input={(e) =>
-                                updateForm("confirm_password", e.target.value)}
-                            class:error={errors.confirm_password}
-                            placeholder="Repita la contraseña"
-                        />
-                        {#if errors.confirm_password}
-                            <span class="error-text"
-                                >{errors.confirm_password}</span
-                            >
-                        {/if}
+                            <option value="">Seleccionar</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="otro">Otro</option>
+                        </select>
                     </div>
-
+                    <div class="form-group">
+                        <label for="date_of_birth">Fecha de nacimiento</label>
+                        <input
+                            id="date_of_birth"
+                            type="date"
+                            bind:value={form.date_of_birth}
+                            disabled={!isFieldEditable("date_of_birth")}
+                        />
+                    </div>
                     <div class="form-group">
                         <label for="role">Rol *</label>
                         <select
                             id="role"
-                            value={form.role}
-                            on:change={(e) =>
-                                updateForm("role", e.target.value)}
+                            bind:value={form.role}
                             class:error={errors.role}
+                            disabled={!isFieldEditable("role")}
                         >
-                            <option value="">Seleccionar rol</option>
-                            {#each availableRoles as role}
-                                <option value={role.name}>{role.name}</option>
-                            {/each}
+                            {#if roles.length === 0}
+                                <option value="">Sin datos</option>
+                            {:else}
+                                <option value="">Seleccionar rol</option>
+                                {#each roles as role}
+                                    <option value={role.name}
+                                        >{role.name}</option
+                                    >
+                                {/each}
+                            {/if}
                         </select>
-                        {#if errors.role}
-                            <span class="error-text">{errors.role}</span>
+                        {#if rolesLoadError}
+                            <span class="warning-text"
+                                >No se pudieron cargar los roles.</span
+                            >
                         {/if}
+                        {#if errors.role}<span class="error-text"
+                                >{errors.role}</span
+                            >{/if}
                     </div>
-
                     <div class="form-group">
                         <label for="is_active">Estado</label>
-                        <div class="checkbox-group">
-                            <input
-                                id="is_active"
-                                type="checkbox"
-                                checked={form.is_active}
-                                on:change={(e) =>
-                                    updateForm("is_active", e.target.checked)}
-                            />
-                            <label for="is_active">Usuario activo</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Datos Personales Adicionales -->
-            <div class="form-section expandable">
-                <div
-                    class="section-header"
-                    on:click={() => toggleSection("personal")}
-                >
-                    <h3>👤 Datos Personales Adicionales</h3>
-                    <button
-                        type="button"
-                        class="expand-btn"
-                        class:expanded={expandedSections.personal}
-                    >
-                        <PlusIcon size={16} />
-                    </button>
-                </div>
-                {#if expandedSections.personal}
-                    <PersonalDataSection
-                        {form}
-                        {errors}
-                        on:update={(e) =>
-                            updateForm(e.detail.field, e.detail.value)}
-                    />
-                {/if}
-            </div>
-
-            <!-- Institución y Paquete -->
-            <div class="form-section expandable">
-                <div
-                    class="section-header"
-                    on:click={() => toggleSection("institution")}
-                >
-                    <h3>🏥 Institución y Paquete</h3>
-                    <button
-                        type="button"
-                        class="expand-btn"
-                        class:expanded={expandedSections.institution}
-                    >
-                        <PlusIcon size={16} />
-                    </button>
-                </div>
-                {#if expandedSections.institution}
-                    <InstitutionSection
-                        {form}
-                        {institutions}
-                        {packages}
-                        on:update={(e) =>
-                            updateForm(e.detail.field, e.detail.value)}
-                    />
-                {/if}
-            </div>
-
-            <!-- Datos Profesionales (solo para cuidadores) -->
-            {#if isCaregiver}
-                <div class="form-section expandable">
-                    <div
-                        class="section-header"
-                        on:click={() => toggleSection("professional")}
-                    >
-                        <h3>💼 Datos Profesionales</h3>
-                        <button
-                            type="button"
-                            class="expand-btn"
-                            class:expanded={expandedSections.professional}
-                        >
-                            <PlusIcon size={16} />
-                        </button>
-                    </div>
-                    {#if expandedSections.professional}
-                        <ProfessionalSection
-                            {form}
-                            {errors}
-                            on:update={(e) =>
-                                updateForm(e.detail.field, e.detail.value)}
+                        <input
+                            id="is_active"
+                            type="checkbox"
+                            checked={form.is_active}
+                            disabled={!isFieldEditable("is_active")}
+                            on:change={(e) =>
+                                updateForm(
+                                    "is_active",
+                                    (e.target as HTMLInputElement).checked,
+                                )}
                         />
-                    {/if}
+                        <span>Usuario activo</span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>🧑‍💼 Datos Profesionales</h3>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="professional_license"
+                            >Licencia profesional *</label
+                        >
+                        <input
+                            id="professional_license"
+                            type="text"
+                            bind:value={form.professional_license}
+                            class:error={errors.professional_license}
+                            placeholder="Ingrese la licencia profesional"
+                            disabled={!isFieldEditable("professional_license")}
+                        />
+                        {#if errors.professional_license}
+                            <span class="error-text"
+                                >{errors.professional_license}</span
+                            >
+                        {/if}
+                    </div>
+                    <div class="form-group">
+                        <label for="specialization">Especialización</label>
+                        <input
+                            id="specialization"
+                            type="text"
+                            bind:value={form.specialization}
+                            disabled={!isFieldEditable("specialization")}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="experience_years">Años de experiencia</label
+                        >
+                        <input
+                            id="experience_years"
+                            type="number"
+                            min="0"
+                            bind:value={form.experience_years}
+                            disabled={!isFieldEditable("experience_years")}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="is_freelance">¿Freelance?</label>
+                        <input
+                            id="is_freelance"
+                            type="checkbox"
+                            checked={form.is_freelance}
+                            disabled={!isFieldEditable("is_freelance")}
+                            on:change={(e) =>
+                                updateForm(
+                                    "is_freelance",
+                                    (e.target as HTMLInputElement).checked,
+                                )}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="hourly_rate">Tarifa por hora</label>
+                        <input
+                            id="hourly_rate"
+                            type="number"
+                            min="0"
+                            bind:value={form.hourly_rate}
+                            disabled={!isFieldEditable("hourly_rate")}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="availability">Disponibilidad</label>
+                        <input
+                            id="availability"
+                            type="text"
+                            bind:value={form.availability}
+                            disabled={!isFieldEditable("availability")}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="is_verified">¿Verificado?</label>
+                        <input
+                            id="is_verified"
+                            type="checkbox"
+                            checked={form.is_verified}
+                            disabled={!isFieldEditable("is_verified")}
+                            on:change={(e) =>
+                                updateForm(
+                                    "is_verified",
+                                    (e.target as HTMLInputElement).checked,
+                                )}
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="institution_id">Institución</label>
+                        <select
+                            id="institution_id"
+                            bind:value={form.institution_id}
+                            disabled={!isFieldEditable("institution_id")}
+                        >
+                            {#if institutions.length === 0}
+                                <option value="">Sin datos</option>
+                            {:else}
+                                <option value="">Sin institución</option>
+                                {#each institutions as inst}
+                                    <option value={inst.id}>{inst.name}</option>
+                                {/each}
+                            {/if}
+                        </select>
+                        {#if institutionsLoadError}
+                            <span class="warning-text"
+                                >No se pudieron cargar instituciones.</span
+                            >
+                        {/if}
+                    </div>
+                </div>
+            </div>
+            {#if error}
+                <div class="error-message">
+                    <span>{error}</span>
                 </div>
             {/if}
-
-            <!-- Representante Legal (solo para cuidado delegado) -->
-            {#if requiresRepresentative}
-                <div class="form-section expandable">
-                    <div
-                        class="section-header"
-                        on:click={() => toggleSection("legal")}
-                    >
-                        <h3>⚖️ Representante Legal</h3>
-                        <button
-                            type="button"
-                            class="expand-btn"
-                            class:expanded={expandedSections.legal}
-                        >
-                            <PlusIcon size={16} />
-                        </button>
-                    </div>
-                    {#if expandedSections.legal}
-                        <LegalSection
-                            {form}
-                            {errors}
-                            on:update={(e) =>
-                                updateForm(e.detail.field, e.detail.value)}
-                        />
-                    {/if}
-                </div>
-            {/if}
-
-            <!-- Validaciones -->
-            <div class="form-section expandable">
-                <div
-                    class="section-header"
-                    on:click={() => toggleSection("validation")}
-                >
-                    <h3>✅ Validaciones y Términos</h3>
-                    <button
-                        type="button"
-                        class="expand-btn"
-                        class:expanded={expandedSections.validation}
-                    >
-                        <PlusIcon size={16} />
-                    </button>
-                </div>
-                {#if expandedSections.validation}
-                    <ValidationSection
-                        {form}
-                        {errors}
-                        on:update={(e) =>
-                            updateForm(e.detail.field, e.detail.value)}
-                    />
-                {/if}
-            </div>
-
-            <!-- Botones -->
             <div class="form-actions">
-                <div class="form-status">
-                    {#if hasMinimumData}
-                        <div class="status-valid">
-                            <CheckIcon size={16} />
-                            <span>Datos mínimos completos</span>
-                        </div>
-                    {:else}
-                        <div class="status-incomplete">
-                            <span>Complete los datos mínimos requeridos</span>
-                        </div>
-                    {/if}
-                </div>
                 <button
                     type="submit"
                     class="btn-primary"
-                    disabled={submitting || !hasMinimumData}
+                    disabled={disabled || submitting || !canUpdate}
                 >
-                    {submitting ? "Creando..." : "Crear Usuario"}
+                    {editMode
+                        ? "Actualizar"
+                        : submitting
+                          ? "Creando..."
+                          : "Crear Usuario"}
                 </button>
             </div>
         </form>
+    {/if}
+    {#if editMode && !form.role}
+        <div class="warning-text">
+            (Modo desarrollo) El usuario no tiene rol asignado. Todos los campos
+            son editables.
+        </div>
+    {/if}
+    {#if editMode && form.role === ""}
+        <div class="error-text">
+            Debe asignar un rol para guardar cambios en producción.
+        </div>
+    {/if}
+    {#if debugResult}
+        <details>
+            <summary>DEBUG: Respuesta de la API</summary>
+            <pre
+                style="background: #f0f0f0; padding: 10px; border-radius: 4px; font-size: 12px; overflow: auto; max-height: 200px;">{JSON.stringify(
+                    debugResult,
+                    null,
+                    2,
+                )}</pre>
+        </details>
     {/if}
 </div>
 
@@ -746,8 +892,8 @@
 
     .form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: var(--spacing-md);
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
         padding: var(--spacing-lg);
     }
 
@@ -858,28 +1004,38 @@
         cursor: not-allowed;
     }
 
-    @media (max-width: 768px) {
-        .user-form-container {
-            padding: var(--spacing-md);
+    .user-form {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 1rem 1rem 1rem;
+        overflow-y: auto;
+        /* Elimina max-height para evitar recorte de campos */
+    }
+    .form-section {
+        margin-bottom: 1.5rem;
+        background: var(--color-bg-card);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1rem;
+    }
+    @media (max-width: 600px) {
+        .user-form {
+            max-width: 100vw;
+            padding: 0 0.5rem 1rem 0.5rem;
+            max-height: 90vh;
         }
-
-        .form-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: var(--spacing-md);
-        }
-
         .form-grid {
             grid-template-columns: 1fr;
         }
-
-        .form-actions {
-            flex-direction: column;
-            gap: var(--spacing-md);
-        }
-
-        .btn-primary {
-            width: 100%;
-        }
+    }
+    .warning-text {
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+        margin-top: 2px;
+        display: block;
+    }
+    .debug-not-editable {
+        border: 2px solid red !important;
+        background: #ffeaea;
     }
 </style>

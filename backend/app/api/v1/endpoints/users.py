@@ -123,7 +123,7 @@ def get_role(role_name: str, db: Session = Depends(get_db)):
         "is_active": role.is_active
     }
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/", response_model=List[UserWithRoles])
 def get_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -133,7 +133,7 @@ def get_users(
     current_user = Depends(AuthService.get_current_active_user)
 ):
     """Get list of users"""
-    users = UserService.get_users(
+    users = UserService.get_users_with_roles(
         db, 
         skip=skip, 
         limit=limit,

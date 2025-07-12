@@ -4,7 +4,7 @@
     import { getRoles } from "$lib/api/roles";
     import { getInstitutions } from "$lib/api/institutions";
     import { getPackages } from "$lib/api/packages";
-    import { createUser } from "$lib/api/users";
+    import { createUser, type UserCreateData } from "$lib/api/users";
     import SectionHeader from "../../shared/ui/SectionHeader.svelte";
     import UserIcon from "$lib/ui/icons/UserIcon.svelte";
     import XIcon from "$lib/ui/icons/XIcon.svelte";
@@ -220,46 +220,45 @@
         error = "";
         success = "";
 
-        try {
-            const userData = {
-                first_name: form.first_name,
-                last_name: form.last_name,
-                email: form.email,
-                phone: form.phone,
-                password: form.password,
-                date_of_birth: form.date_of_birth,
-                gender: form.gender,
-                role: form.role,
-                is_active: form.is_active,
-                institution_id: form.institution_id,
-                package_id: form.package_id,
-                professional_license: form.professional_license,
-                specialization: form.specialization,
-                experience_years: form.experience_years,
-                is_freelance: form.is_freelance,
-                hourly_rate: form.hourly_rate,
-                availability: form.availability,
-                legal_representative_id: form.legal_representative_id,
-                legal_capacity_verified: form.legal_capacity_verified
-            };
+        const userData: UserCreateData = {
+            first_name: form.first_name,
+            last_name: form.last_name,
+            email: form.email,
+            phone: form.phone,
+            password: form.password,
+            date_of_birth: form.date_of_birth,
+            gender: form.gender,
+            role: form.role,
+            is_active: form.is_active,
+            institution_id: form.institution_id,
+            package_id: form.package_id,
+            professional_license: form.professional_license,
+            specialization: form.specialization,
+            experience_years: form.experience_years,
+            is_freelance: form.is_freelance,
+            hourly_rate: form.hourly_rate,
+            availability: form.availability,
+            legal_representative_id: form.legal_representative_id,
+            legal_capacity_verified: form.legal_capacity_verified
+        };
 
-            await createUser(userData);
-            success = "Usuario creado exitosamente";
-            
-            // Limpiar formulario
-            resetForm();
-            
-            // Cerrar modal después de un delay
-            setTimeout(() => {
-                dispatch('userCreated');
-                closeModal();
-            }, 1500);
-
-        } catch (err) {
-            error = err instanceof Error ? err.message : "Error al crear usuario";
-        } finally {
+        const { data, error: apiError } = await createUser(userData);
+        if (apiError) {
+            error = apiError;
             submitting = false;
+            return;
         }
+        success = "Usuario creado exitosamente";
+        
+        // Limpiar formulario
+        resetForm();
+        
+        // Cerrar modal después de un delay
+        setTimeout(() => {
+            dispatch('userCreated');
+            closeModal();
+        }, 1500);
+        submitting = false;
     }
 
     function resetForm() {

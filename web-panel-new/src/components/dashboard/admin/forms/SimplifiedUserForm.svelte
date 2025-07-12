@@ -140,6 +140,10 @@
             legal: false,
         };
     }
+
+    $: if (formData && Array.isArray(formData.roles)) {
+        formData.role = formData.roles.length > 0 ? formData.roles[0] : "";
+    }
 </script>
 
 <div class="simplified-form">

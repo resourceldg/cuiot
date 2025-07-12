@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import { goto } from "$app/navigation";
     import {
         getAlerts,
@@ -6,6 +6,7 @@
         getPackages,
         getUsers,
     } from "$lib/api/index.js";
+    import type { User } from "$lib/api/users";
     import Button from "$lib/ui/Button.svelte";
     import MetricCard from "$lib/ui/MetricCard.svelte";
     import AdminIcon from "$lib/ui/icons/AdminIcon.svelte";
@@ -14,7 +15,7 @@
     import UserIcon from "$lib/ui/icons/UserIcon.svelte";
     import { onMount } from "svelte";
 
-    let users = [];
+    let users: User[] = [];
     let institutions = [];
     let packages = [];
     let alerts = [];
@@ -27,16 +28,22 @@
 
     async function loadKPIData() {
         loading = true;
+        error = null;
+        const { data, error: apiError } = await getUsers();
+        if (apiError) {
+            error = apiError;
+            users = [];
+        } else if (data) {
+            users = Array.isArray(data) ? data : [];
+        }
         try {
-            const [usersData, institutionsData, packagesData, alertsData] =
+            const [institutionsData, packagesData, alertsData] =
                 await Promise.all([
-                    getUsers(),
                     getInstitutions(),
                     getPackages(),
                     getAlerts(),
                 ]);
 
-            users = usersData;
             institutions = institutionsData;
             packages = packagesData;
             alerts = alertsData;
