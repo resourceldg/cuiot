@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.services.auth import AuthService, security
 from app.services.user import UserService
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserWithRoles
-from app.schemas.role import RoleAssign, RoleBase
+from app.schemas.role import RoleAssign, RoleBase, RoleUpdate
 from app.models.role import Role
 from app.models.user import User
 
@@ -121,6 +121,41 @@ def get_role(role_name: str, db: Session = Depends(get_db)):
         "created_at": role.created_at.isoformat() if role.created_at else None,
         "updated_at": role.updated_at.isoformat() if role.updated_at else None,
         "is_active": role.is_active
+    }
+
+@router.put("/roles/{role_id}")
+def update_role(
+    role_id: str,
+    role_data: RoleUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.require_permission("users.write"))
+):
+    """Actualizar un rol existente (solo admin)"""
+    if not current_user.has_role("admin"):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden actualizar roles")
+    role = db.query(Role).filter_by(id=role_id).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    # No permitir cambiar el nombre de roles de sistema
+    if role.is_system and role_data.name and role_data.name != role.name:
+        raise HTTPException(status_code=400, detail="No se puede cambiar el nombre de un rol de sistema")
+    # Actualizar campos
+    if role_data.name:
+        role.name = role_data.name
+    if role_data.description is not None:
+        role.description = role_data.description
+    if role_data.permissions is not None:
+        import json
+        role.permissions = json.dumps(role_data.permissions) if isinstance(role_data.permissions, dict) else role_data.permissions
+    if role_data.is_system is not None:
+        role.is_system = role_data.is_system
+    from datetime import datetime
+    role.updated_at = datetime.now()
+    db.commit()
+    db.refresh(role)
+    return {
+        "message": "Rol actualizado exitosamente",
+        "role_id": str(role.id)
     }
 
 @router.get("/", response_model=List[UserWithRoles])

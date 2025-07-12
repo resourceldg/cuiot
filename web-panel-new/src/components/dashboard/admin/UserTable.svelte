@@ -1,6 +1,11 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { createRole, deleteRole, getRoles } from "$lib/api/roles";
+    import {
+        createRole,
+        deleteRole,
+        getRoles,
+        updateRole,
+    } from "$lib/api/roles";
     import {
         createUser,
         deleteUser,
@@ -9,6 +14,7 @@
     } from "$lib/api/users";
     import { user as sessionUser } from "$lib/sessionStore.js";
     import { onMount } from "svelte";
+    // import ModalNotification from "../../shared/ui/ModalNotification.svelte";
     import EditUserModal from "./EditUserModal.svelte";
 
     // Tipos explícitos para usuarios y roles
@@ -54,6 +60,11 @@
     let showRoleModal = false;
     // Cambia la declaración de selectedUser para aceptar null
     let selectedUser: User | null = null;
+    let deleting = false;
+    let showDeleteNotification = false;
+    let deleteNotificationType: "success" | "error" = "success";
+    let deleteNotificationMessage = "";
+    let deleteNotificationSubtitle = "";
 
     // Filtros
     let searchTerm = "";
@@ -104,6 +115,18 @@
     let allPackages: any[] = [];
     let packageLoading = false;
     let packageError = "";
+
+    // Estados para notificaciones de roles
+    let showRoleNotification = false;
+    let roleNotificationType: "success" | "error" = "success";
+    let roleNotificationMessage = "";
+    let roleNotificationSubtitle = "";
+
+    // Estados para notificaciones de eliminación de roles
+    let showDeleteRoleNotification = false;
+    let deleteRoleNotificationType: "success" | "error" = "success";
+    let deleteRoleNotificationMessage = "";
+    let deleteRoleNotificationSubtitle = "";
 
     // --- Cambiar nombres de roles a versión corta ---
     const ROLE_LABELS = {
@@ -212,6 +235,41 @@
         selectedUser = null;
     }
 
+    // --- Validaciones para roles ---
+    let roleErrors = { name: "", description: "" };
+    let roleSuccess = "";
+
+    function validateRoleForm() {
+        roleErrors = { name: "", description: "" };
+        roleSuccess = "";
+        if (!roleForm.name.trim()) {
+            roleErrors.name = "El nombre del rol es requerido.";
+        } else if (
+            roles.some(
+                (r) =>
+                    r.name === roleForm.name &&
+                    (isNewRole || r.name !== roleForm.name),
+            )
+        ) {
+            roleErrors.name = "Ya existe un rol con ese nombre.";
+        }
+        if (!roleForm.description || roleForm.description.trim().length < 5) {
+            roleErrors.description =
+                "La descripción debe tener al menos 5 caracteres.";
+        }
+        return !roleErrors.name && !roleErrors.description;
+    }
+
+    const PERMISSION_CATEGORIES = {
+        users: { read: false, write: false, delete: false },
+        roles: { read: false, write: false, delete: false },
+        institutions: { read: false, write: false, delete: false },
+        packages: { read: false, write: false, delete: false },
+        alerts: { read: false, write: false, delete: false },
+        events: { read: false, write: false, delete: false },
+        reports: { read: false, write: false, delete: false },
+    };
+
     function openNewRoleModal() {
         roleForm = {
             name: "",
@@ -220,27 +278,44 @@
             is_system: false,
         };
         isNewRole = true;
-        editablePermissions = {
-            users: { read: false, write: false, delete: false },
-            roles: { read: false, write: false, delete: false },
-            institutions: { read: false, write: false, delete: false },
-            packages: { read: false, write: false, delete: false },
-            alerts: { read: false, write: false, delete: false },
-            events: { read: false, write: false, delete: false },
-            reports: { read: false, write: false, delete: false },
-        };
+        editablePermissions = JSON.parse(JSON.stringify(PERMISSION_CATEGORIES));
         showRoleModal = true;
+        roleErrors = { name: "", description: "" };
+        roleSuccess = "";
     }
 
     function openRoleModal(role: Role) {
         roleForm = {
+            id: role.id,
             name: role.name,
             description: role.description || "",
             permissions: role.permissions,
             is_system: role.is_system || false,
         };
+        // Inicializar editablePermissions con los permisos actuales del rol, rellenando faltantes
+        let perms = role.permissions;
+        if (typeof perms === "string") {
+            try {
+                perms = JSON.parse(perms);
+            } catch {
+                perms = {};
+            }
+        }
+        // Asegurar que perms no sea null
+        if (!perms || typeof perms !== "object") {
+            perms = {};
+        }
+        editablePermissions = {};
+        for (const cat in PERMISSION_CATEGORIES) {
+            editablePermissions[cat] = {
+                ...PERMISSION_CATEGORIES[cat],
+                ...(perms[cat] || {}),
+            };
+        }
         isNewRole = false;
         showRoleModal = true;
+        roleErrors = { name: "", description: "" };
+        roleSuccess = "";
     }
 
     function closeRoleModal() {
@@ -261,7 +336,7 @@
         permission: string,
         value: boolean,
     ) {
-        if (isNewRole && editablePermissions[category]) {
+        if (editablePermissions && editablePermissions[category]) {
             editablePermissions[category][permission] = value;
             roleForm.permissions = editablePermissions;
         }
@@ -313,23 +388,63 @@
             return;
         }
 
-        const { error: delError } = await deleteUser(selectedUser.id);
-        if (delError) {
-            error = delError;
-            return;
+        deleting = true;
+        showDeleteNotification = false; // Reset notification state
+        deleteNotificationType = "success"; // Default to success
+        deleteNotificationMessage = "";
+        deleteNotificationSubtitle = "";
+
+        try {
+            await deleteUser(selectedUser.id);
+            await loadUsers();
+            deleteNotificationMessage = "Usuario eliminado";
+            deleteNotificationSubtitle = `El usuario ${selectedUser.first_name} ${selectedUser.last_name || ""} ha sido eliminado.`;
+            showDeleteNotification = true;
+        } catch (err) {
+            error = getErrorMessage(err);
+            deleteNotificationType = "error";
+            deleteNotificationMessage = "Error al eliminar usuario";
+            deleteNotificationSubtitle = error;
+            showDeleteNotification = true;
+        } finally {
+            deleting = false;
+            closeDeleteModal();
         }
-        await loadUsers();
-        closeDeleteModal();
     }
 
     async function saveRole() {
+        if (!validateRoleForm()) return;
+
+        // Asegurar que editablePermissions no sea null
+        const permissionsToSave = editablePermissions || {};
+
+        // Actualizar permisos antes de enviar
+        const dataToSend = {
+            ...roleForm,
+            permissions: JSON.stringify(permissionsToSave),
+        };
         try {
-            await createRole(roleForm);
+            if (isNewRole) {
+                await createRole(dataToSend);
+                roleNotificationMessage = "Rol creado exitosamente";
+                roleNotificationSubtitle =
+                    "El nuevo rol ha sido agregado al sistema.";
+            } else {
+                await updateRole(roleForm.id, dataToSend);
+                roleNotificationMessage = "Rol actualizado exitosamente";
+                roleNotificationSubtitle =
+                    "Los cambios han sido guardados correctamente.";
+            }
             await loadRoles();
-            closeRoleModal();
+            roleNotificationType = "success";
+            showRoleNotification = true;
         } catch (err) {
             rolesError = getErrorMessage(err);
-            console.error("Error creating role:", err);
+            roleNotificationType = "error";
+            roleNotificationMessage = "Error al procesar el rol";
+            roleNotificationSubtitle = rolesError;
+            showRoleNotification = true;
+            console.error("Error creando/actualizando rol:", err);
         }
     }
 
@@ -337,8 +452,17 @@
         try {
             await deleteRole(roleId);
             await loadRoles();
+            deleteRoleNotificationType = "success";
+            deleteRoleNotificationMessage = "Rol eliminado exitosamente";
+            deleteRoleNotificationSubtitle =
+                "El rol ha sido removido del sistema.";
+            showDeleteRoleNotification = true;
         } catch (err) {
             rolesError = getErrorMessage(err);
+            deleteRoleNotificationType = "error";
+            deleteRoleNotificationMessage = "Error al eliminar rol";
+            deleteRoleNotificationSubtitle = rolesError;
+            showDeleteRoleNotification = true;
             console.error("Error deleting role:", err);
         }
     }
@@ -445,6 +569,59 @@
         await loadUsers();
         closeEditModal();
     }
+
+    // --- Confirmación de borrado de rol ---
+    let showDeleteRoleModal = false;
+    let roleToDelete = null;
+    let deleteRoleSuccess = "";
+
+    function confirmDeleteRole(role) {
+        roleToDelete = role;
+        showDeleteRoleModal = true;
+        deleteRoleSuccess = "";
+    }
+    function closeDeleteRoleModal() {
+        showDeleteRoleModal = false;
+        roleToDelete = null;
+        deleteRoleSuccess = "";
+    }
+    async function handleDeleteRole() {
+        if (!roleToDelete) return;
+        try {
+            await deleteRole(roleToDelete.id);
+            await loadRoles();
+            deleteRoleSuccess = "Rol eliminado exitosamente.";
+            setTimeout(() => {
+                closeDeleteRoleModal();
+            }, 1200);
+        } catch (err) {
+            rolesError = getErrorMessage(err);
+        }
+    }
+
+    // ... existing code ...
+    $: if (showRoleNotification) {
+        setTimeout(() => {
+            showRoleNotification = false;
+            closeRoleModal();
+        }, 1300); // duración de la animación + margen
+    }
+
+    // ... existing code ...
+    $: if (showDeleteNotification) {
+        setTimeout(() => {
+            showDeleteNotification = false;
+            closeDeleteModal();
+        }, 1300);
+    }
+
+    // ... existing code ...
+    $: if (showDeleteRoleNotification) {
+        setTimeout(() => {
+            showDeleteRoleNotification = false;
+            closeDeleteRoleModal();
+        }, 1300);
+    }
 </script>
 
 <div class="user-table-section">
@@ -508,7 +685,7 @@
                                 </button>
                                 <button
                                     class="delete-btn"
-                                    on:click={() => deleteRoleHandler(role.id)}
+                                    on:click={() => confirmDeleteRole(role)}
                                     title="Eliminar rol"
                                 >
                                     <svg
@@ -745,27 +922,70 @@
             <button
                 class="modal-close"
                 on:click={closeDeleteModal}
-                title="Cerrar">&times;</button
+                title="Cerrar"
+                disabled={deleting}>&times;</button
             >
             <h3 id="delete-modal-title">Eliminar usuario</h3>
-            <p>
-                ¿Estás seguro que deseas eliminar el usuario <strong
-                    >{selectedUser
-                        ? `${selectedUser.first_name} ${selectedUser.last_name || ""}`.trim()
-                        : ""}</strong
-                >?
-            </p>
-            {#if error}
-                <div class="form-error">{error}</div>
+
+            {#if !showDeleteNotification}
+                <p>
+                    ¿Estás seguro que deseas eliminar el usuario <strong
+                        >{selectedUser
+                            ? `${selectedUser.first_name} ${selectedUser.last_name || ""}`.trim()
+                            : ""}</strong
+                    >?
+                </p>
+                {#if error}
+                    <div class="form-error">{error}</div>
+                {/if}
             {/if}
+
             <div class="modal-actions">
-                <button class="btn-danger" on:click={deleteUserHandler}
-                    >Eliminar</button
+                {#if !showDeleteNotification}
+                    <button
+                        class="btn-danger"
+                        on:click={deleteUserHandler}
+                        disabled={deleting}
+                    >
+                        {#if deleting}
+                            <span class="loading-spinner"></span> Eliminando...
+                        {:else}
+                            Eliminar
+                        {/if}
+                    </button>
+                {/if}
+                <button
+                    class="btn-secondary"
+                    on:click={closeDeleteModal}
+                    disabled={deleting}
                 >
-                <button class="btn-secondary" on:click={closeDeleteModal}
-                    >Cancelar</button
-                >
+                    {showDeleteNotification ? "Cerrar" : "Cancelar"}
+                </button>
             </div>
+
+            <!-- Componente de notificación -->
+            {#if showDeleteNotification}
+                <div class="simple-success-notification">
+                    <svg class="checkmark" viewBox="0 0 52 52">
+                        <circle
+                            class="checkmark-circle"
+                            cx="26"
+                            cy="26"
+                            r="25"
+                            fill="none"
+                        />
+                        <path
+                            class="checkmark-check"
+                            fill="none"
+                            d="M14 27l7 7 16-16"
+                        />
+                    </svg>
+                    <div class="simple-success-text">
+                        <h2>{deleteNotificationMessage}</h2>
+                        <p>{deleteNotificationSubtitle}</p>
+                    </div>
+                </div>
+            {/if}
         </div>
     {/if}
 
@@ -798,6 +1018,9 @@
                         required
                         disabled={roleForm.is_system}
                     />
+                    {#if roleErrors.name}<span class="form-error"
+                            >{roleErrors.name}</span
+                        >{/if}
                 </label>
                 <label>
                     Descripción
@@ -807,279 +1030,235 @@
                         rows="3"
                         disabled={roleForm.is_system}
                     ></textarea>
+                    {#if roleErrors.description}<span class="form-error"
+                            >{roleErrors.description}</span
+                        >{/if}
                 </label>
                 {#if roleForm.is_system}
                     <div class="form-info">Rol de sistema. No editable.</div>
                 {/if}
                 <label>
                     Permisos
-                    {#if isNewRole}
-                        <div class="permissions-editor">
-                            <h4>Permisos del Rol</h4>
-                            <div class="permissions-grid">
-                                <div class="perm-category">
-                                    <h5>Usuarios</h5>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.users.read
-                                            }
-                                        />
-                                        Leer usuarios
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.users.write
-                                            }
-                                        />
-                                        Crear/editar usuarios
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.users.delete
-                                            }
-                                        />
-                                        Eliminar usuarios
-                                    </label>
-                                </div>
-                                <div class="perm-category">
-                                    <h5>Roles</h5>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.roles.read
-                                            }
-                                        />
-                                        Leer roles
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.roles.write
-                                            }
-                                        />
-                                        Crear/editar roles
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.roles.delete
-                                            }
-                                        />
-                                        Eliminar roles
-                                    </label>
-                                </div>
-                                <div class="perm-category">
-                                    <h5>Instituciones</h5>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.institutions
-                                                    .read
-                                            }
-                                        />
-                                        Leer instituciones
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.institutions
-                                                    .write
-                                            }
-                                        />
-                                        Crear/editar instituciones
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.institutions
-                                                    .delete
-                                            }
-                                        />
-                                        Eliminar instituciones
-                                    </label>
-                                </div>
-                                <div class="perm-category">
-                                    <h5>Paquetes</h5>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.packages
-                                                    .read
-                                            }
-                                        />
-                                        Leer paquetes
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.packages
-                                                    .write
-                                            }
-                                        />
-                                        Crear/editar paquetes
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.packages
-                                                    .delete
-                                            }
-                                        />
-                                        Eliminar paquetes
-                                    </label>
-                                </div>
-                                <div class="perm-category">
-                                    <h5>Alertas</h5>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.alerts.read
-                                            }
-                                        />
-                                        Leer alertas
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.alerts.write
-                                            }
-                                        />
-                                        Crear/editar alertas
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.alerts
-                                                    .delete
-                                            }
-                                        />
-                                        Eliminar alertas
-                                    </label>
-                                </div>
-                                <div class="perm-category">
-                                    <h5>Eventos</h5>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.events.read
-                                            }
-                                        />
-                                        Leer eventos
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.events.write
-                                            }
-                                        />
-                                        Crear/editar eventos
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.events
-                                                    .delete
-                                            }
-                                        />
-                                        Eliminar eventos
-                                    </label>
-                                </div>
-                                <div class="perm-category">
-                                    <h5>Reportes</h5>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.reports.read
-                                            }
-                                        />
-                                        Leer reportes
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.reports
-                                                    .write
-                                            }
-                                        />
-                                        Crear/editar reportes
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={
-                                                editablePermissions.reports
-                                                    .delete
-                                            }
-                                        />
-                                        Eliminar reportes
-                                    </label>
-                                </div>
+                    <div class="permissions-editor">
+                        <h4>Permisos del Rol</h4>
+                        <div class="permissions-grid">
+                            <div class="perm-category">
+                                <h5>Usuarios</h5>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.users.read
+                                        }
+                                    />
+                                    Leer usuarios
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.users.write
+                                        }
+                                    />
+                                    Crear/editar usuarios
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.users.delete
+                                        }
+                                    />
+                                    Eliminar usuarios
+                                </label>
+                            </div>
+                            <div class="perm-category">
+                                <h5>Roles</h5>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.roles.read
+                                        }
+                                    />
+                                    Leer roles
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.roles.write
+                                        }
+                                    />
+                                    Crear/editar roles
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.roles.delete
+                                        }
+                                    />
+                                    Eliminar roles
+                                </label>
+                            </div>
+                            <div class="perm-category">
+                                <h5>Instituciones</h5>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.institutions
+                                                .read
+                                        }
+                                    />
+                                    Leer instituciones
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.institutions
+                                                .write
+                                        }
+                                    />
+                                    Crear/editar instituciones
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.institutions
+                                                .delete
+                                        }
+                                    />
+                                    Eliminar instituciones
+                                </label>
+                            </div>
+                            <div class="perm-category">
+                                <h5>Paquetes</h5>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.packages.read
+                                        }
+                                    />
+                                    Leer paquetes
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.packages.write
+                                        }
+                                    />
+                                    Crear/editar paquetes
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.packages.delete
+                                        }
+                                    />
+                                    Eliminar paquetes
+                                </label>
+                            </div>
+                            <div class="perm-category">
+                                <h5>Alertas</h5>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.alerts.read
+                                        }
+                                    />
+                                    Leer alertas
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.alerts.write
+                                        }
+                                    />
+                                    Crear/editar alertas
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.alerts.delete
+                                        }
+                                    />
+                                    Eliminar alertas
+                                </label>
+                            </div>
+                            <div class="perm-category">
+                                <h5>Eventos</h5>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.events.read
+                                        }
+                                    />
+                                    Leer eventos
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.events.write
+                                        }
+                                    />
+                                    Crear/editar eventos
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.events.delete
+                                        }
+                                    />
+                                    Eliminar eventos
+                                </label>
+                            </div>
+                            <div class="perm-category">
+                                <h5>Reportes</h5>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.reports.read
+                                        }
+                                    />
+                                    Leer reportes
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.reports.write
+                                        }
+                                    />
+                                    Crear/editar reportes
+                                </label>
+                                <label class="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={
+                                            editablePermissions.reports.delete
+                                        }
+                                    />
+                                    Eliminar reportes
+                                </label>
                             </div>
                         </div>
-                    {:else}
-                        <div class="permissions-list">
-                            {#if roleForm.permissions}
-                                {#each Object.entries(typeof roleForm.permissions === "string" ? JSON.parse(roleForm.permissions) : roleForm.permissions) as [key, value]}
-                                    <div class="perm-group">
-                                        <strong>{key}</strong>:
-                                        {#if typeof value === "object"}
-                                            <ul>
-                                                {#each Object.entries(value) as [perm, val]}
-                                                    <li>
-                                                        {perm}:
-                                                        <span
-                                                            class={val
-                                                                ? "perm-yes"
-                                                                : "perm-no"}
-                                                            >{val
-                                                                ? "Sí"
-                                                                : "No"}</span
-                                                        >
-                                                    </li>
-                                                {/each}
-                                            </ul>
-                                        {:else}
-                                            <span
-                                                class={value
-                                                    ? "perm-yes"
-                                                    : "perm-no"}
-                                                >{value ? "Sí" : "No"}</span
-                                            >
-                                        {/if}
-                                    </div>
-                                {/each}
-                            {:else}
-                                <span class="perm-none"
-                                    >Sin permisos definidos</span
-                                >
-                            {/if}
-                        </div>
-                    {/if}
+                    </div>
                 </label>
-                {#if rolesError}
+                {#if rolesError && !showRoleNotification}
                     <div class="form-error">{rolesError}</div>
                 {/if}
                 <div class="modal-actions">
@@ -1096,6 +1275,30 @@
                         on:click={closeRoleModal}>Cerrar</button
                     >
                 </div>
+
+                <!-- Notificación de éxito simple con check animado -->
+                {#if showRoleNotification}
+                    <div class="simple-success-notification">
+                        <svg class="checkmark" viewBox="0 0 52 52">
+                            <circle
+                                class="checkmark-circle"
+                                cx="26"
+                                cy="26"
+                                r="25"
+                                fill="none"
+                            />
+                            <path
+                                class="checkmark-check"
+                                fill="none"
+                                d="M14 27l7 7 16-16"
+                            />
+                        </svg>
+                        <div class="simple-success-text">
+                            <h2>{roleNotificationMessage}</h2>
+                            <p>{roleNotificationSubtitle}</p>
+                        </div>
+                    </div>
+                {/if}
             </form>
         </div>
     {/if}
@@ -1230,6 +1433,58 @@
                     : "null"}</pre>
         </div>
     </details>
+
+    {#if showDeleteRoleModal}
+        <div class="modal-backdrop" on:click={closeDeleteRoleModal}></div>
+        <div class="modal" role="dialog" aria-modal="true">
+            <button
+                class="modal-close"
+                on:click={closeDeleteRoleModal}
+                title="Cerrar">&times;</button
+            >
+            <h3>Confirmar eliminación</h3>
+            <p>
+                ¿Estás seguro de que deseas eliminar el rol <strong
+                    >{roleToDelete?.name}</strong
+                >?
+            </p>
+            {#if rolesError && !showDeleteRoleNotification}
+                <div class="form-error">{rolesError}</div>
+            {/if}
+            <div class="modal-actions">
+                <button class="btn-danger" on:click={handleDeleteRole}
+                    >Eliminar</button
+                >
+                <button class="btn-secondary" on:click={closeDeleteRoleModal}
+                    >Cancelar</button
+                >
+            </div>
+
+            <!-- Componente de notificación -->
+            {#if showDeleteRoleNotification}
+                <div class="simple-success-notification">
+                    <svg class="checkmark" viewBox="0 0 52 52">
+                        <circle
+                            class="checkmark-circle"
+                            cx="26"
+                            cy="26"
+                            r="25"
+                            fill="none"
+                        />
+                        <path
+                            class="checkmark-check"
+                            fill="none"
+                            d="M14 27l7 7 16-16"
+                        />
+                    </svg>
+                    <div class="simple-success-text">
+                        <h2>{deleteRoleNotificationMessage}</h2>
+                        <p>{deleteRoleNotificationSubtitle}</p>
+                    </div>
+                </div>
+            {/if}
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -1557,6 +1812,10 @@
     .modal-close:hover {
         color: var(--color-accent);
     }
+    .modal-close:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
     .modal h3 {
         margin-top: 0;
         margin-bottom: 1.5rem;
@@ -1607,6 +1866,10 @@
         cursor: pointer;
         font-weight: 500;
         transition: background-color 0.2s;
+    }
+    .modal-actions button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
     .modal-actions button[type="submit"] {
         background: var(--color-primary);
@@ -1969,5 +2232,340 @@
         align-items: center;
         min-width: 60px;
         min-height: 60px;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 8px;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Estilos temporales para notificaciones */
+    .modal-notification {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1002;
+        background: rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+    }
+
+    .notification-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .notification-icon svg {
+        width: 30px;
+        height: 30px;
+    }
+
+    .notification-content {
+        background: white;
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        min-width: 300px;
+        position: relative;
+    }
+
+    .notification-content h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .notification-content p {
+        margin: 0;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .notification-close {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        color: #999;
+        transition: color 0.2s;
+    }
+
+    .notification-close:hover {
+        color: #333;
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Estilos para la notificación animada */
+    .modal-animated-notification {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1002;
+        background: rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-lg);
+        padding: 1rem;
+    }
+
+    .circle-bg {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .notification-animated-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        color: #333;
+    }
+
+    .notification-animated-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .notification-animated-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        font-size: 1rem;
+        color: #333;
+    }
+
+    .notification-animated-icon svg {
+        width: 30px;
+        height: 30px;
+    }
+
+    .notification-animated-text h4 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .notification-animated-text p {
+        margin: 0;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .notification-animated-icon.success {
+        border: 3px solid #28a745;
+    }
+
+    .notification-animated-icon.error {
+        border: 3px solid #dc3545;
+    }
+
+    .notification-animated-content.grow {
+        transform: scale(1.1);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .expanding-notification-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2000;
+        pointer-events: all;
+        overflow: hidden;
+    }
+    .expanding-circle {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        transform: scale(0);
+        opacity: 0.7;
+        z-index: 2001;
+        transition:
+            transform 4s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 1.2s;
+        box-shadow:
+            0 0 0 6px rgba(255, 255, 255, 0.25),
+            0 8px 32px rgba(40, 167, 69, 0.12);
+        border: 3px solid rgba(255, 255, 255, 0.45);
+    }
+    .expanding-circle.success {
+        background: radial-gradient(
+            circle,
+            rgba(40, 167, 69, 0.55) 0%,
+            rgba(40, 167, 69, 0.38) 100%
+        );
+    }
+    .expanding-circle.success.expand {
+        background: radial-gradient(
+            circle,
+            rgba(40, 167, 69, 0.75) 0%,
+            rgba(40, 167, 69, 0.45) 100%
+        );
+        transform: scale(2.7);
+        opacity: 0.98;
+    }
+    .expanding-circle.error {
+        background: radial-gradient(
+            circle,
+            rgba(220, 53, 69, 0.55) 0%,
+            rgba(220, 53, 69, 0.38) 100%
+        );
+    }
+    .expanding-circle.error.expand {
+        background: radial-gradient(
+            circle,
+            rgba(220, 53, 69, 0.75) 0%,
+            rgba(220, 53, 69, 0.45) 100%
+        );
+        transform: scale(2.7);
+        opacity: 0.98;
+    }
+    .expanding-notification-content.centered {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 2002;
+        color: #fff;
+        text-align: center;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.9s 2.2s;
+    }
+    .expanding-notification-content.centered.fade-in {
+        opacity: 1;
+    }
+    .expanding-icon {
+        margin-bottom: 1.2rem;
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        padding: 0.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+    .expanding-text h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+    .expanding-text p {
+        margin: 0;
+        font-size: 1.15rem;
+        color: #f0f0f0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    .simple-success-notification {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 2002;
+        color: #28a745;
+        text-align: center;
+        background: none;
+        pointer-events: none;
+    }
+    .checkmark {
+        width: 72px;
+        height: 72px;
+        display: block;
+        stroke: #28a745;
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        margin-bottom: 1.2rem;
+    }
+    .checkmark-circle {
+        stroke-dasharray: 157;
+        stroke-dashoffset: 0;
+        stroke: #e6f9ed;
+        animation: circle-appear 0.5s ease-in;
+    }
+    .checkmark-check {
+        stroke-dasharray: 36;
+        stroke-dashoffset: 36;
+        animation: check-draw 0.7s 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes check-draw {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    @keyframes circle-appear {
+        from {
+            stroke-dashoffset: 157;
+        }
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    .simple-success-text h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #28a745;
+    }
+    .simple-success-text p {
+        margin: 0;
+        font-size: 1.05rem;
+        color: #333;
     }
 </style>

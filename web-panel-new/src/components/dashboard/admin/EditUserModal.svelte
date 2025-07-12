@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { User } from "$lib/api/users";
     import { createEventDispatcher } from "svelte";
+    import ModalNotification from "../../shared/ui/ModalNotification.svelte";
     import UserForm from "./UserForm.svelte";
 
     export let user: User | null = null;
@@ -11,8 +12,13 @@
     const dispatch = createEventDispatcher();
     let formData: any = null;
     let error = "";
-    let debugResult = null;
+    let debugResult: any = null;
     let success = false;
+    let submitting = false;
+    let showNotification = false;
+    let notificationType: "success" | "error" = "success";
+    let notificationMessage = "";
+    let notificationSubtitle = "";
 
     // Precarga robusta SOLO al abrir el modal
     $: if (open && user) {
@@ -49,9 +55,18 @@
     // Limpiar formData al cerrar
     $: if (!open) {
         formData = null;
+        success = false;
+        error = "";
+        debugResult = null;
+        submitting = false;
+        showNotification = false;
     }
 
     function handleSubmit(e: CustomEvent) {
+        submitting = true;
+        error = "";
+        success = false;
+
         debugResult = e.detail.debugResult;
         if (
             debugResult &&
@@ -59,27 +74,46 @@
             !debugResult.updateResult.error
         ) {
             success = true;
+            notificationType = "success";
+            notificationMessage = "¡Usuario actualizado correctamente!";
+            notificationSubtitle =
+                "Los cambios han sido guardados exitosamente.";
+            showNotification = true;
             dispatch("save"); // Notifica éxito al padre
-            setTimeout(() => {
-                success = false;
-                debugResult = null;
-                handleCancel(); // Cierra el modal
-            }, 1200);
         } else {
             success = false;
+            error = "Error al actualizar el usuario";
+            notificationType = "error";
+            notificationMessage = "Error al actualizar el usuario";
+            notificationSubtitle = "No se pudieron guardar los cambios.";
+            showNotification = true;
+            submitting = false;
         }
     }
 
     function handleCancel() {
-        dispatch("cancel");
+        if (!submitting) {
+            dispatch("cancel");
+        }
+    }
+
+    function handleNotificationClose() {
+        showNotification = false;
+        if (success) {
+            handleCancel(); // Cierra el modal solo si fue exitoso
+        }
+        submitting = false;
     }
 </script>
 
 {#if open}
     <div class="modal-backdrop" on:click={handleCancel}></div>
     <div class="modal" role="dialog" aria-modal="true">
-        <button class="modal-close" on:click={handleCancel} title="Cerrar"
-            >&times;</button
+        <button
+            class="modal-close"
+            on:click={handleCancel}
+            title="Cerrar"
+            disabled={submitting}>&times;</button
         >
         <h3>Editar usuario</h3>
 
@@ -89,10 +123,12 @@
             editMode={true}
             {sessionUserRole}
         />
-        {#if error}
+
+        {#if error && !showNotification}
             <div class="form-error">{error}</div>
         {/if}
-        {#if debugResult}
+
+        {#if debugResult && !success && !showNotification}
             <details>
                 <summary>DEBUG: Respuesta de la API</summary>
                 <pre
@@ -103,19 +139,25 @@
                     )}</pre>
             </details>
         {/if}
-        {#if success}
-            <div
-                class="form-success"
-                style="background: #111; color: #fff; padding: 10px; border-radius: 4px; margin-top: 10px; text-align: center;"
-            >
-                Usuario actualizado correctamente.
-            </div>
-        {/if}
+
         <div class="modal-actions">
-            <button class="btn-secondary" on:click={handleCancel}
-                >Cancelar</button
+            <button
+                class="btn-secondary"
+                on:click={handleCancel}
+                disabled={submitting}
+                >{submitting ? "Procesando..." : "Cancelar"}</button
             >
         </div>
+
+        <!-- Componente de notificación -->
+        <ModalNotification
+            type={notificationType}
+            message={notificationMessage}
+            subtitle={notificationSubtitle}
+            show={showNotification}
+            duration={2000}
+            on:close={handleNotificationClose}
+        />
     </div>
 {/if}
 
@@ -146,6 +188,7 @@
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
+        position: relative; /* Importante para el posicionamiento del ModalNotification */
     }
     .modal-close {
         position: absolute;
@@ -156,12 +199,35 @@
         font-size: 2rem;
         color: var(--color-text-muted);
         cursor: pointer;
+        transition: color 0.2s;
+        z-index: 1003; /* Por encima de la notificación */
+    }
+    .modal-close:hover:not(:disabled) {
+        color: var(--color-accent);
+    }
+    .modal-close:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
     .modal-actions {
         display: flex;
         justify-content: flex-end;
         gap: 1rem;
     }
+    .modal-actions button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .form-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
     @media (max-width: 600px) {
         .modal {
             padding: 1rem;

@@ -645,11 +645,12 @@
                     class="btn-primary"
                     disabled={disabled || submitting || !canUpdate}
                 >
-                    {editMode
-                        ? "Actualizar"
-                        : submitting
-                          ? "Creando..."
-                          : "Crear Usuario"}
+                    {#if submitting}
+                        <span class="loading-spinner-small"></span>
+                        {editMode ? "Actualizando..." : "Creando..."}
+                    {:else}
+                        {editMode ? "Actualizar" : "Crear Usuario"}
+                    {/if}
                 </button>
             </div>
         </form>
@@ -699,6 +700,17 @@
         border-top: 4px solid var(--color-accent);
         border-radius: 50%;
         animation: spin 1s linear infinite;
+    }
+
+    .loading-spinner-small {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 8px;
     }
 
     @keyframes spin {
