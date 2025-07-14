@@ -42,7 +42,7 @@
     let loading = false;
     let submitting = false;
     let error = "";
-    let debugResult = null;
+    let debugResult: Record<string, any> | null = null;
 
     // Datos de referencia
     let roles: Role[] = [];
@@ -52,6 +52,7 @@
 
     // Inicialización robusta SOLO cuando cambia initialData y editMode
     let form = {
+        id: undefined as number | undefined,
         first_name: "",
         last_name: "",
         email: "",
@@ -62,18 +63,22 @@
         is_active: true,
         date_of_birth: "",
         gender: "",
-        institution_id: null,
+        institution_id: undefined as number | undefined,
         professional_license: "",
         specialization: "",
         experience_years: 0,
         is_freelance: false,
         hourly_rate: 0,
         availability: "",
-        legal_representative_id: null,
+        legal_representative_id: undefined as string | null | undefined,
         legal_capacity_verified: false,
         terms_accepted: false,
         is_verified: false,
     };
+    let institutionIdString = "";
+    $: institutionIdString = form.institution_id
+        ? String(form.institution_id)
+        : "";
 
     // Precarga robusta SOLO al abrir en modo edición
     $: if (editMode && initialData && initialData.id !== form.id) {
@@ -222,17 +227,24 @@
         (form.role || !editMode);
 
     onMount(async () => {
+        console.log("🔧 UserForm onMount - Cargando datos...");
         try {
+            console.log("🔧 Cargando roles...");
             roles = await getRoles();
+            console.log("✅ Roles cargados:", roles.length);
             rolesLoadError = false;
         } catch (err) {
+            console.error("❌ Error cargando roles:", err);
             roles = [];
             rolesLoadError = true;
         }
         try {
+            console.log("🔧 Cargando instituciones...");
             institutions = await getInstitutions();
+            console.log("✅ Instituciones cargadas:", institutions.length);
             institutionsLoadError = false;
         } catch (err) {
+            console.error("❌ Error cargando instituciones:", err);
             institutions = [];
             institutionsLoadError = true;
         }
@@ -242,8 +254,7 @@
         try {
             roles = await getRoles();
         } catch (err) {
-            error = "Error al cargar roles";
-            console.error(err);
+            error = err instanceof Error ? err.message : "Error desconocido";
         }
     }
 
@@ -302,12 +313,13 @@
         try {
             // Guardar usuario (sin el campo 'role')
             const userUpdateData = { ...form };
-            delete userUpdateData.role;
+            delete (userUpdateData as any).role;
             // Elimina password si está vacío
-            if (!userUpdateData.password) delete userUpdateData.password;
+            if (!userUpdateData.password)
+                delete (userUpdateData as any).password;
             // Elimina date_of_birth si está vacío
             if (!userUpdateData.date_of_birth)
-                delete userUpdateData.date_of_birth;
+                delete (userUpdateData as any).date_of_birth;
             updateResult = await updateUser(form.id, userUpdateData);
             debugResult.updateResult = updateResult;
             // Si el rol cambió y el usuario es admin, asignar rol
@@ -331,7 +343,7 @@
         }
     }
 
-    function updateForm(field: string, value: any) {
+    function updateForm(field: keyof typeof form, value: any) {
         form[field] = value;
         validateForm();
     }
@@ -373,8 +385,10 @@
                             id="first_name"
                             type="text"
                             bind:value={form.first_name}
-                            on:input={(e) =>
-                                updateForm("first_name", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("first_name", t ? t.value : "");
+                            }}
                             class:error={errors.first_name}
                             class:debug-not-editable={!isFieldEditable(
                                 "first_name",
@@ -396,8 +410,10 @@
                             id="last_name"
                             type="text"
                             bind:value={form.last_name}
-                            on:input={(e) =>
-                                updateForm("last_name", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("last_name", t ? t.value : "");
+                            }}
                             placeholder="Ingrese el apellido"
                             disabled={!isFieldEditable("last_name")}
                         />
@@ -411,8 +427,10 @@
                             id="email"
                             type="email"
                             bind:value={form.email}
-                            on:input={(e) =>
-                                updateForm("email", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("email", t ? t.value : "");
+                            }}
                             placeholder="usuario@ejemplo.com"
                             disabled={!isFieldEditable("email")}
                         />
@@ -426,8 +444,10 @@
                             id="phone"
                             type="tel"
                             bind:value={form.phone}
-                            on:input={(e) =>
-                                updateForm("phone", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("phone", t ? t.value : "");
+                            }}
                             placeholder="+54 11 1234-5678"
                             disabled={!isFieldEditable("phone")}
                         />
@@ -439,9 +459,14 @@
                         <label for="gender">Género</label>
                         <select
                             id="gender"
-                            bind:value={form.gender}
-                            on:change={(e) =>
-                                updateForm("gender", e.target.value)}
+                            value={form.gender ?? ""}
+                            on:change={(e) => {
+                                const t = e.target as HTMLSelectElement | null;
+                                updateForm(
+                                    "gender",
+                                    t && t.value ? t.value : "",
+                                );
+                            }}
                             disabled={!isFieldEditable("gender")}
                         >
                             <option value="">Seleccionar</option>
@@ -456,8 +481,10 @@
                             id="date_of_birth"
                             type="date"
                             bind:value={form.date_of_birth}
-                            on:input={(e) =>
-                                updateForm("date_of_birth", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("date_of_birth", t ? t.value : "");
+                            }}
                             disabled={!isFieldEditable("date_of_birth")}
                         />
                     </div>
@@ -465,9 +492,11 @@
                         <label for="role">Rol *</label>
                         <select
                             id="role"
-                            bind:value={form.role}
-                            on:change={(e) =>
-                                updateForm("role", e.target.value)}
+                            value={form.role ?? ""}
+                            on:change={(e) => {
+                                const t = e.target as HTMLSelectElement | null;
+                                updateForm("role", t && t.value ? t.value : "");
+                            }}
                             class:error={errors.role}
                             disabled={!isFieldEditable("role")}
                         >
@@ -520,11 +549,13 @@
                             id="professional_license"
                             type="text"
                             bind:value={form.professional_license}
-                            on:input={(e) =>
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
                                 updateForm(
                                     "professional_license",
-                                    e.target.value,
-                                )}
+                                    t ? t.value : "",
+                                );
+                            }}
                             class:error={errors.professional_license}
                             placeholder="Ingrese la licencia profesional"
                             disabled={!isFieldEditable("professional_license")}
@@ -541,8 +572,10 @@
                             id="specialization"
                             type="text"
                             bind:value={form.specialization}
-                            on:input={(e) =>
-                                updateForm("specialization", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("specialization", t ? t.value : "");
+                            }}
                             disabled={!isFieldEditable("specialization")}
                         />
                     </div>
@@ -554,8 +587,13 @@
                             type="number"
                             min="0"
                             bind:value={form.experience_years}
-                            on:input={(e) =>
-                                updateForm("experience_years", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm(
+                                    "experience_years",
+                                    t ? t.value : "",
+                                );
+                            }}
                             disabled={!isFieldEditable("experience_years")}
                         />
                     </div>
@@ -579,8 +617,10 @@
                             type="number"
                             min="0"
                             bind:value={form.hourly_rate}
-                            on:input={(e) =>
-                                updateForm("hourly_rate", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("hourly_rate", t ? t.value : "");
+                            }}
                             disabled={!isFieldEditable("hourly_rate")}
                         />
                     </div>
@@ -590,8 +630,10 @@
                             id="availability"
                             type="text"
                             bind:value={form.availability}
-                            on:input={(e) =>
-                                updateForm("availability", e.target.value)}
+                            on:input={(e) => {
+                                const t = e.target as HTMLInputElement | null;
+                                updateForm("availability", t ? t.value : "");
+                            }}
                             disabled={!isFieldEditable("availability")}
                         />
                     </div>
@@ -612,9 +654,13 @@
                         <label for="institution_id">Institución</label>
                         <select
                             id="institution_id"
-                            bind:value={form.institution_id}
-                            on:change={(e) =>
-                                updateForm("institution_id", e.target.value)}
+                            value={form.institution_id ?? ""}
+                            on:change={(e) => {
+                                const t = e.target as HTMLSelectElement | null;
+                                const val =
+                                    t && t.value ? Number(t.value) : undefined;
+                                updateForm("institution_id", val);
+                            }}
                             disabled={!isFieldEditable("institution_id")}
                         >
                             {#if institutions.length === 0}
@@ -846,124 +892,22 @@
 
     .form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
-        padding: var(--spacing-lg);
+        padding: 0.5rem 1rem 1rem 1rem;
+        box-sizing: border-box;
     }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
+    @media (max-width: 800px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+            padding: 0.5rem;
+        }
     }
-
-    .form-group label {
-        font-weight: 500;
-        color: var(--color-text);
-        font-size: 0.9rem;
-    }
-
-    .form-group input,
-    .form-group select {
-        padding: var(--spacing-sm);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius);
-        background: var(--color-bg);
-        color: var(--color-text);
-        font-size: 0.9rem;
-        transition: all 0.2s;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-        outline: none;
-        border-color: var(--color-accent);
-        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.1);
-    }
-
-    .form-group input.error,
-    .form-group select.error {
-        border-color: var(--color-danger);
-    }
-
-    .error-text {
-        color: var(--color-danger);
-        font-size: 0.8rem;
-        margin-top: 2px;
-    }
-
-    .checkbox-group {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-    }
-
-    .checkbox-group input[type="checkbox"] {
-        width: auto;
-        margin: 0;
-    }
-
-    .checkbox-group label {
-        margin: 0;
-        cursor: pointer;
-    }
-
-    .form-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: var(--spacing-lg);
-        border-top: 1px solid var(--color-border);
-    }
-
-    .form-status {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-    }
-
-    .status-valid {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-        color: var(--color-success);
-        font-weight: 500;
-        font-size: 0.9rem;
-    }
-
-    .status-incomplete {
-        color: var(--color-text-muted);
-        font-size: 0.9rem;
-    }
-
-    .btn-primary {
-        background: var(--color-accent);
-        color: white;
-        border: none;
-        border-radius: var(--border-radius);
-        padding: var(--spacing-md) var(--spacing-xl);
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 1rem;
-        min-width: 200px;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-        background: var(--color-accent-dark);
-    }
-
-    .btn-primary:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
     .user-form {
-        max-width: 900px;
+        max-width: 600px;
         margin: 0 auto;
-        padding: 0 1rem 1rem 1rem;
-        overflow-y: auto;
-        /* Elimina max-height para evitar recorte de campos */
+        padding: 0;
+        overflow-y: visible;
     }
     .form-section {
         margin-bottom: 1.5rem;
@@ -991,5 +935,22 @@
     .debug-not-editable {
         border: 2px solid red !important;
         background: #ffeaea;
+    }
+    .form-group input,
+    .form-group select {
+        padding: var(--spacing-sm);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        background: var(--color-bg-card);
+        color: var(--color-text);
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        box-shadow: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.08);
     }
 </style>

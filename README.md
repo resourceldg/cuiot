@@ -198,6 +198,62 @@ docker-compose exec web-panel npm run test
 
 ### 🗺️ Geolocalización y Geofencing
 - Tracking de ubicación en tiempo real
+- Configuración de zonas seguras (geofences)
+- Alertas de entrada/salida de zonas
+- Historial de ubicaciones
+- Integración con mapas
+
+## 🔗 Reglas de Negocio Fundamentales
+
+### 📦 Asociación de Dispositivos y Paquetes
+**Regla Principal:** Un dispositivo siempre está asociado a un paquete, y un paquete siempre está asociado a un propietario específico.
+
+**Flujo de Asociación:**
+```
+Dispositivo → Paquete → Propietario
+```
+
+**Tipos de Propietarios:**
+- **🏥 Institución** (paquetes profesionales/institucionales)
+- **👨‍👩‍👧‍👦 Familiar/Responsable Legal** (paquetes individuales)
+- **👴 Persona Cuidada** (tipo autocuidado)
+
+**Características del Paquete:**
+- Número máximo de dispositivos permitidos
+- Número máximo de usuarios
+- Funcionalidades disponibles (monitoreo, alertas, reportes)
+- Nivel de soporte técnico
+
+### 👥 Roles del Sistema
+**Roles Principales:**
+- **admin** - Administrador del sistema (Sysadmin)
+- **admin_institution** - Administrador de institución
+- **caregiver** - Cuidador profesional
+- **family_member** - Familiar de persona cuidada
+- **caredperson** - Persona bajo cuidado
+- **medical_staff** - Personal médico
+- **freelance_caregiver** - Cuidador freelance
+- **institution_staff** - Personal de institución
+
+### 🏥 Tipos de Cuidado
+**Categorías:**
+- **self_care** - Autocuidado (persona independiente)
+- **delegated_care** - Cuidado delegado (necesita representación)
+
+### 📊 Estados del Sistema
+**Categorías de Estados:**
+- **general** - Estados generales (activo, inactivo, pendiente, etc.)
+- **device** - Estados de dispositivos (online, offline, mantenimiento, error)
+- **billing** - Estados de facturación (pagado, no pagado, vencido)
+- **alert** - Estados de alertas (reconocido, resuelto, escalado)
+
+### 🔄 Flujo de Datos IoT
+**Secuencia de Eventos:**
+1. **Dispositivo** detecta evento/condición
+2. **Evento** se registra en el sistema
+3. **Alerta** se genera si es necesario
+4. **Notificación** se envía a usuarios relevantes
+5. **Acción** se toma según protocolos configurados
 - Zonas de seguridad configurables (geofences)
 - Alertas automáticas de ubicación
 - Historial de movimientos

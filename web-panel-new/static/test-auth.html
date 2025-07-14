@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Auth Frontend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .log {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Auth Frontend</h1>
+
+    <div>
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testUsers()">Test Users Endpoint</button>
+        <button onclick="testAuthMe()">Test /auth/me</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div id="logs"></div>
+
+    <script>
+        const API_BASE_URL = '/api/v1';
+        const TOKEN_KEY = 'authToken';
+
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            logs.appendChild(div);
+        }
+
+        function getToken() {
+            return localStorage.getItem(TOKEN_KEY);
+        }
+
+        function setToken(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+        }
+
+        function clearToken() {
+            localStorage.removeItem(TOKEN_KEY);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testLogin() {
+            log('🔐 Probando login...');
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'sysadmin@cuiot.com',
+                        password: 'admin123'
+                    })
+                });
+
+                log(`Status: ${res.status} ${res.statusText}`);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setToken(data.access_token);
+                    log(`✅ Login exitoso - Token: ${data.access_token.substring(0, 50)}...`, 'success');
+                } else {
+                    const error = await res.text();
+                    log(`❌ Login falló: ${error}`, 'error');
+                }
+            } catch (err) {
+                log(`❌ Error de red: ${err.message}`, 'error');
+            }
+        }
+
+        async function testUsers() {
+            log('👥 Probando endpoint /users...');
+            const token = getToken();
+            if (!token) {
+                log('❌ No hay token - hacer login primero', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                log(`Status: ${res.status} ${res.statusText}`);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    log(`✅ Users endpoint OK - ${data.length} usuarios`, 'success');
+                } else {
+                    const error = await res.text();
+                    log(`❌ Users endpoint falló: ${error}`, 'error');
+                }
+            } catch (err) {
+                log(`❌ Error de red: ${err.message}`, 'error');
+            }
+        }
+
+        async function testAuthMe() {
+            log('👤 Probando endpoint /auth/me...');
+            const token = getToken();
+            if (!token) {
+                log('❌ No hay token - hacer login primero', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                log(`Status: ${res.status} ${res.statusText}`);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    log(`✅ /auth/me OK - Usuario: ${data.email}`, 'success');
+                } else {
+                    const error = await res.text();
+                    log(`❌ /auth/me falló: ${error}`, 'error');
+                }
+            } catch (err) {
+                log(`❌ Error de red: ${err.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

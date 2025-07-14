@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # Seguridad
     secret_key: str = "viejos_trapos_secret_key_dev"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 480  # 8 horas para desarrollo
     
     # MQTT
     mqtt_broker: str = "mqtt"

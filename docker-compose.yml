@@ -114,6 +114,8 @@ services:
       - ./web-panel-new:/app
     environment:
       - NODE_ENV=development
+    networks:
+      - viejos_trapos_network
 
   # MQTT Broker para IoT
   mqtt:

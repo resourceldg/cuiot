@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from .base import BaseResponse, BaseCreate, BaseUpdate
+from datetime import datetime
 
 class InstitutionBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
@@ -17,16 +17,25 @@ class InstitutionBase(BaseModel):
     capacity: Optional[int] = Field(None, ge=0)
     is_verified: bool = False
 
-class InstitutionCreate(InstitutionBase, BaseCreate):
+class InstitutionCreate(InstitutionBase):
     pass
 
-class InstitutionUpdate(InstitutionBase, BaseUpdate):
+class InstitutionUpdate(InstitutionBase):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     institution_type: Optional[str] = Field(None, max_length=50)
     is_verified: Optional[bool] = None
 
-class InstitutionResponse(InstitutionBase, BaseResponse):
+class InstitutionResponse(InstitutionBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
+class InstitutionInDB(InstitutionResponse):
     pass
 
-class InstitutionInDB(InstitutionBase, BaseResponse):
+class Institution(InstitutionResponse):
     pass

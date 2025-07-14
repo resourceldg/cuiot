@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "svelte-portal": "^2.2.1"
+  }
+}

@@ -1,5 +1,7 @@
 # Import all models for SQLAlchemy to recognize them
 from app.models.base import Base, BaseModel
+from app.models.status_type import StatusType
+from app.models.relationship_type import RelationshipType
 from app.models.role import Role
 from app.models.user_role import UserRole
 from app.models.institution import Institution
@@ -26,6 +28,7 @@ from .medication_schedule import MedicationSchedule
 from .medication_log import MedicationLog
 from .restraint_protocol import RestraintProtocol
 from .shift_observation import ShiftObservation
+from .vital_sign import VitalSign
 
 # Package models
 from app.models.package import Package, UserPackage, PackageAddOn, UserPackageAddOn
@@ -38,7 +41,6 @@ from app.models.institution_review import InstitutionReview
 
 # Referral models
 from app.models.referral import Referral, ReferralCommission
-from app.models.status_type import StatusType
 
 __all__ = [
     "Base",
@@ -63,6 +65,7 @@ __all__ = [
     "Geofence",
     "DebugEvent",
     "Report",
+    "VitalSign",
     # Package models
     "Package",
     "UserPackage",
@@ -76,6 +79,4 @@ __all__ = [
     # Referral models
     "Referral",
     "ReferralCommission",
-    # Status models
-    "StatusType",
 ]

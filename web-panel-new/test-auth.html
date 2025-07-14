@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Auth</title>
+</head>
+
+<body>
+    <h1>Test de Autenticación e Instituciones</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testInstitutions()">Test Institutions</button>
+    <button onclick="clearToken()">Clear Token</button>
+    <div id="output"></div>
+
+    <script>
+        const API_BASE_URL = '/api/v1';
+        const TOKEN_KEY = 'authToken';
+
+        function log(message) {
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>';
+        }
+
+        function getToken() {
+            return localStorage.getItem(TOKEN_KEY);
+        }
+
+        function setToken(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+        }
+
+        function clearToken() {
+            localStorage.removeItem(TOKEN_KEY);
+            log('Token eliminado');
+        }
+
+        async function testLogin() {
+            log('🔐 Probando login...');
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'carlos.rodriguez@example.com',
+                        password: 'password123'
+                    })
+                });
+
+                log(`Status: ${res.status}`);
+
+                if (!res.ok) {
+                    const error = await res.text();
+                    log(`Error: ${error}`);
+                    return;
+                }
+
+                const data = await res.json();
+                setToken(data.access_token);
+                log(`✅ Login exitoso. Token guardado: ${data.access_token.substring(0, 20)}...`);
+            } catch (err) {
+                log(`❌ Error en login: ${err}`);
+            }
+        }
+
+        async function testInstitutions() {
+            log('🏥 Probando instituciones...');
+            const token = getToken();
+            if (!token) {
+                log('❌ No hay token. Haz login primero.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/institutions`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                log(`Status: ${res.status}`);
+
+                if (!res.ok) {
+                    const error = await res.text();
+                    log(`Error: ${error}`);
+                    return;
+                }
+
+                const data = await res.json();
+                log(`✅ Instituciones cargadas: ${data.length} instituciones`);
+                data.forEach((inst, i) => {
+                    log(`  ${i + 1}. ${inst.name} (${inst.institution_type})`);
+                });
+            } catch (err) {
+                log(`❌ Error cargando instituciones: ${err}`);
+            }
+        }
+    </script>
+</body>
+
+</html>

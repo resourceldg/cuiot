@@ -48,8 +48,7 @@
             packages = packagesData;
             alerts = alertsData;
         } catch (err) {
-            error = err.message;
-            console.error("Error loading KPI data:", err);
+            error = err instanceof Error ? err.message : "Error desconocido";
         } finally {
             loading = false;
         }

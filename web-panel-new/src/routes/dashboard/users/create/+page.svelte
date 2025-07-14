@@ -49,28 +49,26 @@
                         : true,
             };
 
-            console.log("Enviando datos a la API:", userData);
-
             const { data, error: apiError } = await createUser(userData);
 
             if (apiError) {
                 error = apiError;
-                console.error("Error al crear usuario:", apiError);
-            } else {
+            } else if (data) {
                 success = "Usuario creado exitosamente";
-                console.log("Usuario creado:", data);
-
-                // Redirigir a la lista de usuarios después de 2 segundos
-                setTimeout(() => {
-                    goto("/dashboard/users");
-                }, 2000);
+                formData = {
+                    name: "",
+                    email: "",
+                    password: "",
+                    role: "",
+                    status: "activo",
+                };
+                goto("/dashboard/users");
             }
         } catch (err) {
             error =
                 err instanceof Error
                     ? err.message
                     : "Error desconocido al crear usuario";
-            console.error("Error inesperado:", err);
         } finally {
             loading = false;
         }

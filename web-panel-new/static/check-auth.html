@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Check Auth Status</title>
+</head>
+
+<body>
+    <h1>Verificar Estado de Autenticación</h1>
+    <button onclick="checkAuth()">Verificar Auth</button>
+    <button onclick="testInstitutions()">Test Institutions</button>
+    <button onclick="login()">Login</button>
+    <div id="output"></div>
+
+    <script>
+        const API_BASE_URL = '/api/v1';
+        const TOKEN_KEY = 'authToken';
+
+        function log(message) {
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>';
+        }
+
+        function getToken() {
+            return localStorage.getItem(TOKEN_KEY);
+        }
+
+        function setToken(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+        }
+
+        function clearToken() {
+            localStorage.removeItem(TOKEN_KEY);
+        }
+
+        async function checkAuth() {
+            log('🔍 Verificando estado de autenticación...');
+            const token = getToken();
+            log('Token en localStorage: ' + (token ? 'SÍ' : 'NO'));
+
+            if (token) {
+                log('Token encontrado: ' + token.substring(0, 20) + '...');
+                try {
+                    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    log('Status /auth/me: ' + res.status);
+
+                    if (res.ok) {
+                        const user = await res.json();
+                        log('✅ Usuario autenticado: ' + user.email);
+                    } else {
+                        log('❌ Token inválido o expirado');
+                        clearToken();
+                    }
+                } catch (err) {
+                    log('❌ Error verificando auth: ' + err);
+                }
+            } else {
+                log('❌ No hay token - Usuario no logueado');
+            }
+        }
+
+        async function login() {
+            log('🔐 Iniciando login...');
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'carlos.rodriguez@example.com',
+                        password: 'password123'
+                    })
+                });
+
+                log('Status login: ' + res.status);
+
+                if (!res.ok) {
+                    const error = await res.text();
+                    log('❌ Error en login: ' + error);
+                    return;
+                }
+
+                const data = await res.json();
+                setToken(data.access_token);
+                log('✅ Login exitoso. Token guardado.');
+                log('Usuario: ' + data.user.email);
+            } catch (err) {
+                log('❌ Error en login: ' + err);
+            }
+        }
+
+        async function testInstitutions() {
+            log('🏥 Probando instituciones...');
+            const token = getToken();
+            if (!token) {
+                log('❌ No hay token. Haz login primero.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/institutions`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                log('Status instituciones: ' + res.status);
+
+                if (!res.ok) {
+                    const error = await res.text();
+                    log('❌ Error: ' + error);
+                    return;
+                }
+
+                const data = await res.json();
+                log('✅ Instituciones cargadas: ' + data.length + ' instituciones');
+                data.forEach((inst, i) => {
+                    log(`  ${i + 1}. ${inst.name} (${inst.institution_type})`);
+                });
+            } catch (err) {
+                log('❌ Error cargando instituciones: ' + err);
+            }
+        }
+
+        // Verificar automáticamente al cargar la página
+        window.onload = function () {
+            log('🚀 Página cargada. Verificando estado inicial...');
+            checkAuth();
+        };
+    </script>
+</body>
+
+</html>

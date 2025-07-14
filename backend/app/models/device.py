@@ -42,6 +42,7 @@ class Device(BaseModel):
     # Relationships
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
+    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=False, index=True)
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
     
     # Relationships
@@ -55,6 +56,7 @@ class Device(BaseModel):
     debug_events = relationship("DebugEvent", back_populates="device")
     status_type = relationship("StatusType")
     device_type = relationship("DeviceType")
+    package = relationship("Package", backref="devices")
     
     def __repr__(self):
         return f"<Device(device_id='{self.device_id}', name='{self.name}', type='{self.type}')>"

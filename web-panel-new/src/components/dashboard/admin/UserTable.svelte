@@ -1,5 +1,7 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
+    import { getInstitutions } from "$lib/api/institutions";
+    import { getPackages } from "$lib/api/packages";
     import {
         createRole,
         deleteRole,
@@ -12,6 +14,7 @@
         getUsers,
         updateUser,
     } from "$lib/api/users";
+    import { authStore } from "$lib/authStore.js";
     import { user as sessionUser } from "$lib/sessionStore.js";
     import { onMount } from "svelte";
     // import ModalNotification from "../../shared/ui/ModalNotification.svelte";
@@ -50,7 +53,7 @@
 
     // Estados
     let users: User[] = [];
-    let roles: Role[] = [];
+    let roles: any[] = [];
     let loading = false;
     let rolesLoading = false;
     let error = "";
@@ -70,13 +73,64 @@
     let searchTerm = "";
     let statusFilter = "";
     let roleFilter = "";
+    let packageFilter = "";
+    let institutionFilter = "";
     let filterTimeout: number;
 
-    // Aplicar filtros con debounce
+    function getFilterParams() {
+        const params: any = {};
+
+        // Search filter
+        if (searchTerm && searchTerm.trim()) {
+            params.search = searchTerm.trim();
+        }
+
+        // Status filter - convert to boolean
+        if (statusFilter) {
+            params.is_active = statusFilter === "activo";
+        }
+
+        // Role filter
+        if (roleFilter && roleFilter.trim()) {
+            params.role = roleFilter.trim();
+        }
+
+        // Institution filter
+        if (institutionFilter) {
+            if (
+                institutionFilter === "sin_institucion" ||
+                institutionFilter === "none"
+            ) {
+                params.no_institution = true;
+            } else {
+                const institutionId = Number(institutionFilter);
+                if (!isNaN(institutionId)) {
+                    params.institution_id = institutionId;
+                } else {
+                    params.institution_name = institutionFilter;
+                }
+            }
+        }
+
+        // Package filter
+        if (packageFilter) {
+            const packageId = Number(packageFilter);
+            if (!isNaN(packageId)) {
+                params.package_id = packageFilter;
+            } else {
+                params.package = packageFilter;
+            }
+        }
+
+        return params;
+    }
+
     $: if (
         searchTerm !== undefined ||
         statusFilter !== undefined ||
-        roleFilter !== undefined
+        roleFilter !== undefined ||
+        packageFilter !== undefined ||
+        institutionFilter !== undefined
     ) {
         clearTimeout(filterTimeout);
         filterTimeout = setTimeout(() => {
@@ -144,20 +198,77 @@
         return "Error desconocido";
     }
 
-    // Cargar datos al montar el componente
+    // Catálogos para filtros - SIMPLIFICADO
+    let institutions: any[] = [];
+    let packages: any[] = [];
+    let loadingCatalogs = false;
+    let catalogsError = "";
+
+    // Cargar datos al montar el componente - CON VERIFICACIÓN DE AUTH
     onMount(async () => {
-        await Promise.all([loadUsers(), loadRoles()]);
+        // Suscribirse al store de autenticación
+        const unsubscribe = authStore.subscribe(async (auth) => {
+            if (auth.isAuthenticated && !auth.loading) {
+                console.log(
+                    "🔧 UserTable - Usuario autenticado, cargando datos...",
+                );
+                await loadDataIfAuthenticated();
+            }
+        });
+
+        // Cargar datos iniciales si ya está autenticado
+        const token = localStorage.getItem("authToken");
+        if (token) {
+            await loadDataIfAuthenticated();
+        }
+
+        return unsubscribe;
     });
+
+    // Función para cargar datos solo si está autenticado
+    async function loadDataIfAuthenticated() {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+            console.log("🔧 UserTable - No hay token, saltando carga de datos");
+            return;
+        }
+
+        loadingCatalogs = true;
+        catalogsError = "";
+        try {
+            let [insts, pkgs, rls] = await Promise.all([
+                getInstitutions(),
+                getPackages(),
+                getRoles(),
+            ]);
+            // Deduplicar por nombre
+            institutions = insts.filter(
+                (inst, idx, arr) =>
+                    arr.findIndex((i) => i.name === inst.name) === idx,
+            );
+            packages = pkgs.filter(
+                (pkg, idx, arr) =>
+                    arr.findIndex((p) => p.name === pkg.name) === idx,
+            );
+            roles = rls;
+        } catch (err) {
+            catalogsError = "Error al cargar catálogos";
+            console.error("Error al cargar catálogos", err);
+        } finally {
+            loadingCatalogs = false;
+        }
+        await loadUsers();
+    }
+
+    // Función pública para recargar datos (puede ser llamada desde el padre)
+    export function reloadData() {
+        loadDataIfAuthenticated();
+    }
 
     async function loadUsers() {
         loading = true;
         error = "";
-        const { data, error: apiError } = await getUsers({
-            search: searchTerm || undefined,
-            status: statusFilter || undefined,
-            role: roleFilter || undefined,
-        });
-        console.log("Respuesta getUsers:", data);
+        const { data, error: apiError } = await getUsers(getFilterParams());
         if (apiError) {
             error = apiError;
             users = [];
@@ -178,6 +289,15 @@
         loading = false;
     }
 
+    function clearFilters() {
+        searchTerm = "";
+        statusFilter = "";
+        roleFilter = "";
+        packageFilter = "";
+        institutionFilter = "";
+        loadUsers();
+    }
+
     async function loadRoles() {
         rolesLoading = true;
         rolesError = "";
@@ -185,7 +305,6 @@
             roles = await getRoles();
         } catch (err) {
             rolesError = getErrorMessage(err);
-            console.error("Error loading roles:", err);
         } finally {
             rolesLoading = false;
         }
@@ -444,7 +563,6 @@
             roleNotificationMessage = "Error al procesar el rol";
             roleNotificationSubtitle = rolesError;
             showRoleNotification = true;
-            console.error("Error creando/actualizando rol:", err);
         }
     }
 
@@ -463,7 +581,6 @@
             deleteRoleNotificationMessage = "Error al eliminar rol";
             deleteRoleNotificationSubtitle = rolesError;
             showDeleteRoleNotification = true;
-            console.error("Error deleting role:", err);
         }
     }
 
@@ -549,20 +666,24 @@
             ? $sessionUser.roles[0]
             : "";
 
-    function openEditModal(user: User) {
-        console.log("openEditModal llamado con:", user);
+    let editAnchorRect: DOMRect | null = null;
+
+    function openEditModal(user: User, event?: MouseEvent) {
         selectedUser = user;
+        if (event && event.currentTarget) {
+            const rect = (
+                event.currentTarget as HTMLElement
+            ).getBoundingClientRect();
+            editAnchorRect = rect;
+        } else {
+            editAnchorRect = null;
+        }
         showEditModal = true;
-        console.log(
-            "showEditModal:",
-            showEditModal,
-            "selectedUser:",
-            selectedUser,
-        );
     }
     function closeEditModal() {
         showEditModal = false;
         selectedUser = null;
+        editAnchorRect = null;
     }
     // Reemplaza handleEditSave para solo refrescar usuarios y cerrar el modal
     async function handleEditSave() {
@@ -572,10 +693,10 @@
 
     // --- Confirmación de borrado de rol ---
     let showDeleteRoleModal = false;
-    let roleToDelete = null;
+    let roleToDelete: Role | null = null;
     let deleteRoleSuccess = "";
 
-    function confirmDeleteRole(role) {
+    function confirmDeleteRole(role: Role) {
         roleToDelete = role;
         showDeleteRoleModal = true;
         deleteRoleSuccess = "";
@@ -622,6 +743,57 @@
             closeDeleteRoleModal();
         }, 1300);
     }
+
+    let notification = "";
+
+    $: if (institutionFilter === "none" && institutionFilter !== "") {
+        institutionFilter = "";
+        notification =
+            "No puedes seleccionar una institución y 'sin institución' a la vez.";
+    }
+
+    $: if (roleFilter === "admin") {
+        if (institutionFilter) institutionFilter = "";
+        if (packageFilter) packageFilter = "";
+        notification =
+            "El rol 'admin' no puede combinarse con institución ni paquete.";
+    }
+
+    $: if (roleFilter === "institution") {
+        if (statusFilter) statusFilter = "";
+        if (packageFilter) packageFilter = "";
+        notification =
+            "El rol 'institution' no puede combinarse con estado ni paquete.";
+    }
+
+    $: if (
+        users.length === 0 &&
+        (roleFilter || institutionFilter || packageFilter || statusFilter)
+    ) {
+        notification =
+            "No hay usuarios que cumplan con todos los filtros seleccionados. Prueba ajustando los criterios.";
+    }
+
+    function clearNotification() {
+        notification = "";
+    }
+
+    // --- PAGINACIÓN ---
+    let currentPage = 1;
+    const pageSize = 6;
+    $: totalPages = Math.ceil(users.length / pageSize);
+    $: pagedUsers = users.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize,
+    );
+    function nextPage() {
+        if (currentPage < totalPages) currentPage++;
+    }
+    function prevPage() {
+        if (currentPage > 1) currentPage--;
+    }
+    $: if (users.length && currentPage > totalPages)
+        currentPage = totalPages || 1;
 </script>
 
 <div class="user-table-section">
@@ -728,22 +900,20 @@
         <select class="filter-select" bind:value={roleFilter}>
             <option value="">Todos los roles</option>
             {#each roles as role}
-                <option value={role.name}
-                    >{ROLE_LABELS[role.name] || role.name}</option
-                >
+                <option value={role.name}>{role.name}</option>
             {/each}
         </select>
-        <select class="filter-select">
+        <select class="filter-select" bind:value={packageFilter}>
             <option value="">Todos los paquetes</option>
-            <option value="basic">Básico</option>
-            <option value="premium">Premium</option>
-            <option value="enterprise">Enterprise</option>
+            {#each packages as pkg}
+                <option value={pkg.id}>{pkg.name}</option>
+            {/each}
         </select>
-        <select class="filter-select">
+        <select class="filter-select" bind:value={institutionFilter}>
             <option value="">Todas las instituciones</option>
-            <option value="inst1">San Martín</option>
-            <option value="inst2">Santa María</option>
-            <option value="inst3">CUIOT Central</option>
+            {#each institutions as inst}
+                <option value={inst.id}>{inst.name}</option>
+            {/each}
         </select>
         <button
             class="btn-secondary"
@@ -751,6 +921,8 @@
                 searchTerm = "";
                 statusFilter = "";
                 roleFilter = "";
+                packageFilter = "";
+                institutionFilter = "";
                 loadUsers();
             }}>Limpiar filtros</button
         >
@@ -778,7 +950,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {#each users as user}
+                    {#each pagedUsers as user}
                         <tr>
                             <td>
                                 <div class="actions-grid">
@@ -829,7 +1001,7 @@
                                     <button
                                         class="action-btn"
                                         title="Editar usuario"
-                                        on:click={() => openEditModal(user)}
+                                        on:click={(e) => openEditModal(user, e)}
                                     >
                                         <svg
                                             width="20"
@@ -1418,6 +1590,7 @@
         open={showEditModal}
         {loading}
         {sessionUserRole}
+        anchorRect={editAnchorRect}
         on:save={handleEditSave}
         on:cancel={closeEditModal}
     />
@@ -1483,6 +1656,18 @@
                     </div>
                 </div>
             {/if}
+        </div>
+    {/if}
+
+    {#if totalPages > 1}
+        <div class="pagination">
+            <button on:click={prevPage} disabled={currentPage === 1}
+                >Anterior</button
+            >
+            <span>Página {currentPage} de {totalPages}</span>
+            <button on:click={nextPage} disabled={currentPage === totalPages}
+                >Siguiente</button
+            >
         </div>
     {/if}
 </div>
@@ -2567,5 +2752,27 @@
         margin: 0;
         font-size: 1.05rem;
         color: #333;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    .pagination button {
+        padding: 0.5rem 1.2rem;
+        border-radius: 0.25rem;
+        border: 1px solid var(--color-border);
+        background: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 </style>

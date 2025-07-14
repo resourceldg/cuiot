@@ -32,7 +32,7 @@ class MedicalReferral(BaseModel):
     insurance_info = Column(String(200), nullable=True)
     
     # Relationships
-    cared_person = relationship("CaredPerson", back_populates="medical_referrals")
+    cared_person = relationship("CaredPerson")
     status_type = relationship("StatusType")
     
     def __repr__(self):

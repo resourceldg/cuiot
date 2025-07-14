@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from uuid import UUID
 from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
 
 from app.core.database import get_db
 from app.services.auth import AuthService, security
@@ -12,6 +13,8 @@ from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserWithRoles
 from app.schemas.role import RoleAssign, RoleBase, RoleUpdate
 from app.models.role import Role
 from app.models.user import User
+import traceback
+import sys
 
 router = APIRouter()
 
@@ -95,15 +98,38 @@ def delete_role(
     db: Session = Depends(get_db),
     current_user = Depends(AuthService.require_permission("users.write"))
 ):
-    """Eliminar un rol por id (solo admin)"""
+    """Eliminar un rol por id (solo admin). Si usuarios solo tienen este rol, se les asigna 'sin_rol'."""
     if not current_user.has_role("admin"):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar roles")
     role = db.query(Role).filter_by(id=role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Rol no encontrado")
+
+    from app.models.user_role import UserRole
+    from app.models.role import Role as RoleModel
+    from sqlalchemy import func
+
+    # Buscar el rol especial 'sin_rol'
+    sin_rol = db.query(RoleModel).filter(RoleModel.name == "sin_rol").first()
+    if not sin_rol:
+        raise HTTPException(status_code=400, detail="El rol especial 'sin_rol' no existe. Debe crearse antes de eliminar roles.")
+
+    # Buscar todos los user_roles con este rol
+    user_roles = db.query(UserRole).filter(UserRole.role_id == role.id).all()
+    for user_role in user_roles:
+        # Contar cuántos roles tiene el usuario
+        count_roles = db.query(func.count(UserRole.id)).filter(UserRole.user_id == user_role.user_id).scalar()
+        if count_roles <= 1:
+            # Si solo tiene este rol, asignar 'sin_rol' antes de eliminar
+            exists = db.query(UserRole).filter(UserRole.user_id == user_role.user_id, UserRole.role_id == sin_rol.id).first()
+            if not exists:
+                new_ur = UserRole(user_id=user_role.user_id, role_id=sin_rol.id)
+                db.add(new_ur)
+        # Eliminar la relación con el rol a borrar
+        db.delete(user_role)
     db.delete(role)
     db.commit()
-    return {"message": "Rol eliminado exitosamente", "role_id": role_id}
+    return {"message": "Rol eliminado exitosamente y usuarios reasignados si era necesario", "role_id": role_id}
 
 @router.get("/roles/{role_name}")
 def get_role(role_name: str, db: Session = Depends(get_db)):
@@ -158,24 +184,50 @@ def update_role(
         "role_id": str(role.id)
     }
 
-@router.get("/", response_model=List[UserWithRoles])
-def get_users(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    institution_id: int = Query(None),
-    is_freelance: bool = Query(None),
+@router.get("/")
+async def get_users(
     db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(AuthService.get_current_active_user),
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    role: Optional[str] = None,
+    institution_id: Optional[int] = None,
+    institution_name: Optional[str] = None,
+    package_id: Optional[str] = None,
+    package: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    is_freelance: Optional[bool] = None,
+    no_institution: Optional[bool] = None,
 ):
-    """Get list of users"""
-    users = UserService.get_users_with_roles(
-        db, 
-        skip=skip, 
-        limit=limit,
-        institution_id=institution_id,
-        is_freelance=is_freelance
-    )
-    return users
+    try:
+        # Handle no_institution parameter
+        if no_institution:
+            institution_id = None  # This will be handled specially in the service
+        
+        users = UserService.get_users_with_roles(
+            db=db,
+            skip=skip,
+            limit=limit,
+            search=search,
+            role=role,
+            institution_id=institution_id,
+            institution_name=institution_name,
+            package_id=package_id,
+            package=package,
+            is_active=is_active,
+            is_freelance=is_freelance,
+            no_institution=no_institution,
+        )
+        validated = []
+        for u in users:
+            try:
+                validated.append(UserWithRoles.model_validate(u).model_dump(mode="json"))
+            except Exception as e:
+                continue
+        return JSONResponse(content=validated)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
 @router.get("/{user_id}", response_model=UserWithRoles)
 def get_user(

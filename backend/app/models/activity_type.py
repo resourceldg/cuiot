@@ -15,7 +15,7 @@ class ActivityType(BaseModel):
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Relationships
-    activities = relationship("Activity", back_populates="activity_type", cascade="all, delete-orphan")
+    # activities = relationship("Activity", back_populates="activity_type", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<ActivityType(id={self.id}, type_name='{self.type_name}')>" 

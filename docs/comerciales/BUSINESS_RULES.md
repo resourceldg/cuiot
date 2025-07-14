@@ -19,7 +19,26 @@
 
 ## 🎯 **Reglas Principales**
 
-### **1. Tipos de Cuidado**
+### **1. Asociación de Dispositivos y Paquetes**
+**Regla Fundamental:** Un dispositivo siempre está asociado a un paquete, y un paquete siempre está asociado a un propietario específico.
+
+**Flujo de Asociación:**
+```
+Dispositivo → Paquete → Propietario
+```
+
+**Tipos de Propietarios:**
+- **🏥 Institución** (paquetes profesionales/institucionales)
+- **👨‍👩‍👧‍👦 Familiar/Responsable Legal** (paquetes individuales)
+- **👴 Persona Cuidada** (tipo autocuidado)
+
+**Características del Paquete:**
+- Número máximo de dispositivos permitidos
+- Número máximo de usuarios
+- Funcionalidades disponibles (monitoreo, alertas, reportes)
+- Nivel de soporte técnico
+
+### **2. Tipos de Cuidado**
 - **Autocuidado**: Persona independiente que gestiona su propio cuidado
 - **Cuidado Delegado**: Persona dependiente que necesita representación
 

@@ -14,13 +14,17 @@
     }
 
     async function handleLogin({ email, password }) {
+        console.log("🔧 handleLogin() - Iniciando login...");
         error = "";
         loading = true;
         try {
+            console.log("🔧 handleLogin() - Llamando login()...");
             await login(email, password);
+            console.log("✅ handleLogin() - Login exitoso, redirigiendo...");
             loading = false;
             goto("/dashboard");
         } catch (e) {
+            console.error("❌ handleLogin() - Error:", e);
             error = e.message || "Error de autenticación";
             loading = false;
         }

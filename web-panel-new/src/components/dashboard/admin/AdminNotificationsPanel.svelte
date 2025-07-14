@@ -27,8 +27,7 @@
         try {
             alerts = await getAlerts();
         } catch (err) {
-            error = err.message;
-            console.error("Error loading alerts:", err);
+            error = err instanceof Error ? err.message : "Error desconocido";
         } finally {
             loading = false;
         }
@@ -39,7 +38,7 @@
             await deleteAlert(id);
             alerts = alerts.filter((alert) => alert.id !== id);
         } catch (err) {
-            console.error("Error deleting alert:", err);
+            // console.error("Error deleting alert:", err);
         }
     }
 
@@ -50,7 +49,7 @@
                 alert.id === id ? { ...alert, read: true } : alert,
             );
         } catch (err) {
-            console.error("Error marking alert as read:", err);
+            // console.error("Error marking alert as read:", err);
         }
     }
 

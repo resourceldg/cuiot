@@ -38,6 +38,9 @@ class UserInDB(UserBase, BaseResponse):
 
 class UserWithRoles(UserResponse):
     roles: List[str] = []  # List of role names
+    
+    class Config:
+        from_attributes = True
 
 class UserLogin(BaseModel):
     email: EmailStr

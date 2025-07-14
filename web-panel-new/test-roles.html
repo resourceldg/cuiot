@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Roles</title>
+</head>
+
+<body>
+    <h1>Test Roles Loading</h1>
+    <div id="result"></div>
+    <script>
+        async function testRoles() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Obtener token del localStorage
+                const token = localStorage.getItem('authToken');
+                console.log('Token:', token ? 'Found' : 'Not found');
+
+                if (!token) {
+                    resultDiv.innerHTML = '<p style="color: red;">No hay token de autenticación</p>';
+                    return;
+                }
+
+                // Probar la llamada a roles
+                const response = await fetch('/api/v1/users/roles', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${response.status} - ${errorText}</p>`;
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Roles data:', data);
+
+                resultDiv.innerHTML = `
+                    <p style="color: green;">✅ Roles cargados exitosamente</p>
+                    <p>Total roles: ${data.length}</p>
+                    <ul>
+                        ${data.map(role => `<li>${role.name} - ${role.description}</li>`).join('')}
+                    </ul>
+                `;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Ejecutar test al cargar la página
+        testRoles();
+    </script>
+</body>
+
+</html>
