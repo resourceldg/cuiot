@@ -83,26 +83,45 @@
         success = false;
 
         debugResult = e.detail.debugResult;
-        if (
-            debugResult &&
-            debugResult.updateResult &&
-            !debugResult.updateResult.error
-        ) {
+        console.log("🔧 EditUserModal handleSubmit: Recibido evento", {
+            debugResult,
+            hasUpdateResult: !!debugResult?.updateResult,
+            hasAssignResult: !!debugResult?.assignResult,
+        });
+
+        // Verificar si hay errores en las respuestas de la API
+        const updateError = debugResult?.updateResult?.error;
+        const assignError = debugResult?.assignResult?.error;
+
+        if (updateError || assignError) {
+            success = false;
+            const errorMessage =
+                updateError || assignError || "Error desconocido";
+            console.error("❌ EditUserModal handleSubmit: Error en operación", {
+                updateError,
+                assignError,
+                errorMessage,
+            });
+
+            error = errorMessage;
+            notificationType = "error";
+            notificationMessage = "Error al actualizar el usuario";
+            notificationSubtitle = errorMessage;
+            showNotification = true;
+            submitting = false;
+        } else {
             success = true;
+            console.log(
+                "✅ EditUserModal handleSubmit: Usuario actualizado exitosamente",
+                debugResult,
+            );
+
             notificationType = "success";
             notificationMessage = "¡Usuario actualizado correctamente!";
             notificationSubtitle =
                 "Los cambios han sido guardados exitosamente.";
             showNotification = true;
             dispatch("save"); // Notifica éxito al padre
-        } else {
-            success = false;
-            error = "Error al actualizar el usuario";
-            notificationType = "error";
-            notificationMessage = "Error al actualizar el usuario";
-            notificationSubtitle = "No se pudieron guardar los cambios.";
-            showNotification = true;
-            submitting = false;
         }
     }
 
@@ -123,138 +142,72 @@
 
 {#if open}
     <Portal>
-        <div class="modal-backdrop" on:click={handleCancel}></div>
-        <div class="modal" role="dialog" aria-modal="true">
-            <button
-                class="modal-close"
-                on:click={handleCancel}
-                title="Cerrar"
-                disabled={submitting}>&times;</button
+        <div class="modal-outer">
+            <div class="modal-backdrop" on:click={handleCancel}></div>
+            <div
+                class="modal"
+                role="dialog"
+                aria-modal="true"
+                on:click|stopPropagation
             >
-            <h3>Editar usuario</h3>
-            <UserForm
-                initialData={formData}
-                on:submit={handleSubmit}
-                editMode={true}
-                {sessionUserRole}
-            />
-            {#if error && !showNotification}
-                <div class="form-error">{error}</div>
-            {/if}
-            {#if debugResult && !success && !showNotification}
-                <details>
-                    <summary>DEBUG: Respuesta de la API</summary>
-                    <pre
-                        style="background: #f0f0f0; padding: 10px; border-radius: 4px; font-size: 12px; overflow: auto; max-height: 200px;">{JSON.stringify(
-                            debugResult,
-                            null,
-                            2,
-                        )}</pre>
-                </details>
-            {/if}
-            <div class="modal-actions">
-                <button
-                    class="btn-secondary"
-                    on:click={handleCancel}
-                    disabled={submitting}
-                    >{submitting ? "Procesando..." : "Cancelar"}</button
-                >
+                <div class="modal-header">
+                    <h3>Editar usuario</h3>
+                    <button
+                        class="modal-close"
+                        on:click={handleCancel}
+                        title="Cerrar"
+                        disabled={submitting}>&times;</button
+                    >
+                </div>
+                <div class="modal-content">
+                    <UserForm
+                        initialData={formData}
+                        on:submit={handleSubmit}
+                        editMode={true}
+                        {sessionUserRole}
+                    />
+                    {#if error && !showNotification}
+                        <div class="error-banner">{error}</div>
+                    {/if}
+                    {#if debugResult && !success && !showNotification}
+                        <details>
+                            <summary>DEBUG: Respuesta de la API</summary>
+                            <pre>{JSON.stringify(debugResult, null, 2)}</pre>
+                        </details>
+                    {/if}
+                    <div class="modal-actions">
+                        <button
+                            class="btn-secondary"
+                            on:click={handleCancel}
+                            disabled={submitting}
+                            >{submitting ? "Procesando..." : "Cancelar"}</button
+                        >
+                    </div>
+                    <ModalNotification
+                        type={notificationType}
+                        message={notificationMessage}
+                        subtitle={notificationSubtitle}
+                        show={showNotification}
+                        duration={2000}
+                        on:close={handleNotificationClose}
+                    />
+                </div>
             </div>
-            <!-- Componente de notificación -->
-            <ModalNotification
-                type={notificationType}
-                message={notificationMessage}
-                subtitle={notificationSubtitle}
-                show={showNotification}
-                duration={2000}
-                on:close={handleNotificationClose}
-            />
         </div>
     </Portal>
 {/if}
 
 <style>
-    .modal {
+    .modal-outer {
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: var(--color-bg-card);
-        border-radius: 16px;
-        box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.18),
-            0 1.5px 6px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem 1.5rem 1.2rem 1.5rem;
-        min-width: 320px;
-        max-width: 420px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
         z-index: 2100;
         display: flex;
-        flex-direction: column;
-        gap: 1.2rem;
-        margin: 0;
-        box-sizing: border-box;
-        align-items: stretch;
-        animation: modal-fade-in 0.22s cubic-bezier(0.4, 1.3, 0.6, 1) both;
-    }
-    .modal.popover {
-        position: absolute;
-        top: unset;
-        left: unset;
-        transform: none;
-        min-width: 320px;
-        max-width: 420px;
-        width: 100%;
-        box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.18),
-            0 1.5px 6px rgba(0, 0, 0, 0.1);
-        border-radius: 16px;
-        padding: 1.2rem 1.2rem 1.1rem 1.2rem;
-        gap: 1.1rem;
-        animation: modal-slide-fade-in 0.22s cubic-bezier(0.4, 1.3, 0.6, 1) both;
-    }
-    .modal-arrow {
-        position: absolute;
-        top: -12px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 24px;
-        height: 12px;
-        overflow: visible;
-        z-index: 2200;
-    }
-    .modal-arrow::after {
-        content: "";
-        display: block;
-        width: 24px;
-        height: 12px;
-        background: transparent;
-        border-left: 12px solid transparent;
-        border-right: 12px solid transparent;
-        border-bottom: 12px solid var(--color-bg-card);
-        margin: 0 auto;
-    }
-    @keyframes modal-fade-in {
-        from {
-            opacity: 0;
-            transform: translate(-50%, -60%) scale(0.98);
-        }
-        to {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-    }
-    @keyframes modal-slide-fade-in {
-        from {
-            opacity: 0;
-            transform: translateY(24px) scale(0.98);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
+        align-items: center;
+        justify-content: center;
     }
     .modal-backdrop {
         position: fixed;
@@ -263,32 +216,62 @@
         width: 100vw;
         height: 100vh;
         background: rgba(0, 0, 0, 0.6);
-        z-index: 2000;
+        z-index: 2100;
+    }
+    .modal {
+        position: relative;
+        background: var(--color-bg-card);
+        border-radius: 16px;
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.18),
+            0 1.5px 6px rgba(0, 0, 0, 0.1);
+        min-width: 320px;
+        max-width: 420px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        z-index: 2110;
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        box-sizing: border-box;
+        align-items: stretch;
+        animation: modal-fade-in 0.22s cubic-bezier(0.4, 1.3, 0.6, 1) both;
+    }
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--color-border);
+        padding: 1.2rem 1.2rem 0.5rem 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    .modal-content {
+        padding: 0 1.2rem 1.2rem 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
     }
     .modal-close {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
         background: none;
         border: none;
         font-size: 2rem;
-        color: var(--color-text-muted);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: color 0.2s;
         z-index: 2200;
+        padding: 0.2rem 0.5rem;
+        border-radius: 8px;
     }
     .modal-close:hover:not(:disabled) {
         color: var(--color-accent);
-    }
-    .modal-close:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+        background: var(--color-bg-hover);
     }
     .modal-actions {
         display: flex;
         justify-content: flex-end;
         gap: 0.8rem;
-        margin-top: 1.2rem;
+        margin-top: 0.5rem;
         padding-top: 0.5rem;
         border-top: 1px solid var(--color-border);
     }
@@ -305,7 +288,7 @@
         box-shadow: 0 1.5px 6px rgba(0, 0, 0, 0.08);
     }
     .modal-actions button.btn-secondary {
-        background: var(--color-bg-secondary);
+        background: var(--color-bg-card);
         color: var(--color-text);
         border: 1px solid var(--color-border);
     }
@@ -313,36 +296,33 @@
         opacity: 0.6;
         cursor: not-allowed;
     }
-    .form-error {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
+    .error-banner {
+        background: rgba(255, 77, 109, 0.12);
+        color: var(--color-danger);
+        border: 1.5px solid var(--color-danger);
         border-radius: 8px;
-        padding: 0.8rem 1rem;
+        padding: 0.7rem 1rem;
+        font-size: 1.05rem;
+        text-align: center;
         margin: 0.7rem 0 0.5rem 0;
-        font-size: 0.98rem;
     }
-    /* Asegura que el modal nunca se salga del viewport */
-    .modal,
-    .modal.popover {
-        max-width: 98vw;
-        max-height: 95vh;
-        overflow-y: auto;
-    }
-
-    body {
-        overflow: hidden !important;
-    }
-
     @media (max-width: 600px) {
-        .modal,
-        .modal.popover {
-            padding: 0.5rem 0.25rem;
+        .modal-outer {
+            align-items: flex-start;
+        }
+        .modal {
+            padding: 0;
             min-width: 0;
             max-width: 98vw;
             width: 98vw;
         }
-        .modal h3 {
+        .modal-header {
+            padding: 0.7rem 0.7rem 0.3rem 0.7rem;
+        }
+        .modal-content {
+            padding: 0 0.7rem 0.7rem 0.7rem;
+        }
+        .modal-header h3 {
             font-size: 1.1rem;
         }
     }

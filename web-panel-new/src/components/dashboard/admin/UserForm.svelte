@@ -80,6 +80,9 @@
         ? String(form.institution_id)
         : "";
 
+    let dateOfBirthString = "";
+    $: dateOfBirthString = form.date_of_birth ? String(form.date_of_birth) : "";
+
     // Precarga robusta SOLO al abrir en modo edición
     $: if (editMode && initialData && initialData.id !== form.id) {
         form = { ...form, ...initialData };
@@ -304,24 +307,50 @@
     async function handleSubmit() {
         validateForm();
         if (Object.keys(errors).length > 0) {
+            console.log(
+                "❌ UserForm handleSubmit: Errores de validación",
+                errors,
+            );
             return;
         }
+
         submitting = true;
         error = "";
         debugResult = {};
-        let updateResult, assignResult;
+
         try {
             // Guardar usuario (sin el campo 'role')
             const userUpdateData = { ...form };
             delete (userUpdateData as any).role;
-            // Elimina password si está vacío
             if (!userUpdateData.password)
                 delete (userUpdateData as any).password;
-            // Elimina date_of_birth si está vacío
             if (!userUpdateData.date_of_birth)
                 delete (userUpdateData as any).date_of_birth;
-            updateResult = await updateUser(form.id, userUpdateData);
+
+            const updateResult = await updateUser(form.id, userUpdateData);
             debugResult.updateResult = updateResult;
+
+            if (updateResult.error) {
+                if (updateResult.error.includes("401")) {
+                    // Forzar logout y redirigir
+                    if (typeof window !== "undefined") {
+                        localStorage.removeItem("token");
+                        sessionStorage.setItem(
+                            "sessionMessage",
+                            "Sesión expirada, por favor vuelve a iniciar sesión.",
+                        );
+                        window.location.href = "/login";
+                    }
+                    return;
+                } else if (updateResult.error.includes("403")) {
+                    error = "No tienes permisos para editar este usuario.";
+                    return;
+                } else {
+                    error = updateResult.error;
+                    return;
+                }
+            }
+
             // Si el rol cambió y el usuario es admin, asignar rol
             if (
                 editMode &&
@@ -329,15 +358,20 @@
                 form.role &&
                 form.role !== initialData.role
             ) {
-                assignResult = await assignRole(form.id, form.role);
+                const assignResult = await assignRole(form.id, form.role);
                 debugResult.assignResult = assignResult;
+                if (assignResult.error) {
+                    error = assignResult.error;
+                    return;
+                }
             }
             dispatch("submit", { ...form, debugResult });
         } catch (err) {
-            error =
+            const errorMessage =
                 err instanceof Error
                     ? err.message
                     : "Error al procesar formulario";
+            error = errorMessage;
         } finally {
             submitting = false;
         }
@@ -480,7 +514,7 @@
                         <input
                             id="date_of_birth"
                             type="date"
-                            bind:value={form.date_of_birth}
+                            bind:value={dateOfBirthString}
                             on:input={(e) => {
                                 const t = e.target as HTMLInputElement | null;
                                 updateForm("date_of_birth", t ? t.value : "");
@@ -654,11 +688,18 @@
                         <label for="institution_id">Institución</label>
                         <select
                             id="institution_id"
-                            value={form.institution_id ?? ""}
+                            value={form.institution_id !== undefined &&
+                            form.institution_id !== null
+                                ? String(form.institution_id)
+                                : ""}
                             on:change={(e) => {
                                 const t = e.target as HTMLSelectElement | null;
                                 const val =
-                                    t && t.value ? Number(t.value) : undefined;
+                                    t && t.value
+                                        ? t.value !== ""
+                                            ? Number(t.value)
+                                            : undefined
+                                        : undefined;
                                 updateForm("institution_id", val);
                             }}
                             disabled={!isFieldEditable("institution_id")}
@@ -668,7 +709,9 @@
                             {:else}
                                 <option value="">Sin institución</option>
                                 {#each institutions as inst}
-                                    <option value={inst.id}>{inst.name}</option>
+                                    <option value={String(inst.id)}
+                                        >{inst.name}</option
+                                    >
                                 {/each}
                             {/if}
                         </select>
@@ -680,11 +723,6 @@
                     </div>
                 </div>
             </div>
-            {#if error}
-                <div class="error-message">
-                    <span>{error}</span>
-                </div>
-            {/if}
             <div class="form-actions">
                 <button
                     type="submit"
@@ -699,6 +737,9 @@
                     {/if}
                 </button>
             </div>
+            {#if error}
+                <div class="error-banner">{error}</div>
+            {/if}
         </form>
     {/if}
     {#if editMode && !form.role}
@@ -727,214 +768,45 @@
 
 <style>
     .user-form-container {
-        padding: var(--spacing-xl);
+        width: 100%;
+        max-width: 100%;
     }
-
-    .loading-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: var(--spacing-xl);
-        gap: var(--spacing-md);
-    }
-
-    .loading-spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid var(--color-border);
-        border-top: 4px solid var(--color-accent);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    .loading-spinner-small {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top: 2px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 8px;
-    }
-
-    @keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-
-    .error-message {
-        background: var(--color-danger-bg);
-        color: var(--color-danger);
-        border: 1px solid var(--color-danger);
-        padding: var(--spacing-md);
-        border-radius: var(--border-radius);
-        margin-bottom: var(--spacing-lg);
-        font-weight: 500;
-    }
-
-    .form-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: var(--spacing-xl);
-        padding-bottom: var(--spacing-lg);
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .form-info h2 {
-        margin: 0 0 var(--spacing-sm) 0;
-        color: var(--color-text);
-        font-size: 1.5rem;
-    }
-
-    .form-info p {
-        margin: 0;
-        color: var(--color-text-muted);
-        font-size: 0.9rem;
-    }
-
-    .expand-all-btn {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-        background: var(--color-accent);
-        color: white;
-        border: none;
-        border-radius: var(--border-radius);
-        padding: var(--spacing-sm) var(--spacing-md);
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-
-    .expand-all-btn:hover {
-        background: var(--color-accent-dark);
-    }
-
-    .user-form {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-lg);
-    }
-
     .form-section {
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius);
-        background: var(--color-bg-card);
-        overflow: hidden;
-    }
-
-    .form-section.required {
-        border-color: var(--color-accent);
-        background: linear-gradient(
-            135deg,
-            var(--color-bg-card),
-            rgba(0, 230, 118, 0.05)
-        );
-    }
-
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-lg);
         background: var(--color-bg);
-        border-bottom: 1px solid var(--color-border);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .section-header:hover {
-        background: var(--color-bg-hover);
-    }
-
-    .section-header h3 {
-        margin: 0;
-        color: var(--color-text);
-        font-size: 1.1rem;
-        font-weight: 600;
-    }
-
-    .required-badge {
-        background: var(--color-accent);
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.7rem;
-        font-weight: 600;
-    }
-
-    .expand-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: var(--spacing-sm);
         border-radius: var(--border-radius);
-        color: var(--color-text-muted);
-        transition: all 0.2s;
+        border: 1px solid var(--color-accent);
+        margin-bottom: var(--spacing-xl);
+        padding: var(--spacing-lg);
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
     }
-
-    .expand-btn:hover {
-        background: var(--color-bg-hover);
-        color: var(--color-text);
+    .section-header {
+        margin-bottom: var(--spacing-lg);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 1px solid var(--color-border);
     }
-
-    .expand-btn.expanded {
-        transform: rotate(45deg);
-        color: var(--color-accent);
-    }
-
     .form-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-        padding: 0.5rem 1rem 1rem 1rem;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--spacing-lg) var(--spacing-md);
+        width: 100%;
         box-sizing: border-box;
     }
-    @media (max-width: 800px) {
-        .form-grid {
-            grid-template-columns: 1fr;
-            padding: 0.5rem;
-        }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        margin-bottom: var(--spacing-md);
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
-    .user-form {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 0;
-        overflow-y: visible;
-    }
-    .form-section {
-        margin-bottom: 1.5rem;
-        background: var(--color-bg-card);
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow-sm);
-        padding: 1rem;
-    }
-    @media (max-width: 600px) {
-        .user-form {
-            max-width: 100vw;
-            padding: 0 0.5rem 1rem 0.5rem;
-            max-height: 90vh;
-        }
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-    .warning-text {
-        color: var(--color-text-muted);
-        font-size: 0.85rem;
-        margin-top: 2px;
-        display: block;
-    }
-    .debug-not-editable {
-        border: 2px solid red !important;
-        background: #ffeaea;
+    .form-group label {
+        font-weight: 500;
+        color: var(--color-text);
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
     }
     .form-group input,
     .form-group select {
@@ -945,12 +817,65 @@
         color: var(--color-text);
         font-size: 0.95rem;
         transition: all 0.2s;
-        box-shadow: none;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
     .form-group input:focus,
     .form-group select:focus {
         outline: none;
         border-color: var(--color-accent);
-        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.08);
+        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.1);
+        background: var(--color-bg-hover);
+        color: var(--color-text);
+    }
+    .form-group input.error,
+    .form-group select.error {
+        border-color: var(--color-danger);
+    }
+    .error-text {
+        color: var(--color-danger);
+        font-size: 0.85rem;
+        margin-top: 2px;
+    }
+    @media (max-width: 900px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 600px) {
+        .form-section {
+            padding: var(--spacing-md);
+        }
+        .form-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--spacing-md);
+        }
+    }
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-lg);
+    }
+    .form-actions .btn-primary {
+        background: var(--color-accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--border-radius);
+        padding: 0.7rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.18s;
+        box-shadow: 0 1.5px 6px rgba(0, 0, 0, 0.08);
+    }
+    .form-actions .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .form-actions .btn-primary:hover:not(:disabled) {
+        background: var(--color-accent-dark, #00c060);
     }
 </style>
