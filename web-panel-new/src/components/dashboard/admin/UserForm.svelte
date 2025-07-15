@@ -98,6 +98,10 @@
         if (initialData.id) {
             form.id = initialData.id;
         }
+        // Asignar género por defecto si falta
+        if (!form.gender) {
+            form.gender = "Otro";
+        }
     }
 
     // Validaciones

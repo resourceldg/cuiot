@@ -774,17 +774,22 @@
         roleToDelete = null;
         deleteRoleSuccess = "";
     }
+    let deletingRole = false;
+
     async function handleDeleteRole() {
         if (!roleToDelete) return;
+        deletingRole = true;
         try {
             await deleteRole(roleToDelete.id);
             await loadRoles();
             deleteRoleSuccess = "Rol eliminado exitosamente.";
             setTimeout(() => {
                 closeDeleteRoleModal();
+                deletingRole = false;
             }, 1200);
         } catch (err) {
             rolesError = getErrorMessage(err);
+            deletingRole = false;
         }
     }
 
@@ -892,74 +897,85 @@
 
     <!-- Sección de Roles -->
     <div class="roles-section">
-        <h3>Roles del Sistema</h3>
+        <div class="roles-header">
+            <h3>Roles del Sistema</h3>
+            <div class="roles-header-actions">
+                <button class="btn-primary" on:click={openNewRoleModal}>
+                    <span>+</span> Nuevo Rol
+                </button>
+            </div>
+        </div>
         {#if rolesLoading}
             <div class="loading">Cargando roles...</div>
         {:else if rolesError}
             <div class="error">{rolesError}</div>
         {:else if roles.length === 0}
             <div class="empty">No hay roles definidos.</div>
-        {:else}
-            <div class="roles-grid">
-                {#each roles as role}
-                    <div class="role-card">
-                        <div class="role-header">
-                            <h4>{ROLE_LABELS[role.name] || role.name}</h4>
-                            {#if role.is_system}
-                                <span class="system-badge">Sistema</span>
-                            {/if}
-                        </div>
-                        <p class="role-description">
-                            {role.description || "Sin descripción"}
-                        </p>
-                        <div class="role-actions">
-                            {#if !role.is_system}
-                                <button
-                                    class="edit-btn"
-                                    on:click={() => openRoleModal(role)}
-                                    title="Editar rol"
-                                >
-                                    <svg
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="1.8"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        ><path d="M12 20h9" /><path
-                                            d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"
-                                        /></svg
-                                    >
-                                </button>
-                                <button
-                                    class="delete-btn"
-                                    on:click={() => confirmDeleteRole(role)}
-                                    title="Eliminar rol"
-                                >
-                                    <svg
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="1.8"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        ><path d="M3 6h18" /><path
-                                            d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                                        /><path
-                                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0v12m4-12v12"
-                                        /></svg
-                                    >
-                                </button>
-                            {/if}
-                        </div>
-                    </div>
-                {/each}
-            </div>
         {/if}
+        <div class="roles-grid">
+            {#each roles as role}
+                <div class="role-card">
+                    <div class="role-header">
+                        <h4>{ROLE_LABELS[role.name] || role.name}</h4>
+                        {#if role.is_system}
+                            <span class="system-badge">Sistema</span>
+                        {/if}
+                    </div>
+                    <p class="role-description">
+                        {role.description || "Sin descripción"}
+                    </p>
+                    <div class="role-actions">
+                        {#if !role.is_system && role.name !== "admin" && role.name !== "sin_rol"}
+                            <button
+                                class="delete-btn"
+                                on:click={() => confirmDeleteRole(role)}
+                                title="Eliminar rol"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M3 6h18" />
+                                    <path
+                                        d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                                    />
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0v12m4-12v12"
+                                    />
+                                </svg>
+                            </button>
+                        {/if}
+                        {#if !role.is_system}
+                            <button
+                                class="edit-btn"
+                                on:click={() => openRoleModal(role)}
+                                title="Editar rol"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    ><path d="M12 20h9" /><path
+                                        d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"
+                                    /></svg
+                                >
+                            </button>
+                        {/if}
+                    </div>
+                </div>
+            {/each}
+        </div>
     </div>
 
     <!-- Filtros de usuarios -->
@@ -1699,53 +1715,43 @@
     </details>
 
     {#if showDeleteRoleModal}
-        <div class="modal-backdrop" on:click={closeDeleteRoleModal}></div>
+        <div class="modal-backdrop" />
         <div class="modal" role="dialog" aria-modal="true">
             <button
                 class="modal-close"
                 on:click={closeDeleteRoleModal}
-                title="Cerrar">&times;</button
+                title="Cerrar"
+                disabled={deletingRole}>&times;</button
             >
-            <h3>Confirmar eliminación</h3>
+            <h3>¿Eliminar rol?</h3>
             <p>
                 ¿Estás seguro de que deseas eliminar el rol <strong
                     >{roleToDelete?.name}</strong
-                >?
+                >? Esta acción no se puede deshacer.
             </p>
-            {#if rolesError && !showDeleteRoleNotification}
-                <div class="form-error">{rolesError}</div>
-            {/if}
             <div class="modal-actions">
-                <button class="btn-danger" on:click={handleDeleteRole}
-                    >Eliminar</button
+                <button
+                    class="btn-secondary"
+                    on:click={closeDeleteRoleModal}
+                    disabled={deletingRole}>Cancelar</button
                 >
-                <button class="btn-secondary" on:click={closeDeleteRoleModal}
-                    >Cancelar</button
+                <button
+                    class="btn-danger"
+                    on:click={handleDeleteRole}
+                    disabled={deletingRole}
                 >
+                    {#if deletingRole}
+                        <span class="loading-spinner"></span> Eliminando...
+                    {:else}
+                        Eliminar
+                    {/if}
+                </button>
             </div>
-
-            <!-- Componente de notificación -->
-            {#if showDeleteRoleNotification}
-                <div class="simple-success-notification">
-                    <svg class="checkmark" viewBox="0 0 52 52">
-                        <circle
-                            class="checkmark-circle"
-                            cx="26"
-                            cy="26"
-                            r="25"
-                            fill="none"
-                        />
-                        <path
-                            class="checkmark-check"
-                            fill="none"
-                            d="M14 27l7 7 16-16"
-                        />
-                    </svg>
-                    <div class="simple-success-text">
-                        <h2>{deleteRoleNotificationMessage}</h2>
-                        <p>{deleteRoleNotificationSubtitle}</p>
-                    </div>
-                </div>
+            {#if deleteRoleSuccess}
+                <div class="success-text">{deleteRoleSuccess}</div>
+            {/if}
+            {#if rolesError}
+                <div class="error-text">{rolesError}</div>
             {/if}
         </div>
     {/if}
@@ -1845,7 +1851,21 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 0.2rem;
+        margin-bottom: 0;
+        padding-right: 0.5rem;
+    }
+    .roles-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: auto;
+        margin-bottom: 0;
+    }
+    .btn-primary {
+        padding: 0.45em 1.2em;
+        font-size: 1em;
+        border-radius: 0.4em;
+        margin: 0 0.2em 0 0;
     }
     .role-header h4 {
         margin: 0;
@@ -2522,15 +2542,15 @@
 
     .loading-spinner {
         display: inline-block;
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top: 2px solid white;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(0, 0, 0, 0.15);
+        border-top: 2px solid var(--color-accent);
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-right: 8px;
+        vertical-align: middle;
     }
-
     @keyframes spin {
         0% {
             transform: rotate(0deg);
@@ -2912,5 +2932,15 @@
 
     .debug-details[open] summary {
         border-bottom: 1px solid #dee2e6;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 1.2rem;
+    }
+    .roles-section {
+        padding-top: 0.5rem;
     }
 </style>

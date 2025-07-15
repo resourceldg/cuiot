@@ -39,9 +39,10 @@ def fix_admin_role_and_user():
             return
         admin_role.permissions = json.dumps(ADMIN_PERMISSIONS)
         admin_role.is_active = True
+        admin_role.is_system = True  # Marcar admin como sistema
         admin_role.updated_at = datetime.now()
         db.commit()
-        print("✅ Permisos del rol admin corregidos")
+        print("✅ Permisos del rol admin corregidos y marcado como sistema")
 
         # 2. Asegurar que el usuario admin tiene el rol admin activo y sin expiración
         admin_user = db.query(User).filter(User.email == ADMIN_EMAIL).first()
@@ -63,6 +64,26 @@ def fix_admin_role_and_user():
             print("✅ Rol admin del usuario admin activado y sin expiración")
         db.commit()
         print("✅ Usuario admin verificado con rol admin activo")
+
+        # Crear el rol especial 'sin_rol' si no existe
+        sin_rol = db.query(Role).filter_by(name='sin_rol').first()
+        if not sin_rol:
+            sin_rol = Role(
+                name='sin_rol',
+                description='Rol placeholder para usuarios sin rol asignado',
+                permissions=json.dumps({}),
+                is_system=True,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                is_active=True
+            )
+            db.add(sin_rol)
+            db.commit()
+            print("✅ Rol especial 'sin_rol' creado y marcado como sistema.")
+        else:
+            sin_rol.is_system = True
+            db.commit()
+            print("ℹ️  El rol especial 'sin_rol' ya existe y fue marcado como sistema.")
     except Exception as e:
         print(f"❌ Error: {e}")
         db.rollback()

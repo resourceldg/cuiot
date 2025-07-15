@@ -14,6 +14,10 @@ def fix_users_roles():
     users = db.query(User).all()
     fixed = 0
     for user in users:
+        # Asignar género por defecto si falta
+        if not user.gender:
+            user.gender = 'Otro'
+            fixed += 1
         roles_count = db.query(UserRole).filter_by(user_id=user.id).count()
         if roles_count == 0:
             user_role = UserRole(
