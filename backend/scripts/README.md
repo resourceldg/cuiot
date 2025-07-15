@@ -562,6 +562,47 @@ db.close()
 - **Carga de datos personalizados:** Permitir la carga de datos desde archivos externos (CSV, JSON) para escenarios de pruebas específicas.
 - **Integración con pipelines CI/CD:** Automatizar la población y validación de datos en entornos de integración continua.
 
+## 🛠️ Fixes y Mantenimiento Integrados
+
+El sistema modular incluye fixes profesionales para corregir y migrar datos críticos. Puedes ejecutarlos desde el menú interactivo o mediante flags CLI.
+
+### Opciones de Fix en el Menú
+
+- **34. Fix: Corregir permisos y rol admin**
+  - Asegura que el rol admin tenga permisos completos y el usuario admin esté activo y sin expiración.
+- **35. Fix: Corregir roles y género de usuarios**
+  - Asigna género por defecto y rol 'family_member' a usuarios que no lo tengan.
+- **36. Fix: Corregir campos de paquetes (list->dict)**
+  - Convierte campos de lista a dict en los paquetes para mantener la integridad de datos.
+- **37. Fix: Migrar campos de paquetes (list->dict)**
+  - Migra los campos de lista a dict en la tabla packages (features, limitations, customizable_options, add_ons_available).
+
+### Flags CLI para Fixes
+
+Puedes ejecutar cualquier fix directamente:
+
+```bash
+# Corregir permisos y rol admin
+docker compose exec backend python3 scripts/run_modular_population.py --fix-admin-role
+
+# Corregir roles y género de usuarios
+docker compose exec backend python3 scripts/run_modular_population.py --fix-users-roles
+
+# Corregir campos de paquetes (list->dict)
+docker compose exec backend python3 scripts/run_modular_population.py --fix-package-fields
+
+# Migrar campos de paquetes (list->dict)
+docker compose exec backend python3 scripts/run_modular_population.py --migrate-package-fields
+```
+
+### ¿Cuándo usar cada fix?
+- **Fix admin**: Si el usuario admin pierde permisos o el rol admin está desactivado.
+- **Fix usuarios/roles**: Si hay usuarios sin género o sin rol asignado.
+- **Fix paquetes**: Si los campos de paquetes están en formato lista y deben ser dict.
+- **Migrar paquetes**: Para migraciones masivas de estructura de datos en paquetes.
+
+Todos los fixes son idempotentes y seguros para ejecutar múltiples veces.
+
 ---
 
 **Sistema de Población Modular CUIOT** - Listo para desarrollo, testing y producción. 

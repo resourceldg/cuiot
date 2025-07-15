@@ -66,7 +66,13 @@ from scripts.modules.iot.device_configs import (
     populate_device_configs,
     populate_device_configs_complete
 )
-from sqlalchemy.orm import Session
+from scripts.modules.maintenance import (
+    fix_admin_role_and_user,
+    fix_users_roles,
+    fix_normalize_gender_values,
+    fix_package_fields_to_dict,
+    migrate_package_fields_to_dict
+)
 
 def run_core_population():
     """Ejecutar población de datos core"""
@@ -318,6 +324,26 @@ def run_iot_device_configs_only():
     finally:
         db.close()
 
+def run_fix_admin_role():
+    print("\n🔧 FIX: Corregir permisos y rol admin\n" + "="*30)
+    fix_admin_role_and_user()
+
+def run_fix_users_roles():
+    print("\n🔧 FIX: Corregir roles y género de usuarios\n" + "="*30)
+    fix_users_roles()
+
+def run_fix_package_fields():
+    print("\n🔧 FIX: Corregir campos de paquetes (list->dict)\n" + "="*30)
+    fix_package_fields_to_dict()
+
+def run_migrate_package_fields():
+    print("\n🔧 FIX: Migrar campos de paquetes (list->dict)\n" + "="*30)
+    migrate_package_fields_to_dict()
+
+def run_fix_normalize_gender():
+    print("\n🔧 FIX: Normalizar valores de género\n" + "="*30)
+    fix_normalize_gender_values()
+
 def run_full_population():
     """Ejecutar población completa de datos"""
     print("🚀 POBLACIÓN COMPLETA DE DATOS CUIOT")
@@ -389,6 +415,11 @@ def show_menu():
     print("31. Solo Eventos de Debug")
     print("32. Población IoT: Configuraciones de Dispositivos")
     print("33. Solo Configuraciones de Dispositivos")
+    print("34. Fix: Corregir permisos y rol admin")
+    print("35. Fix: Corregir roles y género de usuarios")
+    print("36. Fix: Corregir campos de paquetes (list->dict)")
+    print("37. Fix: Migrar campos de paquetes (list->dict)")
+    print("38. Fix: Normalizar valores de género (migrar a male/female/other)")
     print("0. Salir")
 
 def main():
@@ -411,6 +442,11 @@ def main():
     parser.add_argument('--debug-events', action='store_true', help='Poblar eventos de debug (testing, desarrollo, monitoreo)')
     parser.add_argument('--device-configs', action='store_true', help='Poblar configuraciones de dispositivos (personalización IoT)')
     parser.add_argument('--all', action='store_true', help='Poblar todo el sistema (full)')
+    parser.add_argument('--fix-admin-role', action='store_true', help='Fix: Corregir permisos y rol admin')
+    parser.add_argument('--fix-users-roles', action='store_true', help='Fix: Corregir roles y género de usuarios')
+    parser.add_argument('--fix-package-fields', action='store_true', help='Fix: Corregir campos de paquetes (list->dict)')
+    parser.add_argument('--migrate-package-fields', action='store_true', help='Fix: Migrar campos de paquetes (list->dict)')
+    parser.add_argument('--fix-normalize-gender', action='store_true', help='Fix: Normalizar valores de género (migrar a male/female/other)')
     args = parser.parse_args()
 
     if args.core:
@@ -461,11 +497,26 @@ def main():
     if args.all:
         run_full_population()
         return
+    if args.fix_admin_role:
+        run_fix_admin_role()
+        return
+    if args.fix_users_roles:
+        run_fix_users_roles()
+        return
+    if args.fix_package_fields:
+        run_fix_package_fields()
+        return
+    if args.migrate_package_fields:
+        run_migrate_package_fields()
+        return
+    if args.fix_normalize_gender:
+        run_fix_normalize_gender()
+        return
 
     # Si no hay argumentos, mostrar menú interactivo
     while True:
         show_menu()
-        choice = input("\nSelecciona una opción (0-33): ").strip()
+        choice = input("\nSelecciona una opción (0-38): ").strip()
         if choice == "0":
             print("👋 ¡Hasta luego!")
             break
@@ -542,6 +593,16 @@ def main():
             run_iot_device_configs_population()
         elif choice == "33":
             run_iot_device_configs_only()
+        elif choice == "34":
+            run_fix_admin_role()
+        elif choice == "35":
+            run_fix_users_roles()
+        elif choice == "36":
+            run_fix_package_fields()
+        elif choice == "37":
+            run_migrate_package_fields()
+        elif choice == "38":
+            run_fix_normalize_gender()
         else:
             print("❌ Opción no válida")
         input("\nPresiona Enter para continuar...")

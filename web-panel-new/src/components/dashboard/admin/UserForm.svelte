@@ -542,9 +542,12 @@
                             disabled={!isFieldEditable("gender")}
                         >
                             <option value="">Seleccionar</option>
-                            <option value="femenino">Femenino</option>
-                            <option value="masculino">Masculino</option>
-                            <option value="otro">Otro</option>
+                            <option value="female">Femenino</option>
+                            <option value="male">Masculino</option>
+                            <option value="other">Otro</option>
+                            <option value="prefer_not_to_say"
+                                >Prefiero no decir</option
+                            >
                         </select>
                     </div>
                     <div class="form-group">
