@@ -5,6 +5,7 @@
     import PlusIcon from "$lib/ui/icons/PlusIcon.svelte";
     import { validateFullUser } from "$lib/validations/userValidations";
     import { createEventDispatcher, onMount } from "svelte";
+    import ModalNotification from "../../shared/ui/ModalNotification.svelte";
 
     const dispatch = createEventDispatcher();
 
@@ -250,6 +251,10 @@
         form.phone &&
         (form.role || !editMode);
 
+    let showMissingFieldsModal = false;
+    let missingFields: string[] = [];
+    let missingFieldsMessage = "";
+
     onMount(async () => {
         console.log("🔧 UserForm onMount - Cargando datos...");
         try {
@@ -382,6 +387,18 @@
                 const assignResult = await assignRole(form.id, form.role);
                 debugResult.assignResult = assignResult;
                 if (assignResult.error) {
+                    // Intentar parsear error JSON
+                    try {
+                        const errObj = JSON.parse(assignResult.error);
+                        if (errObj.missing_fields) {
+                            missingFields = errObj.missing_fields;
+                            missingFieldsMessage =
+                                errObj.message ||
+                                "Faltan datos obligatorios para el rol seleccionado.";
+                            showMissingFieldsModal = true;
+                            return;
+                        }
+                    } catch (e) {}
                     error = assignResult.error;
                     return;
                 }
@@ -810,6 +827,23 @@
                     2,
                 )}</pre>
         </details>
+    {/if}
+    {#if showMissingFieldsModal}
+        <ModalNotification
+            title="Datos obligatorios faltantes"
+            on:close={() => (showMissingFieldsModal = false)}
+        >
+            <p>{missingFieldsMessage}</p>
+            <ul>
+                {#each missingFields as field}
+                    <li>{field}</li>
+                {/each}
+            </ul>
+            <button
+                class="btn"
+                on:click={() => (showMissingFieldsModal = false)}>Cerrar</button
+            >
+        </ModalNotification>
     {/if}
 </div>
 

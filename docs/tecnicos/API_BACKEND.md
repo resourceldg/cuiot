@@ -720,6 +720,15 @@
 ### Usuarios activos
 **GET** `/api/v1/users/active/list`
 
+### Cambio de rol de usuario: exclusividad y soft delete
+
+A partir de la versión X.X.X, al cambiar el rol de un usuario:
+- El backend desactiva (soft delete) todos los roles previos del usuario.
+- Solo el nuevo rol queda activo.
+- Se mantiene el historial de roles previos para trazabilidad.
+
+Esto garantiza que un usuario solo puede tener un rol activo a la vez y que el sistema cumple con la lógica de negocio de exclusividad de rol.
+
 ---
 
 ## Suscripciones de Servicio
@@ -947,3 +956,16 @@ Los reportes están vinculados a usuarios específicos para mantener trazabilida
 *Documentación API - CUIOT v2.0*
 *Última actualización: [Fecha]*
 *Próxima revisión: [Fecha]* 
+
+## Validación de datos esenciales al cambiar de rol de usuario
+
+A partir de la versión X.X.X, al cambiar el rol de un usuario mediante el endpoint correspondiente, el backend:
+
+- Realiza un soft delete de registros asociados a roles que el usuario ya no debe tener.
+- Valida y crea los registros esenciales para el nuevo rol.
+- Si faltan datos obligatorios para el nuevo rol, responde con HTTP 422 y un objeto JSON con las claves:
+    - `message`: Mensaje explicativo.
+    - `missing_fields`: Lista de campos requeridos que faltan.
+
+**Regla de integración frontend:**
+El frontend debe interceptar este error, mostrar un modal popup explicativo con el mensaje y los campos faltantes, y bloquear la operación hasta que el usuario complete los datos requeridos. 

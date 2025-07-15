@@ -134,21 +134,85 @@ class UserService:
     
     @staticmethod
     def assign_role(db: Session, user_id: UUID, role_name: str) -> bool:
-        """Assign a role to a user"""
+        """Assign a role to a user, trigger soft delete/validation/creation of essential records as needed. Ahora desactiva todos los roles previos antes de asignar el nuevo."""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        
         role = db.query(Role).filter(Role.name == role_name).first()
         if not role:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Role not found"
             )
-        
+
+        # Desactivar todos los roles activos actuales del usuario (soft delete)
+        user_roles = db.query(UserRole).filter(UserRole.user_id == user_id, UserRole.is_active == True).all()
+        for ur in user_roles:
+            ur.is_active = False
+        db.commit()
+
+        # 1. Soft delete (inactivar) registros de roles que ya no debe tener
+        # 2. Validar y crear registros esenciales para el nuevo rol
+        # 3. Lanzar excepción si faltan datos obligatorios
+        missing_fields = []
+        # --- ADMIN ---
+        if role_name == "admin":
+            for rel in [user.caregiver_assignments, user.caregiver_institutions, user.cared_persons]:
+                for obj in rel:
+                    if hasattr(obj, 'is_active'):
+                        obj.is_active = False
+        elif role_name == "caregiver":
+            for rel in [user.cared_persons]:
+                for obj in rel:
+                    if hasattr(obj, 'is_active'):
+                        obj.is_active = False
+            if not user.professional_license:
+                missing_fields.append("professional_license")
+        elif role_name == "family":
+            for rel in [user.caregiver_assignments, user.caregiver_institutions]:
+                for obj in rel:
+                    if hasattr(obj, 'is_active'):
+                        obj.is_active = False
+            if not user.cared_persons or len(user.cared_persons) == 0:
+                missing_fields.append("cared_person_link")
+        elif role_name == "patient":
+            for rel in [user.caregiver_assignments, user.caregiver_institutions]:
+                for obj in rel:
+                    if hasattr(obj, 'is_active'):
+                        obj.is_active = False
+            if not user.cared_persons or len(user.cared_persons) == 0:
+                from app.models.cared_person import CaredPerson
+                cp = CaredPerson(user_id=user.id, first_name=user.first_name, last_name=user.last_name)
+                db.add(cp)
+        elif role_name == "institution_admin":
+            for rel in [user.caregiver_assignments, user.caregiver_institutions, user.cared_persons]:
+                for obj in rel:
+                    if hasattr(obj, 'is_active'):
+                        obj.is_active = False
+            if not user.institution_id:
+                missing_fields.append("institution_id")
+        elif role_name == "sin_rol":
+            for rel in [user.caregiver_assignments, user.caregiver_institutions, user.cared_persons]:
+                for obj in rel:
+                    if hasattr(obj, 'is_active'):
+                        obj.is_active = False
+        else:
+            pass
+
+        if missing_fields:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": f"Faltan datos obligatorios para el rol '{role_name}'",
+                    "missing_fields": missing_fields
+                }
+            )
+
+        db.commit()
+
         return UserRole.assign_role_to_user(db, user_id, role_name)
     
     @staticmethod

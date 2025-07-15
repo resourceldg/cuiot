@@ -204,7 +204,6 @@ async def get_users(
         # Handle no_institution parameter
         if no_institution:
             institution_id = None  # This will be handled specially in the service
-        
         users = UserService.get_users_with_roles(
             db=db,
             skip=skip,
@@ -224,6 +223,7 @@ async def get_users(
             try:
                 validated.append(UserWithRoles.model_validate(u).model_dump(mode="json"))
             except Exception as e:
+                print(f"[DEBUG] Error validando usuario {getattr(u, 'id', None)}: {e}")
                 continue
         return JSONResponse(content=validated)
     except Exception as e:
