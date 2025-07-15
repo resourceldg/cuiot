@@ -1,5 +1,5 @@
 <script>
-    import AdminDashboard from "../../../components/dashboard/admin/AdminDashboard.svelte";
+    import AdminDashboardEnhanced from "../../../components/dashboard/admin/AdminDashboardEnhanced.svelte";
 </script>
 
-<AdminDashboard />
+<AdminDashboardEnhanced />

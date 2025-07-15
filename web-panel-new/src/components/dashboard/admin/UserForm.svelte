@@ -140,6 +140,23 @@
         };
     }
 
+    // --- NUEVO: lógica de visibilidad de secciones por rol ---
+    $: visibleSections = {
+        personal: true,
+        security: true,
+        role: true,
+        professional: [
+            "caregiver",
+            "freelance_caregiver",
+            "medical_staff",
+        ].includes(form.role),
+        legal: form.role === "family_member",
+        institution: ["admin_institution", "institution_staff"].includes(
+            form.role,
+        ),
+        validation: true,
+    };
+
     // Filtros según rol seleccionado
     $: availableRoles = roles.filter(
         (role) => !role.is_system || role.name === "sysadmin",
@@ -570,159 +587,185 @@
                     </div>
                 </div>
             </div>
-            <div class="form-section">
-                <div class="section-header">
-                    <h3>🧑‍💼 Datos Profesionales</h3>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="professional_license"
-                            >Licencia profesional *</label
-                        >
-                        <input
-                            id="professional_license"
-                            type="text"
-                            bind:value={form.professional_license}
-                            on:input={(e) => {
-                                const t = e.target as HTMLInputElement | null;
-                                updateForm(
+            {#if visibleSections.professional}
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>🧑‍💼 Datos Profesionales</h3>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="professional_license"
+                                >Licencia profesional *</label
+                            >
+                            <input
+                                id="professional_license"
+                                type="text"
+                                bind:value={form.professional_license}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm(
+                                        "professional_license",
+                                        t ? t.value : "",
+                                    );
+                                }}
+                                class:error={errors.professional_license}
+                                placeholder="Ingrese la licencia profesional"
+                                disabled={!isFieldEditable(
                                     "professional_license",
-                                    t ? t.value : "",
-                                );
-                            }}
-                            class:error={errors.professional_license}
-                            placeholder="Ingrese la licencia profesional"
-                            disabled={!isFieldEditable("professional_license")}
-                        />
-                        {#if errors.professional_license}
-                            <span class="error-text"
-                                >{errors.professional_license}</span
-                            >
-                        {/if}
-                    </div>
-                    <div class="form-group">
-                        <label for="specialization">Especialización</label>
-                        <input
-                            id="specialization"
-                            type="text"
-                            bind:value={form.specialization}
-                            on:input={(e) => {
-                                const t = e.target as HTMLInputElement | null;
-                                updateForm("specialization", t ? t.value : "");
-                            }}
-                            disabled={!isFieldEditable("specialization")}
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="experience_years">Años de experiencia</label
-                        >
-                        <input
-                            id="experience_years"
-                            type="number"
-                            min="0"
-                            bind:value={form.experience_years}
-                            on:input={(e) => {
-                                const t = e.target as HTMLInputElement | null;
-                                updateForm(
-                                    "experience_years",
-                                    t ? t.value : "",
-                                );
-                            }}
-                            disabled={!isFieldEditable("experience_years")}
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="is_freelance">¿Freelance?</label>
-                        <input
-                            id="is_freelance"
-                            type="checkbox"
-                            checked={form.is_freelance}
-                            on:change={(e) =>
-                                updateForm(
-                                    "is_freelance",
-                                    (e.target as HTMLInputElement).checked,
                                 )}
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="hourly_rate">Tarifa por hora</label>
-                        <input
-                            id="hourly_rate"
-                            type="number"
-                            min="0"
-                            bind:value={form.hourly_rate}
-                            on:input={(e) => {
-                                const t = e.target as HTMLInputElement | null;
-                                updateForm("hourly_rate", t ? t.value : "");
-                            }}
-                            disabled={!isFieldEditable("hourly_rate")}
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="availability">Disponibilidad</label>
-                        <input
-                            id="availability"
-                            type="text"
-                            bind:value={form.availability}
-                            on:input={(e) => {
-                                const t = e.target as HTMLInputElement | null;
-                                updateForm("availability", t ? t.value : "");
-                            }}
-                            disabled={!isFieldEditable("availability")}
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="is_verified">¿Verificado?</label>
-                        <input
-                            id="is_verified"
-                            type="checkbox"
-                            checked={form.is_verified}
-                            on:change={(e) =>
-                                updateForm(
-                                    "is_verified",
-                                    (e.target as HTMLInputElement).checked,
-                                )}
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="institution_id">Institución</label>
-                        <select
-                            id="institution_id"
-                            value={form.institution_id !== undefined &&
-                            form.institution_id !== null
-                                ? String(form.institution_id)
-                                : ""}
-                            on:change={(e) => {
-                                const t = e.target as HTMLSelectElement | null;
-                                const val =
-                                    t && t.value
-                                        ? t.value !== ""
-                                            ? Number(t.value)
-                                            : undefined
-                                        : undefined;
-                                updateForm("institution_id", val);
-                            }}
-                            disabled={!isFieldEditable("institution_id")}
-                        >
-                            {#if institutions.length === 0}
-                                <option value="">Sin datos</option>
-                            {:else}
-                                <option value="">Sin institución</option>
-                                {#each institutions as inst}
-                                    <option value={String(inst.id)}
-                                        >{inst.name}</option
-                                    >
-                                {/each}
+                            />
+                            {#if errors.professional_license}
+                                <span class="error-text"
+                                    >{errors.professional_license}</span
+                                >
                             {/if}
-                        </select>
-                        {#if institutionsLoadError}
-                            <span class="warning-text"
-                                >No se pudieron cargar instituciones.</span
+                        </div>
+                        <div class="form-group">
+                            <label for="specialization">Especialización</label>
+                            <input
+                                id="specialization"
+                                type="text"
+                                bind:value={form.specialization}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm(
+                                        "specialization",
+                                        t ? t.value : "",
+                                    );
+                                }}
+                                disabled={!isFieldEditable("specialization")}
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="experience_years"
+                                >Años de experiencia</label
                             >
-                        {/if}
+                            <input
+                                id="experience_years"
+                                type="number"
+                                min="0"
+                                bind:value={form.experience_years}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm(
+                                        "experience_years",
+                                        t ? t.value : "",
+                                    );
+                                }}
+                                disabled={!isFieldEditable("experience_years")}
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="is_freelance">¿Freelance?</label>
+                            <input
+                                id="is_freelance"
+                                type="checkbox"
+                                checked={form.is_freelance}
+                                on:change={(e) =>
+                                    updateForm(
+                                        "is_freelance",
+                                        (e.target as HTMLInputElement).checked,
+                                    )}
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="hourly_rate">Tarifa por hora</label>
+                            <input
+                                id="hourly_rate"
+                                type="number"
+                                min="0"
+                                bind:value={form.hourly_rate}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm("hourly_rate", t ? t.value : "");
+                                }}
+                                disabled={!isFieldEditable("hourly_rate")}
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="availability">Disponibilidad</label>
+                            <input
+                                id="availability"
+                                type="text"
+                                bind:value={form.availability}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm(
+                                        "availability",
+                                        t ? t.value : "",
+                                    );
+                                }}
+                                disabled={!isFieldEditable("availability")}
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="is_verified">¿Verificado?</label>
+                            <input
+                                id="is_verified"
+                                type="checkbox"
+                                checked={form.is_verified}
+                                on:change={(e) =>
+                                    updateForm(
+                                        "is_verified",
+                                        (e.target as HTMLInputElement).checked,
+                                    )}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            {/if}
+            {#if visibleSections.institution}
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>🏢 Institución</h3>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="institution_id">Institución</label>
+                            <select
+                                id="institution_id"
+                                value={form.institution_id !== undefined &&
+                                form.institution_id !== null
+                                    ? String(form.institution_id)
+                                    : ""}
+                                on:change={(e) => {
+                                    const t =
+                                        e.target as HTMLSelectElement | null;
+                                    const val =
+                                        t && t.value
+                                            ? t.value !== ""
+                                                ? Number(t.value)
+                                                : undefined
+                                            : undefined;
+                                    updateForm("institution_id", val);
+                                }}
+                                disabled={!isFieldEditable("institution_id")}
+                            >
+                                {#if institutions.length === 0}
+                                    <option value="">Sin datos</option>
+                                {:else}
+                                    <option value="">Sin institución</option>
+                                    {#each institutions as inst}
+                                        <option value={String(inst.id)}
+                                            >{inst.name}</option
+                                        >
+                                    {/each}
+                                {/if}
+                            </select>
+                            {#if institutionsLoadError}
+                                <span class="warning-text"
+                                    >No se pudieron cargar instituciones.</span
+                                >
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            {/if}
             <div class="form-actions">
                 <button
                     type="submit"

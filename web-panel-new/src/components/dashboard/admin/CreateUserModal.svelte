@@ -1,16 +1,15 @@
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
-    import { onMount } from "svelte";
-    import { getRoles } from "$lib/api/roles";
     import { getInstitutions } from "$lib/api/institutions";
     import { getPackages } from "$lib/api/packages";
+    import { getRoles } from "$lib/api/roles";
     import { createUser, type UserCreateData } from "$lib/api/users";
-    import SectionHeader from "../../shared/ui/SectionHeader.svelte";
+    import AlertIcon from "$lib/ui/icons/AlertIcon.svelte";
+    import CheckIcon from "$lib/ui/icons/CheckIcon.svelte";
     import UserIcon from "$lib/ui/icons/UserIcon.svelte";
     import XIcon from "$lib/ui/icons/XIcon.svelte";
-    import CheckIcon from "$lib/ui/icons/CheckIcon.svelte";
-    import AlertIcon from "$lib/ui/icons/AlertIcon.svelte";
     import { validateFullUser } from "$lib/validations/userValidations";
+    import { createEventDispatcher, onMount } from "svelte";
+    import SectionHeader from "../../shared/ui/SectionHeader.svelte";
 
     const dispatch = createEventDispatcher();
 
@@ -60,17 +59,17 @@
         confirm_password: "",
         date_of_birth: "",
         gender: "",
-        
+
         // Rol y estado
         role: "",
         is_active: true,
-        
+
         // Institución (opcional)
         institution_id: null as number | null,
-        
+
         // Paquete (opcional)
         package_id: null as string | null,
-        
+
         // Datos profesionales (solo para cuidadores)
         professional_license: "",
         specialization: "",
@@ -78,13 +77,13 @@
         is_freelance: false,
         hourly_rate: 0,
         availability: "",
-        
+
         // Representante legal (solo para cuidado delegado)
         legal_representative_id: null as string | null,
-        
+
         // Validaciones
         legal_capacity_verified: false,
-        terms_accepted: false
+        terms_accepted: false,
     };
 
     // Validaciones
@@ -92,17 +91,15 @@
     let showPassword = false;
 
     // Filtros según rol seleccionado
-    $: availableRoles = roles.filter(role => !role.is_system || role.name === 'sysadmin');
-    $: isCaregiver = form.role === 'caregiver';
-    $: isDelegatedCare = form.role === 'cared_person_delegated';
+    $: availableRoles = roles.filter(
+        (role) => !role.is_system || role.name === "sysadmin",
+    );
+    $: isCaregiver = form.role === "caregiver";
+    $: isDelegatedCare = form.role === "cared_person_delegated";
     $: requiresRepresentative = isDelegatedCare;
 
     onMount(async () => {
-        await Promise.all([
-            loadRoles(),
-            loadInstitutions(),
-            loadPackages()
-        ]);
+        await Promise.all([loadRoles(), loadInstitutions(), loadPackages()]);
     });
 
     async function loadRoles() {
@@ -144,17 +141,24 @@
         const birth = new Date(birthDate);
         let age = today.getFullYear() - birth.getFullYear();
         const monthDiff = today.getMonth() - birth.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+
+        if (
+            monthDiff < 0 ||
+            (monthDiff === 0 && today.getDate() < birth.getDate())
+        ) {
             age--;
         }
-        
+
         return age;
     }
 
     async function handleSubmit() {
         validateForm();
         if (Object.keys(errors).length > 0) {
+            console.log(
+                "❌ CreateUserModal handleSubmit: Errores de validación",
+                errors,
+            );
             return;
         }
 
@@ -181,26 +185,63 @@
             hourly_rate: form.hourly_rate,
             availability: form.availability,
             legal_representative_id: form.legal_representative_id,
-            legal_capacity_verified: form.legal_capacity_verified
+            legal_capacity_verified: form.legal_capacity_verified,
         };
 
-        const { data, error: apiError } = await createUser(userData);
-        if (apiError) {
-            error = apiError;
+        console.log(
+            "🔧 CreateUserModal handleSubmit: Iniciando creación de usuario",
+            {
+                email: userData.email,
+                role: userData.role,
+                hasInstitution: !!userData.institution_id,
+                hasPackageId: !!userData.package_id,
+            },
+        );
+
+        try {
+            const { data, error: apiError } = await createUser(userData);
+
+            if (apiError) {
+                console.error("❌ CreateUserModal handleSubmit: Error de API", {
+                    apiError,
+                    userData: { ...userData, password: "[HIDDEN]" },
+                });
+                error = apiError;
+                submitting = false;
+                return;
+            }
+
+            console.log(
+                "✅ CreateUserModal handleSubmit: Usuario creado exitosamente",
+                {
+                    userId: data?.id,
+                    email: data?.email,
+                },
+            );
+
+            success = "Usuario creado exitosamente";
+
+            // Limpiar formulario
+            resetForm();
+
+            // Cerrar modal después de un delay
+            setTimeout(() => {
+                dispatch("userCreated");
+                closeModal();
+            }, 1500);
             submitting = false;
-            return;
+        } catch (err) {
+            const errorMessage =
+                err instanceof Error ? err.message : "Error desconocido";
+            console.error("❌ CreateUserModal handleSubmit: Error inesperado", {
+                error: err,
+                errorMessage,
+                userData: { ...userData, password: "[HIDDEN]" },
+            });
+
+            error = errorMessage;
+            submitting = false;
         }
-        success = "Usuario creado exitosamente";
-        
-        // Limpiar formulario
-        resetForm();
-        
-        // Cerrar modal después de un delay
-        setTimeout(() => {
-            dispatch('userCreated');
-            closeModal();
-        }, 1500);
-        submitting = false;
     }
 
     function resetForm() {
@@ -225,13 +266,13 @@
             availability: "",
             legal_representative_id: null,
             legal_capacity_verified: false,
-            terms_accepted: false
+            terms_accepted: false,
         };
         errors = {};
     }
 
     function closeModal() {
-        dispatch('close');
+        dispatch("close");
     }
 
     function togglePassword() {
@@ -286,12 +327,18 @@
                                 <input
                                     id="first_name"
                                     type="text"
-                                    on:input={e => updateField('first_name', e.target.value)}
+                                    on:input={(e) =>
+                                        updateField(
+                                            "first_name",
+                                            e.target.value,
+                                        )}
                                     class:error={errors.first_name}
                                     placeholder="Ingrese el nombre"
                                 />
                                 {#if errors.first_name}
-                                    <span class="error-text">{errors.first_name}</span>
+                                    <span class="error-text"
+                                        >{errors.first_name}</span
+                                    >
                                 {/if}
                             </div>
 
@@ -300,12 +347,18 @@
                                 <input
                                     id="last_name"
                                     type="text"
-                                    on:input={e => updateField('last_name', e.target.value)}
+                                    on:input={(e) =>
+                                        updateField(
+                                            "last_name",
+                                            e.target.value,
+                                        )}
                                     class:error={errors.last_name}
                                     placeholder="Ingrese el apellido"
                                 />
                                 {#if errors.last_name}
-                                    <span class="error-text">{errors.last_name}</span>
+                                    <span class="error-text"
+                                        >{errors.last_name}</span
+                                    >
                                 {/if}
                             </div>
 
@@ -314,12 +367,15 @@
                                 <input
                                     id="email"
                                     type="email"
-                                    on:input={e => updateField('email', e.target.value)}
+                                    on:input={(e) =>
+                                        updateField("email", e.target.value)}
                                     class:error={errors.email}
                                     placeholder="usuario@ejemplo.com"
                                 />
                                 {#if errors.email}
-                                    <span class="error-text">{errors.email}</span>
+                                    <span class="error-text"
+                                        >{errors.email}</span
+                                    >
                                 {/if}
                             </div>
 
@@ -328,25 +384,36 @@
                                 <input
                                     id="phone"
                                     type="tel"
-                                    on:input={e => updateField('phone', e.target.value)}
+                                    on:input={(e) =>
+                                        updateField("phone", e.target.value)}
                                     class:error={errors.phone}
                                     placeholder="+54 11 1234-5678"
                                 />
                                 {#if errors.phone}
-                                    <span class="error-text">{errors.phone}</span>
+                                    <span class="error-text"
+                                        >{errors.phone}</span
+                                    >
                                 {/if}
                             </div>
 
                             <div class="form-group">
-                                <label for="date_of_birth">Fecha de Nacimiento *</label>
+                                <label for="date_of_birth"
+                                    >Fecha de Nacimiento *</label
+                                >
                                 <input
                                     id="date_of_birth"
                                     type="date"
-                                    on:input={e => updateField('date_of_birth', e.target.value)}
+                                    on:input={(e) =>
+                                        updateField(
+                                            "date_of_birth",
+                                            e.target.value,
+                                        )}
                                     class:error={errors.date_of_birth}
                                 />
                                 {#if errors.date_of_birth}
-                                    <span class="error-text">{errors.date_of_birth}</span>
+                                    <span class="error-text"
+                                        >{errors.date_of_birth}</span
+                                    >
                                 {/if}
                             </div>
 
@@ -354,17 +421,22 @@
                                 <label for="gender">Género *</label>
                                 <select
                                     id="gender"
-                                    on:change={e => updateField('gender', e.target.value)}
+                                    on:change={(e) =>
+                                        updateField("gender", e.target.value)}
                                     class:error={errors.gender}
                                 >
                                     <option value="">Seleccionar género</option>
                                     <option value="male">Masculino</option>
                                     <option value="female">Femenino</option>
                                     <option value="other">Otro</option>
-                                    <option value="prefer_not_to_say">Prefiero no decir</option>
+                                    <option value="prefer_not_to_say"
+                                        >Prefiero no decir</option
+                                    >
                                 </select>
                                 {#if errors.gender}
-                                    <span class="error-text">{errors.gender}</span>
+                                    <span class="error-text"
+                                        >{errors.gender}</span
+                                    >
                                 {/if}
                             </div>
                         </div>
@@ -379,31 +451,51 @@
                                 <div class="password-input">
                                     <input
                                         id="password"
-                                        type={showPassword ? "text" : "password"}
-                                        on:input={e => updateField('password', e.target.value)}
+                                        type={showPassword
+                                            ? "text"
+                                            : "password"}
+                                        on:input={(e) =>
+                                            updateField(
+                                                "password",
+                                                e.target.value,
+                                            )}
                                         class:error={errors.password}
                                         placeholder="Mínimo 8 caracteres"
                                     />
-                                    <button type="button" class="password-toggle" on:click={togglePassword}>
+                                    <button
+                                        type="button"
+                                        class="password-toggle"
+                                        on:click={togglePassword}
+                                    >
                                         {showPassword ? "👁️" : "👁️‍🗨️"}
                                     </button>
                                 </div>
                                 {#if errors.password}
-                                    <span class="error-text">{errors.password}</span>
+                                    <span class="error-text"
+                                        >{errors.password}</span
+                                    >
                                 {/if}
                             </div>
 
                             <div class="form-group">
-                                <label for="confirm_password">Confirmar Contraseña *</label>
+                                <label for="confirm_password"
+                                    >Confirmar Contraseña *</label
+                                >
                                 <input
                                     id="confirm_password"
                                     type="password"
-                                    on:input={e => updateField('confirm_password', e.target.value)}
+                                    on:input={(e) =>
+                                        updateField(
+                                            "confirm_password",
+                                            e.target.value,
+                                        )}
                                     class:error={errors.confirm_password}
                                     placeholder="Repita la contraseña"
                                 />
                                 {#if errors.confirm_password}
-                                    <span class="error-text">{errors.confirm_password}</span>
+                                    <span class="error-text"
+                                        >{errors.confirm_password}</span
+                                    >
                                 {/if}
                             </div>
                         </div>
@@ -417,16 +509,20 @@
                                 <label for="role">Rol *</label>
                                 <select
                                     id="role"
-                                    on:change={e => updateField('role', e.target.value)}
+                                    on:change={(e) =>
+                                        updateField("role", e.target.value)}
                                     class:error={errors.role}
                                 >
                                     <option value="">Seleccionar rol</option>
                                     {#each availableRoles as role}
-                                        <option value={role.name}>{role.name}</option>
+                                        <option value={role.name}
+                                            >{role.name}</option
+                                        >
                                     {/each}
                                 </select>
                                 {#if errors.role}
-                                    <span class="error-text">{errors.role}</span>
+                                    <span class="error-text">{errors.role}</span
+                                    >
                                 {/if}
                             </div>
 
@@ -436,9 +532,14 @@
                                     <input
                                         id="is_active"
                                         type="checkbox"
-                                        on:change={e => updateField('is_active', e.target.checked)}
+                                        on:change={(e) =>
+                                            updateField(
+                                                "is_active",
+                                                e.target.checked,
+                                            )}
                                     />
-                                    <label for="is_active">Usuario activo</label>
+                                    <label for="is_active">Usuario activo</label
+                                    >
                                 </div>
                             </div>
                         </div>
@@ -452,11 +553,20 @@
                                 <label for="institution">Institución</label>
                                 <select
                                     id="institution"
-                                    on:change={e => updateField('institution_id', e.target.value ? parseInt(e.target.value, 10) : null)}
+                                    on:change={(e) =>
+                                        updateField(
+                                            "institution_id",
+                                            e.target.value
+                                                ? parseInt(e.target.value, 10)
+                                                : null,
+                                        )}
                                 >
-                                    <option value={null}>Sin institución</option>
+                                    <option value={null}>Sin institución</option
+                                    >
                                     {#each institutions as institution}
-                                        <option value={institution.id}>{institution.name}</option>
+                                        <option value={institution.id}
+                                            >{institution.name}</option
+                                        >
                                     {/each}
                                 </select>
                             </div>
@@ -465,11 +575,17 @@
                                 <label for="package">Paquete</label>
                                 <select
                                     id="package"
-                                    on:change={e => updateField('package_id', e.target.value)}
+                                    on:change={(e) =>
+                                        updateField(
+                                            "package_id",
+                                            e.target.value,
+                                        )}
                                 >
                                     <option value={null}>Sin paquete</option>
-                                    {#each packages as package}
-                                        <option value={package.id}>{package.name} - ${package.price_monthly}/mes</option>
+                                    {#each packages as pkg}
+                                        <option value={pkg.id}
+                                            >{pkg.name} - ${pkg.price_monthly}/mes</option
+                                        >
                                     {/each}
                                 </select>
                             </div>
@@ -482,76 +598,130 @@
                             <h3>💼 Datos Profesionales</h3>
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label for="professional_license">Licencia Profesional *</label>
+                                    <label for="professional_license"
+                                        >Licencia Profesional *</label
+                                    >
                                     <input
                                         id="professional_license"
                                         type="text"
-                                        on:input={e => updateField('professional_license', e.target.value)}
+                                        on:input={(e) =>
+                                            updateField(
+                                                "professional_license",
+                                                e.target.value,
+                                            )}
                                         class:error={errors.professional_license}
                                         placeholder="Número de licencia"
                                     />
                                     {#if errors.professional_license}
-                                        <span class="error-text">{errors.professional_license}</span>
+                                        <span class="error-text"
+                                            >{errors.professional_license}</span
+                                        >
                                     {/if}
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="specialization">Especialización</label>
+                                    <label for="specialization"
+                                        >Especialización</label
+                                    >
                                     <input
                                         id="specialization"
                                         type="text"
-                                        on:input={e => updateField('specialization', e.target.value)}
+                                        on:input={(e) =>
+                                            updateField(
+                                                "specialization",
+                                                e.target.value,
+                                            )}
                                         placeholder="Ej: Geriatría, Pediatría"
                                     />
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="experience_years">Años de Experiencia</label>
+                                    <label for="experience_years"
+                                        >Años de Experiencia</label
+                                    >
                                     <input
                                         id="experience_years"
                                         type="number"
-                                        on:input={e => updateField('experience_years', e.target.value ? parseInt(e.target.value, 10) : 0)}
+                                        on:input={(e) =>
+                                            updateField(
+                                                "experience_years",
+                                                e.target.value
+                                                    ? parseInt(
+                                                          e.target.value,
+                                                          10,
+                                                      )
+                                                    : 0,
+                                            )}
                                         class:error={errors.experience_years}
                                         min="0"
                                         max="50"
                                     />
                                     {#if errors.experience_years}
-                                        <span class="error-text">{errors.experience_years}</span>
+                                        <span class="error-text"
+                                            >{errors.experience_years}</span
+                                        >
                                     {/if}
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="hourly_rate">Tarifa por Hora (ARS)</label>
+                                    <label for="hourly_rate"
+                                        >Tarifa por Hora (ARS)</label
+                                    >
                                     <input
                                         id="hourly_rate"
                                         type="number"
-                                        on:input={e => updateField('hourly_rate', e.target.value ? parseInt(e.target.value, 10) : 0)}
+                                        on:input={(e) =>
+                                            updateField(
+                                                "hourly_rate",
+                                                e.target.value
+                                                    ? parseInt(
+                                                          e.target.value,
+                                                          10,
+                                                      )
+                                                    : 0,
+                                            )}
                                         class:error={errors.hourly_rate}
                                         min="0"
                                         step="100"
                                     />
                                     {#if errors.hourly_rate}
-                                        <span class="error-text">{errors.hourly_rate}</span>
+                                        <span class="error-text"
+                                            >{errors.hourly_rate}</span
+                                        >
                                     {/if}
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="is_freelance">Tipo de Trabajo</label>
+                                    <label for="is_freelance"
+                                        >Tipo de Trabajo</label
+                                    >
                                     <div class="checkbox-group">
                                         <input
                                             id="is_freelance"
                                             type="checkbox"
-                                            on:change={e => updateField('is_freelance', e.target.checked)}
+                                            on:change={(e) =>
+                                                updateField(
+                                                    "is_freelance",
+                                                    e.target.checked,
+                                                )}
                                         />
-                                        <label for="is_freelance">Freelance/Independiente</label>
+                                        <label for="is_freelance"
+                                            >Freelance/Independiente</label
+                                        >
                                     </div>
                                 </div>
 
                                 <div class="form-group full-width">
-                                    <label for="availability">Disponibilidad</label>
+                                    <label for="availability"
+                                        >Disponibilidad</label
+                                    >
                                     <textarea
                                         id="availability"
-                                        on:input={e => updateField('availability', e.target.value)}
+                                        on:input={(e) =>
+                                            updateField(
+                                                "availability",
+                                                e.target.value,
+                                            )}
                                         placeholder="Horarios disponibles, días de trabajo, etc."
                                         rows="3"
                                     ></textarea>
@@ -565,21 +735,34 @@
                         <div class="form-section">
                             <h3>⚖️ Representante Legal</h3>
                             <div class="form-group">
-                                <label for="legal_representative">Representante Legal *</label>
+                                <label for="legal_representative"
+                                    >Representante Legal *</label
+                                >
                                 <select
                                     id="legal_representative"
-                                    on:change={e => updateField('legal_representative_id', e.target.value)}
+                                    on:change={(e) =>
+                                        updateField(
+                                            "legal_representative_id",
+                                            e.target.value,
+                                        )}
                                     class:error={errors.legal_representative_id}
                                 >
-                                    <option value="">Seleccionar representante legal</option>
+                                    <option value=""
+                                        >Seleccionar representante legal</option
+                                    >
                                     <!-- Aquí se cargarían los usuarios familiares disponibles -->
-                                    <option value="temp_id">Usuario Familiar (ejemplo)</option>
+                                    <option value="temp_id"
+                                        >Usuario Familiar (ejemplo)</option
+                                    >
                                 </select>
                                 {#if errors.legal_representative_id}
-                                    <span class="error-text">{errors.legal_representative_id}</span>
+                                    <span class="error-text"
+                                        >{errors.legal_representative_id}</span
+                                    >
                                 {/if}
                                 <small class="help-text">
-                                    Las personas bajo cuidado delegado deben tener un representante legal vinculado.
+                                    Las personas bajo cuidado delegado deben
+                                    tener un representante legal vinculado.
                                 </small>
                             </div>
                         </div>
@@ -594,9 +777,15 @@
                                     <input
                                         id="legal_capacity_verified"
                                         type="checkbox"
-                                        on:change={e => updateField('legal_capacity_verified', e.target.checked)}
+                                        on:change={(e) =>
+                                            updateField(
+                                                "legal_capacity_verified",
+                                                e.target.checked,
+                                            )}
                                     />
-                                    <label for="legal_capacity_verified">Capacidad legal verificada</label>
+                                    <label for="legal_capacity_verified"
+                                        >Capacidad legal verificada</label
+                                    >
                                 </div>
                             </div>
 
@@ -605,13 +794,21 @@
                                     <input
                                         id="terms_accepted"
                                         type="checkbox"
-                                        on:change={e => updateField('terms_accepted', e.target.checked)}
+                                        on:change={(e) =>
+                                            updateField(
+                                                "terms_accepted",
+                                                e.target.checked,
+                                            )}
                                         class:error={errors.terms_accepted}
                                     />
-                                    <label for="terms_accepted">Acepto los términos y condiciones *</label>
+                                    <label for="terms_accepted"
+                                        >Acepto los términos y condiciones *</label
+                                    >
                                 </div>
                                 {#if errors.terms_accepted}
-                                    <span class="error-text">{errors.terms_accepted}</span>
+                                    <span class="error-text"
+                                        >{errors.terms_accepted}</span
+                                    >
                                 {/if}
                             </div>
                         </div>
@@ -619,10 +816,18 @@
 
                     <!-- Botones -->
                     <div class="form-actions">
-                        <button type="button" class="btn-secondary" on:click={closeModal}>
+                        <button
+                            type="button"
+                            class="btn-secondary"
+                            on:click={closeModal}
+                        >
                             Cancelar
                         </button>
-                        <button type="submit" class="btn-primary" disabled={submitting}>
+                        <button
+                            type="submit"
+                            class="btn-primary"
+                            disabled={submitting}
+                        >
                             {submitting ? "Creando..." : "Crear Usuario"}
                         </button>
                     </div>
@@ -708,8 +913,12 @@
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     .error-message,
@@ -913,4 +1122,4 @@
             width: 100%;
         }
     }
-</style> 
+</style>

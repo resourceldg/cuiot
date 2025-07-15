@@ -182,6 +182,16 @@
     let deleteRoleNotificationMessage = "";
     let deleteRoleNotificationSubtitle = "";
 
+    // Modo debug visual
+    let debugMode = false;
+    let debugData: any = null;
+
+    // Toggle para modo debug
+    function toggleDebugMode() {
+        debugMode = !debugMode;
+        console.log("🔧 Debug mode:", debugMode ? "ON" : "OFF");
+    }
+
     // --- Cambiar nombres de roles a versión corta ---
     const ROLE_LABELS = {
         sysadmin: "Sysadmin",
@@ -504,6 +514,7 @@
         error = "";
         if (!selectedUser?.id) {
             error = "Usuario no seleccionado";
+            console.error("❌ deleteUserHandler: Usuario no seleccionado");
             return;
         }
 
@@ -513,17 +524,35 @@
         deleteNotificationMessage = "";
         deleteNotificationSubtitle = "";
 
+        console.log("🔧 deleteUserHandler: Iniciando eliminación de usuario", {
+            userId: selectedUser.id,
+            userName:
+                `${selectedUser.first_name} ${selectedUser.last_name || ""}`.trim(),
+        });
+
         try {
-            await deleteUser(selectedUser.id);
+            const result = await deleteUser(selectedUser.id);
+            console.log(
+                "✅ deleteUserHandler: Usuario eliminado exitosamente",
+                result,
+            );
+
             await loadUsers();
             deleteNotificationMessage = "Usuario eliminado";
             deleteNotificationSubtitle = `El usuario ${selectedUser.first_name} ${selectedUser.last_name || ""} ha sido eliminado.`;
             showDeleteNotification = true;
         } catch (err) {
-            error = getErrorMessage(err);
+            const errorMessage = getErrorMessage(err);
+            console.error("❌ deleteUserHandler: Error al eliminar usuario", {
+                userId: selectedUser.id,
+                error: err,
+                errorMessage,
+            });
+
+            error = errorMessage;
             deleteNotificationType = "error";
             deleteNotificationMessage = "Error al eliminar usuario";
-            deleteNotificationSubtitle = error;
+            deleteNotificationSubtitle = errorMessage;
             showDeleteNotification = true;
         } finally {
             deleting = false;
@@ -534,6 +563,12 @@
     async function saveRole() {
         if (!validateRoleForm()) return;
 
+        console.log("🔧 saveRole: Iniciando guardado de rol", {
+            isNewRole,
+            roleName: roleForm.name,
+            roleId: roleForm.id,
+        });
+
         // Asegurar que editablePermissions no sea null
         const permissionsToSave = editablePermissions || {};
 
@@ -542,14 +577,22 @@
             ...roleForm,
             permissions: JSON.stringify(permissionsToSave),
         };
+
+        console.log("🔧 saveRole: Datos a enviar", dataToSend);
+
         try {
             if (isNewRole) {
-                await createRole(dataToSend);
+                const result = await createRole(dataToSend);
+                console.log("✅ saveRole: Rol creado exitosamente", result);
                 roleNotificationMessage = "Rol creado exitosamente";
                 roleNotificationSubtitle =
                     "El nuevo rol ha sido agregado al sistema.";
             } else {
-                await updateRole(roleForm.id, dataToSend);
+                const result = await updateRole(roleForm.id, dataToSend);
+                console.log(
+                    "✅ saveRole: Rol actualizado exitosamente",
+                    result,
+                );
                 roleNotificationMessage = "Rol actualizado exitosamente";
                 roleNotificationSubtitle =
                     "Los cambios han sido guardados correctamente.";
@@ -558,17 +601,35 @@
             roleNotificationType = "success";
             showRoleNotification = true;
         } catch (err) {
-            rolesError = getErrorMessage(err);
+            const errorMessage = getErrorMessage(err);
+            console.error("❌ saveRole: Error al procesar rol", {
+                isNewRole,
+                roleName: roleForm.name,
+                roleId: roleForm.id,
+                error: err,
+                errorMessage,
+            });
+
+            rolesError = errorMessage;
             roleNotificationType = "error";
             roleNotificationMessage = "Error al procesar el rol";
-            roleNotificationSubtitle = rolesError;
+            roleNotificationSubtitle = errorMessage;
             showRoleNotification = true;
         }
     }
 
     async function deleteRoleHandler(roleId: string) {
+        console.log("🔧 deleteRoleHandler: Iniciando eliminación de rol", {
+            roleId,
+        });
+
         try {
-            await deleteRole(roleId);
+            const result = await deleteRole(roleId);
+            console.log(
+                "✅ deleteRoleHandler: Rol eliminado exitosamente",
+                result,
+            );
+
             await loadRoles();
             deleteRoleNotificationType = "success";
             deleteRoleNotificationMessage = "Rol eliminado exitosamente";
@@ -576,10 +637,17 @@
                 "El rol ha sido removido del sistema.";
             showDeleteRoleNotification = true;
         } catch (err) {
-            rolesError = getErrorMessage(err);
+            const errorMessage = getErrorMessage(err);
+            console.error("❌ deleteRoleHandler: Error al eliminar rol", {
+                roleId,
+                error: err,
+                errorMessage,
+            });
+
+            rolesError = errorMessage;
             deleteRoleNotificationType = "error";
             deleteRoleNotificationMessage = "Error al eliminar rol";
-            deleteRoleNotificationSubtitle = rolesError;
+            deleteRoleNotificationSubtitle = errorMessage;
             showDeleteRoleNotification = true;
         }
     }
@@ -797,17 +865,17 @@
 </script>
 
 <div class="user-table-section">
-    <div class="user-table-header">
-        <h2>Gestión de Usuarios</h2>
+    <div class="section-header">
+        <div class="header-content">
+            <h2>👥 Gestión de Usuarios</h2>
+            <p>Administra usuarios, roles y permisos del sistema</p>
+        </div>
         <div class="header-actions">
-            <button class="new-role-btn" on:click={openNewRoleModal}
-                >+ Nuevo rol</button
-            >
-            <button
-                class="new-user-btn"
-                on:click={() => goto("/dashboard/users/create")}
-            >
-                + Nuevo usuario
+            <button class="btn-secondary" on:click={toggleDebugMode}>
+                {debugMode ? "🔧 Debug ON" : "🔧 Debug OFF"}
+            </button>
+            <button class="btn-primary" on:click={() => openModal()}>
+                <span>+</span> Nuevo Usuario
             </button>
         </div>
     </div>
@@ -1109,6 +1177,16 @@
                 </p>
                 {#if error}
                     <div class="form-error">{error}</div>
+                {/if}
+                {#if debugMode && debugData}
+                    <details class="debug-details">
+                        <summary>🔧 DEBUG: Datos de la operación</summary>
+                        <pre class="debug-data">{JSON.stringify(
+                                debugData,
+                                null,
+                                2,
+                            )}</pre>
+                    </details>
                 {/if}
             {/if}
 
@@ -2744,9 +2822,8 @@
     }
     .simple-success-text h2 {
         margin: 0 0 0.5rem 0;
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #28a745;
+        font-size: 1.2rem;
+        font-weight: 600;
     }
     .simple-success-text p {
         margin: 0;
@@ -2774,5 +2851,43 @@
     .pagination button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+
+    .debug-details {
+        margin: 1rem 0;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .debug-details summary {
+        background: #f8f9fa;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        font-weight: 500;
+        color: #495057;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .debug-details summary:hover {
+        background: #e9ecef;
+    }
+
+    .debug-data {
+        background: #f8f9fa;
+        padding: 1rem;
+        margin: 0;
+        font-family: "Courier New", monospace;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        color: #495057;
+        overflow-x: auto;
+        max-height: 300px;
+        overflow-y: auto;
+        border-radius: 0 0 8px 8px;
+    }
+
+    .debug-details[open] summary {
+        border-bottom: 1px solid #dee2e6;
     }
 </style>

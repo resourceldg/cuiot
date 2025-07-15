@@ -500,5 +500,39 @@ def create_debug_data_script():
         db.close()
 
 
+def create_sin_rol():
+    """Crea el rol especial 'sin_rol' si no existe."""
+    from app.core.database import get_db
+    from app.models.role import Role
+    import datetime
+    import json
+    db = next(get_db())
+    try:
+        existing = db.query(Role).filter(Role.name == 'sin_rol').first()
+        if existing:
+            print("El rol 'sin_rol' ya existe.")
+            return
+        now = datetime.datetime.utcnow()
+        sin_rol = Role(
+            name='sin_rol',
+            description='Rol especial para usuarios sin rol asignado',
+            permissions=json.dumps({}),
+            is_system=True,
+            created_at=now,
+            updated_at=now,
+            is_active=True
+        )
+        db.add(sin_rol)
+        db.commit()
+        print("✅ Rol especial 'sin_rol' creado correctamente.")
+    except Exception as e:
+        print(f"❌ Error creando 'sin_rol': {e}")
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "create_sin_rol":
+        create_sin_rol()
     create_debug_data_script() 
