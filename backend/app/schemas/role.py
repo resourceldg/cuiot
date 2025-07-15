@@ -29,4 +29,14 @@ class RoleInDB(RoleBase, BaseResponse):
     pass
 
 class RoleAssign(BaseModel):
-    role_name: str
+    role_name: str = Field(..., alias="role")
+
+    @field_validator('role_name', mode='before')
+    def accept_role_or_role_name(cls, v, values, **kwargs):
+        # Si viene como dict con 'role', tomarlo
+        if isinstance(v, dict):
+            if 'role' in v:
+                return v['role']
+            if 'role_name' in v:
+                return v['role_name']
+        return v

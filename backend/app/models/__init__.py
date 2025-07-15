@@ -32,6 +32,7 @@ from .vital_sign import VitalSign
 
 # Package models
 from app.models.package import Package, UserPackage, PackageAddOn, UserPackageAddOn
+from app.models.institution_package import InstitutionPackage
 
 # Scoring models
 from app.models.caregiver_score import CaregiverScore
@@ -71,6 +72,7 @@ __all__ = [
     "UserPackage",
     "PackageAddOn",
     "UserPackageAddOn",
+    "InstitutionPackage",
     # Scoring models
     "CaregiverScore",
     "CaregiverReview", 

@@ -1,8 +1,8 @@
-"""recreate_medical_referrals_table
+"""add_package_id_to_devices
 
-Revision ID: 7f2de30a83d7
-Revises: b270ee7261b2
-Create Date: 2025-07-14 01:30:02.465442
+Revision ID: 7720cbe232ed
+Revises: 0d2cb7578830
+Create Date: 2025-07-15 14:03:13.627445
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '7f2de30a83d7'
-down_revision: Union[str, None] = 'b270ee7261b2'
+revision: str = '7720cbe232ed'
+down_revision: Union[str, None] = '0d2cb7578830'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

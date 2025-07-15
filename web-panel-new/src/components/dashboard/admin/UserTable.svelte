@@ -215,7 +215,7 @@
     let catalogsError = "";
 
     // Cargar datos al montar el componente - CON VERIFICACIÓN DE AUTH
-    onMount(async () => {
+    onMount(() => {
         // Suscribirse al store de autenticación
         const unsubscribe = authStore.subscribe(async (auth) => {
             if (auth.isAuthenticated && !auth.loading) {
@@ -229,10 +229,10 @@
         // Cargar datos iniciales si ya está autenticado
         const token = localStorage.getItem("authToken");
         if (token) {
-            await loadDataIfAuthenticated();
+            loadDataIfAuthenticated();
         }
 
-        return unsubscribe;
+        return () => unsubscribe();
     });
 
     // Función para cargar datos solo si está autenticado
@@ -253,12 +253,12 @@
             ]);
             // Deduplicar por nombre
             institutions = insts.filter(
-                (inst, idx, arr) =>
-                    arr.findIndex((i) => i.name === inst.name) === idx,
+                (inst: any, idx: number, arr: any[]) =>
+                    arr.findIndex((i: any) => i.name === inst.name) === idx,
             );
             packages = pkgs.filter(
-                (pkg, idx, arr) =>
-                    arr.findIndex((p) => p.name === pkg.name) === idx,
+                (pkg: any, idx: number, arr: any[]) =>
+                    arr.findIndex((p: any) => p.name === pkg.name) === idx,
             );
             roles = rls;
         } catch (err) {
@@ -862,6 +862,16 @@
     }
     $: if (users.length && currentPage > totalPages)
         currentPage = totalPages || 1;
+
+    // Roles que pueden ver el icono de paquete
+    const ROLES_WITH_PACKAGE = [
+        "cared_person_self",
+        "self_care",
+        "family_member",
+        "family",
+        "institution",
+        "admin_institution",
+    ];
 </script>
 
 <div class="user-table-section">
@@ -1045,27 +1055,30 @@
                                             /></svg
                                         >
                                     </button>
-                                    <button
-                                        class="package-btn"
-                                        on:click={() => openPackageModal(user)}
-                                        title="Ver detalles del paquete"
-                                    >
-                                        <svg
-                                            width="17"
-                                            height="17"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            ><path
-                                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
-                                            /><polyline
-                                                points="3.27 6.96 12 12.01 20.73 6.96"
-                                            /></svg
+                                    {#if ROLES_WITH_PACKAGE.includes(user.role)}
+                                        <button
+                                            class="package-btn"
+                                            on:click={() =>
+                                                openPackageModal(user)}
+                                            title="Ver detalles del paquete"
                                         >
-                                    </button>
+                                            <svg
+                                                width="17"
+                                                height="17"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="1.8"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                ><path
+                                                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                                                /><polyline
+                                                    points="3.27 6.96 12 12.01 20.73 6.96"
+                                                /></svg
+                                            >
+                                        </button>
+                                    {/if}
                                     <button
                                         class="action-btn"
                                         title="Editar usuario"
@@ -2049,16 +2062,26 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: var(--color-bg-card);
-        padding: 2rem 2.5rem;
+        padding: 1.5rem 1.5rem;
         border-radius: var(--border-radius);
         box-shadow: var(--shadow-lg);
         z-index: 1001;
-        min-width: 350px;
-        max-width: 95vw;
+        min-width: 320px;
+        max-width: 420px;
+        width: 100%;
         min-height: 100px;
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1.2rem;
+        box-sizing: border-box;
+    }
+    @media (max-width: 600px) {
+        .modal {
+            min-width: 0;
+            max-width: 98vw;
+            width: 98vw;
+            padding: 0.7rem 0.5rem;
+        }
     }
     .modal-close {
         position: absolute;

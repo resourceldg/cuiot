@@ -330,6 +330,29 @@ def remove_role(
         )
     return {"message": "Role removed successfully"}
 
+@router.put("/{user_id}/role")
+def alias_assign_role(
+    user_id: UUID,
+    role_data: RoleAssign,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthService.get_current_active_user)
+):
+    """Alias para asignar rol a un usuario (PUT /role)."""
+    if not current_user.has_permission("users.write", db):
+        raise HTTPException(status_code=403, detail="No tiene permisos para asignar roles")
+    try:
+        success = UserService.assign_role(db, user_id, role_data.role_name)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to assign role"
+            )
+        return {"message": "Role assigned successfully"}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=403, detail=f"Error de permisos: {str(e)}")
+
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str

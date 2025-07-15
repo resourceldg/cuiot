@@ -44,6 +44,7 @@ class Package(BaseModel):
     
     # Relationships
     user_packages = relationship("UserPackage", back_populates="package")
+    institution_packages = relationship("InstitutionPackage", back_populates="package", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Package(type='{self.package_type}', name='{self.name}', price={self.price_monthly})>"

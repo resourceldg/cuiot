@@ -35,6 +35,7 @@ class Institution(BaseModel):
     geofences = relationship("Geofence", back_populates="institution")
     restraint_protocols = relationship("RestraintProtocol", back_populates="institution")
     shift_observations = relationship("ShiftObservation", back_populates="institution")
+    institution_packages = relationship("InstitutionPackage", back_populates="institution")
     
     # Scoring relationships
     institution_score = relationship("InstitutionScore", back_populates="institution", uselist=False)

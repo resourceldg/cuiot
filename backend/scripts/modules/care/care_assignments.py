@@ -36,23 +36,23 @@ def populate_care_assignments(db: Session, num_assignments: int = 30):
         {
             "start_date": datetime.utcnow() - timedelta(days=30),
             "end_date": datetime.utcnow() + timedelta(days=60),
-            "notes": "Asignación regular de cuidado",
-            "is_active": True
+            "notes": "Asignación regular de cuidado"
         },
         {
             "start_date": datetime.utcnow() - timedelta(days=15),
             "end_date": datetime.utcnow() + timedelta(days=45),
-            "notes": "Cuidado especializado requerido",
-            "is_active": True
+            "notes": "Cuidado especializado requerido"
         },
         {
             "start_date": datetime.utcnow() - timedelta(days=7),
             "end_date": datetime.utcnow() + timedelta(days=30),
-            "notes": "Asignación temporal por enfermedad del cuidador principal",
-            "is_active": True
+            "notes": "Asignación temporal por enfermedad del cuidador principal"
         }
     ]
     
+    # Obtener los tipos de asignación disponibles
+    assignment_type_ids = [1, 2, 3, 4, 5]  # IDs existentes en la base
+
     # Create assignments
     for i in range(num_assignments):
         if i < len(assignment_data):
@@ -72,8 +72,7 @@ def populate_care_assignments(db: Session, num_assignments: int = 30):
                     "Cuidado de emergencia",
                     "Cuidado post-operatorio",
                     "Cuidado de fin de semana"
-                ]),
-                "is_active": random.choice([True, True, True, False])  # 75% active
+                ])
             }
         
         # Create assignment
@@ -84,7 +83,7 @@ def populate_care_assignments(db: Session, num_assignments: int = 30):
             start_date=data["start_date"],
             end_date=data["end_date"],
             notes=data["notes"],
-            is_active=data["is_active"],
+            caregiver_assignment_type_id=random.choice(assignment_type_ids),
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )

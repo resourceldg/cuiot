@@ -332,15 +332,16 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 
 **Atributos Clave**:
 - `id` (UUID, PK): Identificador único
-- `institution_id` (UUID, FK): Institución que contrata
+- `institution_id` (INTEGER, FK): Institución que contrata
 - `package_id` (UUID, FK): Paquete contratado
 - `start_date` (DATE): Fecha de inicio
-- `end_date` (DATE): Fecha de fin
-- `auto_renew` (BOOLEAN): Renovación automática
-- `status` (VARCHAR(20)): Estado
-- `payment_method` (VARCHAR(50)): Método de pago
-- `max_patients` (INTEGER): Máximo número de pacientes
+- `end_date` (DATE): Fecha de fin (NULL para contratos continuos)
+- `status_type_id` (INTEGER, FK): Estado normalizado
 - `created_at` (TIMESTAMP): Fecha de contratación
+
+**Relaciones**:
+- Un paquete puede ser contratado por múltiples instituciones (INSTITUTION_PACKAGES)
+- Una institución puede tener múltiples paquetes (INSTITUTION_PACKAGES)
 
 ### 1.14 REFERRALS (Referidos)
 **Descripción**: Sistema de referidos para crecimiento orgánico.
@@ -861,52 +862,4 @@ El sistema utiliza **15 tablas de catálogo normalizadas** para eliminar redunda
 - `ALERT_TYPES`: Tipos de alertas del sistema
 - `EVENT_TYPES`: Tipos de eventos
 - `REMINDER_TYPES`: Tipos de recordatorios
-- `SERVICE_TYPES`: Tipos de servicios
-- `CAREGIVER_ASSIGNMENT_TYPES`: Tipos de asignación de cuidadores
-- `SHIFT_OBSERVATION_TYPES`: Tipos de observación de turno
-- `REFERRAL_TYPES`: Tipos de referidos
-- `RELATIONSHIP_TYPES`: Tipos de relación
-- `REPORT_TYPES`: Tipos de reportes
-- `ACTIVITY_TYPES`: Tipos de actividades
-- `DIFFICULTY_LEVELS`: Niveles de dificultad
-- `ENUMERATION_TYPES` y `ENUMERATION_VALUES`: Sistema de enumeraciones dinámicas
-
-### 4.2 Campos Normalizados vs Legacy
-**Campos Normalizados (Recomendados):**
-- `status_type_id` (INTEGER, FK)
-- `care_type_id` (INTEGER, FK)
-- `device_type_id` (INTEGER, FK)
-- `alert_type_id` (INTEGER, FK)
-- `event_type_id` (INTEGER, FK)
-- `reminder_type_id` (INTEGER, FK)
-- `service_type_id` (INTEGER, FK)
-- `caregiver_assignment_type_id` (INTEGER, FK)
-- `shift_observation_type_id` (INTEGER, FK)
-- `referral_type_id` (INTEGER, FK)
-- `relationship_type_id` (INTEGER, FK)
-- `report_type_id` (INTEGER, FK)
-
-**Campos Legacy (Mantenidos para Compatibilidad):**
-- Propiedades `@property` en modelos que retornan strings
-- Campos string originales mantenidos temporalmente
-- Métodos de compatibilidad en servicios
-
-### 4.3 Inicialización Automática
-Los catálogos se inicializan automáticamente al crear la base de datos:
-- Datos predefinidos para todos los tipos básicos
-- Categorización automática de estados
-- Configuración de iconos y colores para UI
-- Sistema de enumeraciones extensible
-
-### 4.4 Integridad Referencial
-- **83+ claves foráneas activas**
-- **Restricciones de integridad** en todos los catálogos
-- **Cascada de eliminación** configurada apropiadamente
-- **Validaciones a nivel de aplicación** para consistencia
-
----
-
-*Diagrama Entidad-Relación - CUIOT v3.0*
-*Última actualización: Diciembre 2024*
-*Estado: Normalización completa implementada*
-*Tests: 98/98 pasando (100%)* 
+- `
