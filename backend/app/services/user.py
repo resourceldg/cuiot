@@ -134,7 +134,17 @@ class UserService:
     
     @staticmethod
     def assign_role(db: Session, user_id: UUID, role_name: str) -> bool:
-        """Assign a role to a user, trigger soft delete/validation/creation of essential records as needed. Ahora desactiva todos los roles previos antes de asignar el nuevo."""
+        """
+        Assign a role to a user, trigger soft delete/validation/creation of essential records as needed.
+        Ahora desactiva todos los roles previos antes de asignar el nuevo.
+
+        ---
+        POLÍTICA DE SOFT DELETE Y DATOS HISTÓRICOS:
+        - Al cambiar de rol, todos los datos asociados a roles previos se marcan como soft delete (is_active = False).
+        - Si el usuario vuelve a un rol anterior, NO se reactivan datos soft deleted automáticamente.
+        - Cada ciclo de rol genera nuevos datos, manteniendo los anteriores como histórico para trazabilidad y auditoría.
+        ---
+        """
         user = UserService.get_user_by_id(db, user_id)
         if not user:
             raise HTTPException(

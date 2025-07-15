@@ -1859,7 +1859,7 @@
         align-items: center;
         gap: 0.5rem;
         margin-left: auto;
-        margin-bottom: 0;
+        margin-bottom: 1rem; /* Agregado para separar el botón de las cards */
     }
     .btn-primary {
         padding: 0.45em 1.2em;

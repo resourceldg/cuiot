@@ -731,6 +731,17 @@ Esto garantiza que un usuario solo puede tener un rol activo a la vez y que el s
 
 ---
 
+## Política de Soft Delete y Manejo de Datos Asociados a Roles
+
+- Al cambiar el rol de un usuario, todos los datos asociados al rol anterior se marcan como **soft deleted** (no se eliminan físicamente, solo se desactivan para la operación diaria).
+- Si el usuario vuelve a un rol anterior (por ejemplo, de "caregiver" a "family_member" y luego nuevamente a "caregiver"), **no se reactivan los datos soft deleted** de ciclos previos.
+- En cada reasignación de rol, se crean nuevos registros asociados al nuevo ciclo del rol. Los datos soft deleted quedan como histórico y pueden ser consultados para auditoría o trazabilidad, pero no se usan en la operación normal.
+- Esta política garantiza trazabilidad total, integridad histórica y cumplimiento de buenas prácticas de auditoría.
+
+> **Nota:** Si se requiere recuperar datos previos, debe hacerse mediante un proceso manual o una restauración explícita, nunca de forma automática.
+
+---
+
 ## Suscripciones de Servicio
 
 ### Listar suscripciones
