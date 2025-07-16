@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 from uuid import UUID
 
@@ -147,7 +147,7 @@ class UserPackageBase(BaseModel):
     auto_renew: bool = Field(default=True, description="Whether to auto-renew")
     legal_representative_id: Optional[UUID] = Field(None, description="Legal representative ID for delegated care")
     custom_configuration: Optional[Dict[str, Any]] = Field(None, description="JSON with custom configuration")
-    selected_features: Optional[Dict[str, Any]] = Field(None, description="JSON with selected features")
+    selected_features: Optional[Union[List[str], Dict[str, Any]]] = Field(None, description="JSON with selected features (list or dict)")
     custom_limits: Optional[Dict[str, Any]] = Field(None, description="JSON with custom limits")
 
     @field_validator('billing_cycle')

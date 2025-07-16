@@ -117,6 +117,22 @@ class PackageService:
 
     @staticmethod
     def subscribe_to_package(db: Session, user_id: UUID, subscription_data: UserPackageCreate) -> Tuple[Optional[UserPackage], str]:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None, "Usuario no encontrado"
+        # Validar roles permitidos
+        allowed_roles = [
+            "institution_admin",  # Solo admin institucional puede contratar
+            "cared_person_self",
+            "family", "family_member"
+        ]
+        user_roles = [r.name for r in user.roles if getattr(r, 'is_active', True)]
+        # Si es staff institucional y no admin, solo puede ver
+        if "institution_staff" in user_roles and not any(r in user_roles for r in ["institution_admin"]):
+            return None, "Solo el administrador de la institución puede contratar paquetes. El staff solo puede visualizar."
+        if not any(role in allowed_roles for role in user_roles):
+            return None, "Solo instituciones (admin), personas auto-cuidantes y familias pueden contratar paquetes."
+        # Validar capacidad legal
         legal_check = PackageService.validate_legal_capacity(db, user_id, subscription_data.package_id)
         if not legal_check["can_contract"]:
             return None, legal_check["message"]

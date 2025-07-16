@@ -156,7 +156,7 @@
             "medical_staff",
         ].includes(form.role),
         legal: form.role === "family_member",
-        institution: ["admin_institution", "institution_staff"].includes(
+        institution: ["institution_admin", "institution_staff"].includes(
             form.role,
         ),
         validation: true,

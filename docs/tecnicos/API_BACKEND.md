@@ -980,3 +980,55 @@ A partir de la versión X.X.X, al cambiar el rol de un usuario mediante el endpo
 
 **Regla de integración frontend:**
 El frontend debe interceptar este error, mostrar un modal popup explicativo con el mensaje y los campos faltantes, y bloquear la operación hasta que el usuario complete los datos requeridos. 
+
+## Lógica de Contratación y Visualización de Paquetes
+
+- **Solo pueden contratar paquetes:**
+  - Administrador institucional (`admin_institution`, `institution_admin`)
+  - Persona auto-cuidante (`self_cared_person`, `cared_person_self`)
+  - Familia o familiar (`family`, `family_member`)
+- **El staff institucional** (`institution_staff`) solo puede visualizar los paquetes, pero no contratarlos.
+- Si un usuario con otro rol intenta contratar, la API devuelve un error claro y el frontend muestra un mensaje UX adecuado.
+
+**Ejemplo de respuesta de error:**
+```
+{
+  "detail": "Solo el administrador de la institución puede contratar paquetes. El staff solo puede visualizar."
+}
+```
+
+Esta lógica se aplica tanto en backend (API) como en frontend (UI/UX), garantizando coherencia y cumplimiento de la regla de negocio. 
+
+## Política de asociación de paquetes y roles
+
+- Cada usuario puede tener solo un rol activo a la vez.
+- Solo los roles habilitados pueden asociarse a paquetes (por ejemplo: caredperson, familia, selfcared person, caregiver).
+- Si un usuario con un rol no habilitado (por ejemplo, staff institucional) desea adquirir un paquete, debe crear una nueva cuenta con el rol correspondiente.
+- No se permite la asociación de múltiples paquetes en diferentes contextos para una misma cuenta.
+- Esta política simplifica la gestión, mejora la trazabilidad y evita ambigüedades en los permisos y accesos.
+
+> **Nota:** Si en el futuro se habilita la multi-asociación de roles o paquetes, esta política deberá ser revisada y adaptada en consecuencia. 
+
+## Convención de nombres de roles y procedimiento de unificación
+
+- Los nombres de roles deben ser únicos y consistentes en todo el sistema (backend, frontend y base de datos).
+- Los nombres canónicos para roles clave son:
+    - `institution_admin` (Administrador de institución)
+    - `cared_person_self` (Persona en autocuidado)
+- Se eliminaron los nombres duplicados/históricos: `admin_institution`, `self_cared_person`.
+- El procedimiento de unificación consistió en:
+    1. Actualizar el código y scripts para usar solo los nombres canónicos.
+    2. Actualizar los registros de usuarios en la base de datos para apuntar a los roles correctos.
+    3. Eliminar los roles duplicados de la tabla `roles`.
+    4. Documentar la convención para evitar futuros problemas de compatibilidad.
+- Si se detectan nuevos duplicados, repetir el procedimiento y mantener la documentación actualizada. 
+
+## Política y procedimiento de población de paquetes
+
+- **Paquetes personales**: Solo pueden ser asignados a usuarios con roles `cared_person_self`, `family`, `family_member`. Los scripts de población asignan automáticamente paquetes de tipo `individual` a estos usuarios, evitando duplicados y respetando la lógica de negocio.
+- **Paquetes institucionales**: Solo pueden ser asignados a instituciones activas. Los scripts de población asignan automáticamente todos los paquetes de tipo `institutional` a todas las instituciones activas, sin mezclar con paquetes personales.
+- **No se permite** la asignación cruzada (usuarios personales no pueden tener paquetes institucionales y viceversa).
+- **Scripts involucrados**:
+    - `backend/scripts/modules/business/addons.py` → función `populate_user_packages` (paquetes personales)
+    - `backend/scripts/populate_institution_packages.py` → función `populate_institution_packages` (paquetes institucionales)
+- Esta política asegura trazabilidad, consistencia y cumplimiento de las reglas de negocio en la base de datos poblada para desarrollo y pruebas. 

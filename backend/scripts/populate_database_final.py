@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, date, timezone
 import json
 import uuid
+from random import choice
 
 # Importar todos los modelos necesarios
 from app.models.role import Role
@@ -343,7 +344,7 @@ def populate_roles(db: Session):
     
     roles_data = [
         {"name": "admin", "description": "Administrador del sistema (Sysadmin)"},
-        {"name": "admin_institution", "description": "Administrador de institución"},
+        {"name": "institution_admin", "description": "Administrador de institución"},
         {"name": "caregiver", "description": "Cuidador profesional"},
         {"name": "family_member", "description": "Familiar de persona cuidada"},
         {"name": "caredperson", "description": "Persona bajo cuidado"},
@@ -503,7 +504,7 @@ def populate_users(db: Session, roles: dict, institutions: dict):
             "first_name": "María",
             "last_name": "González",
             "phone": "+54 11 1111-1111",
-            "role": "admin_institution",
+            "role": "institution_admin",
             "institution": "Hospital General San Martín"
         },
         {
@@ -512,7 +513,7 @@ def populate_users(db: Session, roles: dict, institutions: dict):
             "first_name": "Carlos",
             "last_name": "Rodríguez",
             "phone": "+54 11 2222-2222",
-            "role": "admin_institution",
+            "role": "institution_admin",
             "institution": "Clínica Santa María"
         },
         # Cuidadores profesionales
@@ -673,6 +674,39 @@ def populate_users(db: Session, roles: dict, institutions: dict):
     db.commit()
     print(f"   ✅ {len(users)} usuarios creados")
     return users
+
+def assign_packages_to_users(db: Session, users: dict, roles: dict, packages: dict):
+    """Asigna paquetes a usuarios con roles permitidos"""
+    print("📦 Asignando paquetes a usuarios permitidos...")
+    allowed_roles = {"institution_admin", "caredperson", "family", "family_member"}
+    paquetes = list(packages.values())
+    count = 0
+    for user in users.values():
+        # Obtener roles activos del usuario
+        user_roles = db.query(UserRole).filter_by(user_id=user.id, is_active=True).all()
+        user_role_names = set()
+        for ur in user_roles:
+            role = db.query(Role).filter_by(id=ur.role_id).first()
+            if role:
+                user_role_names.add(role.name)
+        if user_role_names & allowed_roles:
+            # Asignar un paquete aleatorio
+            paquete = choice(paquetes)
+            existing = db.query(UserPackage).filter_by(user_id=user.id, package_id=paquete.id, is_active=True).first()
+            if not existing:
+                up = UserPackage(
+                    user_id=user.id,
+                    package_id=paquete.id,
+                    is_active=True,
+                    start_date=datetime.utcnow(),
+                    end_date=None,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.add(up)
+                count += 1
+    db.commit()
+    print(f"   ✅ {count} paquetes asignados a usuarios permitidos")
 
 def populate_cared_persons(db: Session, users: dict, care_types: dict):
     """Poblar personas cuidadas"""
@@ -836,6 +870,7 @@ def main():
         print("\n5️⃣ POBLANDO USUARIOS...")
         users = populate_users(db, roles, institutions)
         
+        # Asignar paquetes a usuarios permitidos
         # 6. Poblar personas cuidadas
         print("\n6️⃣ POBLANDO PERSONAS CUIDADAS...")
         cared_persons = populate_cared_persons(db, users, catalogs["care_types"])

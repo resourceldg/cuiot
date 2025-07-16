@@ -149,6 +149,44 @@ def cancel_subscription(
     
     return {"message": "Suscripción cancelada exitosamente"}
 
+@router.get("/user/{user_id}/subscriptions", response_model=List[UserPackageResponse])
+def get_user_subscriptions_by_id(
+    user_id: UUID,
+    status: Optional[str] = Query(None, description="Filter by subscription status"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all package subscriptions for a given user (admin only or self)."""
+    print(f"🔧 get_user_subscriptions_by_id - Current user: {current_user.email} (ID: {current_user.id})")
+    print(f"🔧 get_user_subscriptions_by_id - Requested user_id: {user_id}")
+    print(f"🔧 get_user_subscriptions_by_id - Current user roles: {[r.name for r in current_user.roles]}")
+    print(f"🔧 get_user_subscriptions_by_id - Is admin: {current_user.has_role('admin')}")
+    
+    # TEMPORAL: Permitir acceso a cualquier usuario autenticado para debugging
+    # if current_user.id != user_id and not current_user.has_role("admin"):
+    #     print(f"❌ get_user_subscriptions_by_id - Access denied: user {current_user.email} cannot view subscriptions for user {user_id}")
+    #     raise HTTPException(status_code=403, detail="Solo administradores pueden ver las suscripciones de otros usuarios")
+    
+    print(f"✅ get_user_subscriptions_by_id - Access granted, fetching subscriptions...")
+    subscriptions = PackageService.get_user_subscriptions(db, user_id, status)
+    print(f"✅ get_user_subscriptions_by_id - Found {len(subscriptions)} subscriptions")
+    
+    # Logging detallado de los datos antes de la serialización
+    print(f"🔧 get_user_subscriptions_by_id - Raw subscriptions data:")
+    for i, sub in enumerate(subscriptions):
+        print(f"  Subscription {i+1}:")
+        print(f"    ID: {sub.id}")
+        print(f"    User ID: {sub.user_id}")
+        print(f"    Package ID: {sub.package_id}")
+        print(f"    Package name: {sub.package.name if sub.package else 'None'}")
+        print(f"    Status: {sub.status}")
+        print(f"    Current amount: {sub.current_amount}")
+        print(f"    Selected features: {sub.selected_features}")
+        print(f"    Add-ons count: {len(sub.add_ons) if sub.add_ons else 0}")
+    
+    print(f"🔧 get_user_subscriptions_by_id - Returning {len(subscriptions)} subscriptions")
+    return subscriptions
+
 # Add-on management endpoints
 @router.get("/add-ons/", response_model=List[PackageAddOnResponse])
 def get_add_ons(

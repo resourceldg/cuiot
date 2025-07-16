@@ -17,7 +17,7 @@
             icon: ShieldIcon,
             color: "var(--color-danger)",
             canCreate: [
-                "admin_institution",
+                "institution_admin",
                 "caregiver",
                 "family",
                 "cared_person_self",
@@ -28,7 +28,7 @@
                 "Acceso completo a todas las funcionalidades del sistema",
         },
         {
-            role: "admin_institution",
+            role: "institution_admin",
             name: "Administrador de Institución",
             icon: BuildingIcon,
             color: "var(--color-warning)",

@@ -39,9 +39,12 @@ def get_or_create_care_type(db: Session, name: str, description: str = None):
 
 def populate_catalog_types(db: Session):
     print("🌱 Poblando catálogos básicos...")
-    # Status Types
+    # Status Types generales
     for name in ["active", "inactive", "suspended", "terminated", "pending", "on_leave"]:
-        get_or_create_status_type(db, name)
+        get_or_create_status_type(db, name, category="general")
+    # Status Types para suscripciones
+    for name in ["active", "inactive", "cancelled", "pending", "expired"]:
+        get_or_create_status_type(db, name, category="subscription")
     # Relationship Types
     for name in ["employee", "contractor", "volunteer", "intern", "consultant", "temporary"]:
         get_or_create_relationship_type(db, name)

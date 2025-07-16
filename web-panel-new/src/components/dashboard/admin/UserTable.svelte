@@ -1,7 +1,9 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
     import { getInstitutions } from "$lib/api/institutions";
-    import { getPackages } from "$lib/api/packages";
+    import {
+        getPackages,
+        getUserPackageSubscriptions,
+    } from "$lib/api/packages";
     import {
         createRole,
         deleteRole,
@@ -16,8 +18,16 @@
     } from "$lib/api/users";
     import { authStore } from "$lib/authStore.js";
     import { user as sessionUser } from "$lib/sessionStore.js";
+    import CalendarIcon from "$lib/ui/icons/CalendarIcon.svelte";
+    import CheckIcon from "$lib/ui/icons/CheckIcon.svelte";
+    import ClockIcon from "$lib/ui/icons/ClockIcon.svelte";
+    import DollarIcon from "$lib/ui/icons/DollarIcon.svelte";
+    import PackageIcon from "$lib/ui/icons/PackageIcon.svelte";
+    import RefreshIcon from "$lib/ui/icons/RefreshIcon.svelte";
+    import TargetIcon from "$lib/ui/icons/TargetIcon.svelte";
+    import WarningIcon from "$lib/ui/icons/WarningIcon.svelte";
+    import XIcon from "$lib/ui/icons/XIcon.svelte";
     import { onMount } from "svelte";
-    // import ModalNotification from "../../shared/ui/ModalNotification.svelte";
     import EditUserModal from "./EditUserModal.svelte";
 
     // Tipos explícitos para usuarios y roles
@@ -49,6 +59,7 @@
         last_login?: string;
         created_at: string;
         updated_at: string;
+        roles?: string[];
     }
 
     // Estados
@@ -287,6 +298,7 @@
             users = Array.isArray(data)
                 ? data.map((user) => ({
                       ...user,
+                      roles: Array.isArray(user.roles) ? user.roles : [],
                       role:
                           Array.isArray(user.roles) && user.roles.length > 0
                               ? user.roles[0]
@@ -437,7 +449,9 @@
         editablePermissions = {};
         for (const cat in PERMISSION_CATEGORIES) {
             editablePermissions[cat] = {
-                ...PERMISSION_CATEGORIES[cat],
+                ...PERMISSION_CATEGORIES[
+                    cat as keyof typeof PERMISSION_CATEGORIES
+                ],
                 ...(perms[cat] || {}),
             };
         }
@@ -465,8 +479,13 @@
         permission: string,
         value: boolean,
     ) {
-        if (editablePermissions && editablePermissions[category]) {
-            editablePermissions[category][permission] = value;
+        if (
+            editablePermissions &&
+            editablePermissions[category as keyof typeof PERMISSION_CATEGORIES]
+        ) {
+            editablePermissions[category as keyof typeof PERMISSION_CATEGORIES][
+                permission
+            ] = value;
             roleForm.permissions = editablePermissions;
         }
     }
@@ -691,31 +710,41 @@
         historyError = "";
     }
 
-    async function openPackageModal(user: User = null) {
-        packageUser = user;
-        showPackageModal = true;
-        packageLoading = true;
-        packageError = "";
-        currentPackage = null;
-        packageHistory = [];
-        allPackages = [];
+    async function openPackageModal(user: any) {
+        console.log("�� openPackageModal - INICIANDO FUNCIÓN");
+        console.log("🔧 openPackageModal - Usuario:", user);
+        console.log("🔧 openPackageModal - User ID:", user.id);
+        console.log("🔧 openPackageModal - User email:", user.email);
+
+        selectedUser = user;
+        userPackageSubscriptions = [];
+        packageModalError = "";
+        loadingPackages = true;
+
+        console.log("🔧 openPackageModal - Variables inicializadas");
+
         try {
-            // Mockup: fetch real de paquetes
-            currentPackage = user?.package || null;
-            packageHistory = user?.package_history || [];
-            allPackages = [
-                { name: "Básico", desc: "Funciones esenciales", id: 1 },
-                { name: "Premium", desc: "Incluye alertas y reportes", id: 2 },
-                {
-                    name: "Enterprise",
-                    desc: "Soporte y personalización avanzada",
-                    id: 3,
-                },
-            ];
-        } catch (err) {
-            packageError = getErrorMessage(err);
+            console.log(
+                "🔧 openPackageModal - Llamando getUserPackageSubscriptions...",
+            );
+            userPackageSubscriptions = await getUserPackageSubscriptions(
+                user.id,
+            );
+            console.log(
+                "🔧 openPackageModal - Respuesta:",
+                userPackageSubscriptions,
+            );
+        } catch (e: any) {
+            console.error("❌ openPackageModal - Error:", e);
+            packageModalError =
+                e.message || "Error al cargar las suscripciones de paquetes.";
         } finally {
-            packageLoading = false;
+            loadingPackages = false;
+            showPackageModal = true;
+            console.log(
+                "🔧 openPackageModal - Modal abierto, loadingPackages:",
+                loadingPackages,
+            );
         }
     }
     function closePackageModal() {
@@ -819,7 +848,7 @@
 
     let notification = "";
 
-    $: if (institutionFilter === "none" && institutionFilter !== "") {
+    $: if (institutionFilter === "none") {
         institutionFilter = "";
         notification =
             "No puedes seleccionar una institución y 'sin institución' a la vez.";
@@ -868,15 +897,67 @@
     $: if (users.length && currentPage > totalPages)
         currentPage = totalPages || 1;
 
-    // Roles que pueden ver el icono de paquete
+    // Unificar ROLES_WITH_PACKAGE para que solo contenga los roles canónicos permitidos
     const ROLES_WITH_PACKAGE = [
+        "institution_admin",
         "cared_person_self",
-        "self_care",
+        "caredperson",
         "family_member",
-        "family",
-        "institution",
-        "admin_institution",
+        "caregiver",
+        "freelance_caregiver",
     ];
+
+    let sessionUserRoles: string[] = Array.isArray($sessionUser?.roles)
+        ? $sessionUser.roles
+        : [];
+
+    function canContractPackage() {
+        const allowed = [
+            "admin_institution",
+            "institution_admin",
+            "cared_person_self",
+            "family",
+            "family_member",
+        ];
+        return sessionUserRoles.some((r) => allowed.includes(r));
+    }
+    function isInstitutionStaffOnly() {
+        return (
+            sessionUserRoles.includes("institution_staff") &&
+            !sessionUserRoles.some((r) =>
+                ["admin_institution", "institution_admin"].includes(r),
+            )
+        );
+    }
+
+    let userPackageSubscriptions = [];
+    let loadingPackages = false;
+    let packageModalError = "";
+
+    // Corrección de acceso a roles en usuarios
+    function getUserRoles(user: User | { roles?: string[] }): string[] {
+        return user && Array.isArray(user.roles) ? user.roles : [];
+    }
+
+    // Función para verificar si un usuario puede tener paquetes
+    function userCanHavePackages(user: User): boolean {
+        const userRoles = getUserRoles(user);
+        console.log(
+            "🔧 userCanHavePackages - Usuario:",
+            user.email,
+            "Roles:",
+            userRoles,
+        );
+        console.log(
+            "🔧 userCanHavePackages - ROLES_WITH_PACKAGE:",
+            ROLES_WITH_PACKAGE,
+        );
+        const canHave = userRoles.some((role) =>
+            ROLES_WITH_PACKAGE.includes(role),
+        );
+        console.log("🔧 userCanHavePackages - Resultado:", canHave);
+        return canHave;
+    }
 </script>
 
 <div class="user-table-section">
@@ -913,10 +994,14 @@
             <div class="empty">No hay roles definidos.</div>
         {/if}
         <div class="roles-grid">
-            {#each roles as role}
+            {#each roles as role (role.id)}
                 <div class="role-card">
                     <div class="role-header">
-                        <h4>{ROLE_LABELS[role.name] || role.name}</h4>
+                        <h4>
+                            {ROLE_LABELS[
+                                role.name as keyof typeof ROLE_LABELS
+                            ] || role.name}
+                        </h4>
                         {#if role.is_system}
                             <span class="system-badge">Sistema</span>
                         {/if}
@@ -1044,7 +1129,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {#each pagedUsers as user}
+                    {#each pagedUsers as user (user.id)}
                         <tr>
                             <td>
                                 <div class="actions-grid">
@@ -1071,11 +1156,16 @@
                                             /></svg
                                         >
                                     </button>
-                                    {#if ROLES_WITH_PACKAGE.includes(user.role)}
+                                    {#if userCanHavePackages(user)}
                                         <button
                                             class="package-btn"
-                                            on:click={() =>
-                                                openPackageModal(user)}
+                                            on:click={() => {
+                                                console.log(
+                                                    "🔧 CLICK - Botón de paquete clickeado para usuario:",
+                                                    user.email,
+                                                );
+                                                openPackageModal(user);
+                                            }}
                                             title="Ver detalles del paquete"
                                         >
                                             <svg
@@ -1623,68 +1713,182 @@
         </div>
     {/if}
 
-    <!-- Modal de paquetes -->
+    <!-- Modal de paquetes mejorado -->
     {#if showPackageModal}
-        <div class="modal-backdrop" on:click={closePackageModal}></div>
         <div
-            class="modal"
+            class="modal-backdrop"
+            on:click={() => (showPackageModal = false)}
+        ></div>
+        <div
+            class="modal package-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="package-modal-title"
         >
             <button
                 class="modal-close"
-                on:click={closePackageModal}
+                on:click={() => (showPackageModal = false)}
                 title="Cerrar">&times;</button
             >
-            <h3 id="package-modal-title">
-                Información de paquetes {packageUser
-                    ? `de ${packageUser.name}`
-                    : ""}
-            </h3>
-            {#if packageLoading}
-                <div class="loading">Cargando paquetes...</div>
-            {:else if packageError}
-                <div class="form-error">{packageError}</div>
-            {:else}
-                <div class="package-section">
-                    <h4>Paquete actual</h4>
-                    {#if currentPackage}
-                        <div class="package-card actual">
-                            <strong>{currentPackage.name}</strong>
-                            <span>{currentPackage.desc}</span>
-                        </div>
-                    {:else}
-                        <div class="empty">Sin paquete asignado</div>
-                    {/if}
-                    <h4>Historial de paquetes</h4>
-                    {#if packageHistory.length > 0}
-                        <ul class="package-history-list">
-                            {#each packageHistory as p}
-                                <li>
-                                    <strong>{p.name}</strong>
-                                    <span>{p.desc}</span>
-                                </li>
-                            {/each}
-                        </ul>
-                    {:else}
-                        <div class="empty">Sin historial de paquetes</div>
-                    {/if}
-                    <h4>Todos los paquetes</h4>
-                    <div class="package-list">
-                        {#each allPackages as p}
-                            <div class="package-card">
-                                <strong>{p.name}</strong>
-                                <span>{p.desc}</span>
-                            </div>
-                        {/each}
+
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h3 id="package-modal-title">
+                        <PackageIcon size={24} /> Suscripciones de paquetes
+                    </h3>
+                    <p class="modal-subtitle">
+                        {selectedUser?.first_name}
+                        {selectedUser?.last_name || ""}
+                        <span class="user-email">({selectedUser?.email})</span>
+                    </p>
+                </div>
+            </div>
+
+            {#if loadingPackages}
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Cargando suscripciones...</p>
+                </div>
+            {:else if packageModalError}
+                <div class="error-container">
+                    <div class="error-icon">
+                        <WarningIcon size={48} />
                     </div>
-                    <button
-                        class="btn-primary"
-                        style="margin-top:1.2rem;"
-                        on:click={() => goto("/dashboard/packages")}
-                        >Nuevo paquete</button
-                    >
+                    <h4>Error al cargar suscripciones</h4>
+                    <p>{packageModalError}</p>
+                </div>
+            {:else if userPackageSubscriptions.length === 0}
+                <div class="empty-container">
+                    <div class="empty-icon">
+                        <PackageIcon size={48} />
+                    </div>
+                    <h4>Sin suscripciones</h4>
+                    <p>
+                        Este usuario no tiene suscripciones de paquetes activas.
+                    </p>
+                </div>
+            {:else}
+                <div class="package-subscriptions">
+                    {#each userPackageSubscriptions as sub (sub.id || sub.package_id)}
+                        <div class="package-card">
+                            <div class="package-header">
+                                <h4 class="package-name">
+                                    {sub.package?.name || "Paquete sin nombre"}
+                                </h4>
+                                <span class="package-status {sub.status}">
+                                    {#if sub.status === "active"}
+                                        <span class="status-dot active"></span> Activo
+                                    {:else if sub.status === "expired"}
+                                        <span class="status-dot expired"></span>
+                                        Expirado
+                                    {:else}
+                                        {sub.status}
+                                    {/if}
+                                </span>
+                            </div>
+
+                            <div class="package-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        <RefreshIcon size={16} />
+                                        Ciclo de facturación:
+                                    </span>
+                                    <span class="detail-value">
+                                        {sub.billing_cycle === "monthly"
+                                            ? "Mensual"
+                                            : "Anual"}
+                                    </span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        <CalendarIcon size={16} />
+                                        Fecha inicio:
+                                    </span>
+                                    <span class="detail-value">
+                                        {sub.start_date
+                                            ? new Date(
+                                                  sub.start_date,
+                                              ).toLocaleDateString("es-ES", {
+                                                  year: "numeric",
+                                                  month: "long",
+                                                  day: "numeric",
+                                              })
+                                            : "-"}
+                                    </span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        <ClockIcon size={16} />
+                                        Próxima facturación:
+                                    </span>
+                                    <span class="detail-value">
+                                        {sub.next_billing_date
+                                            ? new Date(
+                                                  sub.next_billing_date,
+                                              ).toLocaleDateString("es-ES", {
+                                                  year: "numeric",
+                                                  month: "long",
+                                                  day: "numeric",
+                                              })
+                                            : "-"}
+                                    </span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        <DollarIcon size={16} />
+                                        Monto actual:
+                                    </span>
+                                    <span class="detail-value amount">
+                                        ${(sub.current_amount / 100).toFixed(2)}
+                                        ARS
+                                    </span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        <RefreshIcon size={16} />
+                                        Auto renovación:
+                                    </span>
+                                    <span class="detail-value">
+                                        {#if sub.auto_renew}
+                                            <CheckIcon size={16} /> Sí
+                                        {:else}
+                                            <XIcon size={16} /> No
+                                        {/if}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {#if sub.selected_features && sub.selected_features.length > 0}
+                                <div class="package-features">
+                                    <span class="features-label">
+                                        <TargetIcon size={16} />
+                                        Características seleccionadas:
+                                    </span>
+                                    <div class="features-list">
+                                        {#each sub.selected_features as feature}
+                                            <span
+                                                class="feature-badge"
+                                                title={feature}
+                                            >
+                                                {feature}
+                                            </span>
+                                        {/each}
+                                    </div>
+                                </div>
+                            {:else}
+                                <div class="package-features">
+                                    <span class="features-label">
+                                        <TargetIcon size={16} />
+                                        Características seleccionadas:
+                                    </span>
+                                    <div class="no-features">
+                                        No hay características seleccionadas
+                                        para este paquete
+                                    </div>
+                                </div>
+                            {/if}
+                        </div>
+                    {/each}
                 </div>
             {/if}
         </div>
@@ -2942,5 +3146,365 @@
     }
     .roles-section {
         padding-top: 0.5rem;
+    }
+
+    /* Estilos mejorados para el modal de paquetes */
+    .package-subscriptions {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding: 1rem 0;
+    }
+
+    .package-subscriptions::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .package-subscriptions::-webkit-scrollbar-track {
+        background: var(--color-bg-secondary);
+        border-radius: 3px;
+    }
+
+    .package-subscriptions::-webkit-scrollbar-thumb {
+        background: var(--color-border);
+        border-radius: 3px;
+    }
+
+    .package-subscriptions::-webkit-scrollbar-thumb:hover {
+        background: var(--color-text-secondary);
+    }
+
+    .package-card {
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+        box-shadow: var(--shadow-md);
+        transition: all var(--transition-normal);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .package-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--color-accent);
+        border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    }
+
+    .package-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--color-accent);
+    }
+
+    .package-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-lg);
+        padding-bottom: var(--spacing-md);
+        border-bottom: 2px solid var(--color-border);
+    }
+
+    .package-name {
+        margin: 0;
+        font-size: var(--font-size-xl);
+        font-weight: 700;
+        color: var(--color-text);
+    }
+
+    .package-status {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: 20px;
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-dot.active {
+        background: var(--color-success);
+        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.3);
+    }
+
+    .status-dot.expired {
+        background: var(--color-error);
+        box-shadow: 0 0 0 2px rgba(255, 77, 109, 0.3);
+    }
+
+    .package-status.active {
+        background: rgba(0, 230, 118, 0.1);
+        color: var(--color-success);
+        border: 1px solid var(--color-success);
+    }
+
+    .package-status.expired {
+        background: rgba(255, 77, 109, 0.1);
+        color: var(--color-error);
+        border: 1px solid var(--color-error);
+    }
+
+    .package-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md);
+        background: var(--color-bg-hover);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+    }
+
+    .detail-label {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-weight: 600;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        color: var(--color-text);
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        text-align: right;
+    }
+
+    .detail-value.amount {
+        font-weight: 700;
+        color: var(--color-success);
+        font-size: var(--font-size-base);
+    }
+
+    .package-features {
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
+        border-top: 2px solid var(--color-border);
+    }
+
+    .features-label {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-weight: 600;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        margin-bottom: var(--spacing-md);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .features-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+
+    .feature-badge {
+        background: var(--color-accent);
+        color: var(--color-bg);
+        padding: var(--spacing-xs) var(--spacing-md);
+        border-radius: 20px;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        border: none;
+        box-shadow: var(--shadow-sm);
+        transition: all var(--transition-normal);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .feature-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        opacity: 0.9;
+    }
+
+    .no-features {
+        color: var(--color-text-secondary);
+        font-style: italic;
+        font-size: var(--font-size-sm);
+        padding: var(--spacing-md);
+        text-align: center;
+        background: var(--color-bg-hover);
+        border-radius: var(--border-radius);
+        border: 1px dashed var(--color-border);
+    }
+
+    /* Estilos adicionales para el modal de paquetes */
+    .package-modal {
+        max-width: 800px;
+        width: 90vw;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-start;
+        margin-bottom: var(--spacing-xl);
+        padding-bottom: var(--spacing-lg);
+        border-bottom: 2px solid var(--color-border);
+        padding-right: 3rem; /* Espacio para el botón de cerrar */
+    }
+
+    .modal-title-section h3 {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin: 0 0 var(--spacing-sm) 0;
+        font-size: var(--font-size-2xl);
+        font-weight: 700;
+        color: var(--color-text);
+    }
+
+    .modal-subtitle {
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-base);
+    }
+
+    .user-email {
+        color: var(--color-accent);
+        font-weight: 500;
+    }
+
+    .modal-icon {
+        color: var(--color-accent);
+        opacity: 0.8;
+    }
+
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-2xl) var(--spacing-md);
+        text-align: center;
+    }
+
+    .loading-container p {
+        margin: var(--spacing-md) 0 0 0;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-base);
+    }
+
+    .error-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-2xl) var(--spacing-md);
+        text-align: center;
+        background: rgba(255, 77, 109, 0.1);
+        border-radius: var(--border-radius-lg);
+        border: 1px solid rgba(255, 77, 109, 0.2);
+    }
+
+    .error-icon {
+        margin-bottom: var(--spacing-md);
+        color: var(--color-error);
+    }
+
+    .error-container h4 {
+        margin: 0 0 var(--spacing-sm) 0;
+        color: var(--color-error);
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+    }
+
+    .error-container p {
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    .empty-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-2xl) var(--spacing-md);
+        text-align: center;
+        background: var(--color-bg-hover);
+        border-radius: var(--border-radius-lg);
+        border: 1px dashed var(--color-border);
+    }
+
+    .empty-icon {
+        margin-bottom: var(--spacing-md);
+        opacity: 0.6;
+        color: var(--color-text-secondary);
+    }
+
+    .empty-container h4 {
+        margin: 0 0 var(--spacing-sm) 0;
+        color: var(--color-text);
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+    }
+
+    .empty-container p {
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    @media (max-width: 768px) {
+        .modal-header {
+            flex-direction: column;
+            gap: var(--spacing-md);
+            padding-right: 0;
+        }
+
+        .package-details {
+            grid-template-columns: 1fr;
+        }
+
+        .package-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+        }
+
+        .detail-label {
+            font-size: var(--font-size-xs);
+        }
+
+        .detail-value {
+            font-size: var(--font-size-xs);
+        }
+
+        .feature-badge {
+            font-size: var(--font-size-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+        }
     }
 </style>

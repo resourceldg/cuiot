@@ -170,88 +170,74 @@ def populate_package_add_ons():
     db.close()
 
 def populate_user_packages():
-    """Poblar suscripciones de usuario a paquetes"""
+    """Poblar suscripciones de usuario a paquetes personales (solo roles permitidos)"""
     db = next(get_db())
     created = 0
-    
     # Obtener usuarios y paquetes existentes
     users = db.query(User).filter(User.is_active == True).all()
-    packages = db.query(Package).filter(Package.is_active == True).all()
+    # Solo paquetes personales
+    packages = db.query(Package).filter(Package.is_active == True, Package.package_type == 'individual').all()
     status_types = db.query(StatusType).filter(StatusType.category == "subscription").all()
-    
     if not users:
         print("⚠️  No hay usuarios disponibles. Ejecuta populate_users primero.")
         db.close()
         return
-    
     if not packages:
-        print("⚠️  No hay paquetes disponibles. Ejecuta populate_packages primero.")
+        print("⚠️  No hay paquetes personales disponibles. Ejecuta populate_packages primero.")
         db.close()
         return
-    
     if not status_types:
         print("⚠️  No hay status types de suscripción. Ejecuta populate_core primero.")
         db.close()
         return
-    
     # Mapear status types
     status_map = {st.name: st.id for st in status_types}
     active_status_id = status_map.get("active", status_types[0].id)
-    
-    # Crear suscripciones variadas
-    for user in users[:min(20, len(users))]:  # Máximo 20 usuarios
-        # Asignar 1-2 paquetes por usuario
+    # Roles permitidos para paquetes personales
+    allowed_roles = {"cared_person_self", "family", "family_member"}
+    for user in users:
+        # Obtener roles activos del usuario
+        user_roles = [r.name for r in user.roles if getattr(r, 'is_active', True)]
+        if not set(user_roles) & allowed_roles:
+            continue
+        # Asignar 1-2 paquetes personales por usuario
         num_packages = random.randint(1, min(2, len(packages)))
         selected_packages = random.sample(packages, num_packages)
-        
         for package in selected_packages:
-            # Verificar si ya existe la suscripción
-            existing = db.query(UserPackage).filter_by(
-                user_id=user.id, 
-                package_id=package.id
-            ).first()
-            
+            existing = db.query(UserPackage).filter_by(user_id=user.id, package_id=package.id).first()
             if existing:
                 continue
-            
-            # Generar fechas realistas
             start_date = date.today() - timedelta(days=random.randint(0, 365))
             billing_cycle = random.choice(["monthly", "yearly"])
-            
-            # Calcular precio según ciclo de facturación
             if billing_cycle == "monthly":
                 current_amount = package.price_monthly
                 next_billing = start_date + timedelta(days=30)
             else:
-                current_amount = package.price_yearly or package.price_monthly * 12
+                current_amount = (package.price_yearly or package.price_monthly * 12)
                 next_billing = start_date + timedelta(days=365)
-            
-            # Crear suscripción
+            # Asegurar que features es una lista
+            features = list(package.features) if package.features else []
             user_package = UserPackage(
                 user_id=user.id,
                 package_id=package.id,
                 start_date=start_date,
-                end_date=None,  # Suscripción activa
+                end_date=None,
                 auto_renew=True,
                 billing_cycle=billing_cycle,
                 current_amount=current_amount,
                 next_billing_date=next_billing,
                 status_type_id=active_status_id,
                 custom_configuration={
-                    "selected_features": random.sample(package.features or [], 
-                                                     min(3, len(package.features or [])))
+                    "selected_features": random.sample(features, min(3, len(features)))
                 },
-                selected_features=random.sample(package.features or [], 
-                                              min(3, len(package.features or []))),
+                selected_features=random.sample(features, min(3, len(features))),
                 legal_capacity_verified=random.choice([True, False]),
                 referral_code_used=None
             )
-            
             db.add(user_package)
             created += 1
-    
     db.commit()
-    print(f"✅ User Packages creados: {created} (idempotente)")
+    print(f"✅ User Packages personales creados: {created} (solo roles permitidos)")
     db.close()
 
 def populate_user_package_add_ons():
