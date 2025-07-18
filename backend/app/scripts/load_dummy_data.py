@@ -110,11 +110,11 @@ def create_institutions(db: Session) -> List[Institution]:
 def create_roles(db: Session) -> List[Role]:
     """Crear roles del sistema"""
     roles_data = [
-        {"name": "admin", "description": "Administrador del sistema"},
+        {"name": "admin", "description": "Administrador"},
         {"name": "caregiver", "description": "Cuidador profesional"},
         {"name": "family", "description": "Familiar"},
-        {"name": "patient", "description": "Paciente"},
-        {"name": "institution_admin", "description": "Administrador de institución"}
+        {"name": "caredperson", "description": "Persona bajo cuidado"},
+        {"name": "institution_admin", "description": "Admin de institución"},
     ]
     
     roles = []
@@ -387,9 +387,9 @@ default_user_roles = {
     "director.sanmartin@example.com": ["institution_admin"],
     "director.santamaria@example.com": ["institution_admin"],
     # Pacientes/usuarios finales
-    "rosa.fernandez@example.com": ["patient"],
-    "alberto.silva@example.com": ["patient"],
-    "carmen.vargas@example.com": ["patient"]
+    "rosa.fernandez@example.com": ["caredperson"],
+    "alberto.silva@example.com": ["caredperson"],
+    "carmen.vargas@example.com": ["caredperson"]
 }
 
 def assign_roles(db: Session, users: List[User]):

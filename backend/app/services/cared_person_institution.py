@@ -187,16 +187,16 @@ class CaredPersonInstitutionService:
         if not relationships:
             return None
         
-        total_patients = len(relationships)
-        active_patients = sum(1 for r in relationships if r.is_active)
+        total_caredpersons = len(relationships)
+        active_caredpersons = sum(1 for r in relationships if r.is_active)
         total_revenue = sum(r.total_cost for r in relationships)
         
         # Get service types
         service_types = list(set(r.service_type for r in relationships))
         
         return {
-            "total_patients": total_patients,
-            "active_patients": active_patients,
+            "total_caredpersons": total_caredpersons,
+            "active_caredpersons": active_caredpersons,
             "total_revenue": total_revenue,
             "service_types": service_types
         }

@@ -72,9 +72,21 @@ class Institution(BaseModel):
         return [ci.caregiver for ci in self.caregiver_institutions if ci.is_active]
     
     @property
-    def total_patients(self) -> int:
-        """Get total number of active patients"""
-        return len(self.active_cared_persons)
+    def total_caredpersons(self) -> int:
+        """Get total number of active caredpersons"""
+        active_persons = []
+        
+        # Add from legacy relationship
+        for person in self.cared_persons:
+            if person.is_active:
+                active_persons.append(person)
+        
+        # Add from new relationship
+        for cpi in self.cared_person_institutions:
+            if cpi.is_active:
+                active_persons.append(cpi.cared_person)
+        
+        return len(active_persons)
     
     @property
     def total_caregivers(self) -> int:
@@ -106,8 +118,8 @@ class Institution(BaseModel):
     
     @property
     def occupancy_rate(self) -> float:
-        """Calculate occupancy rate based on capacity and active patients"""
+        """Calculate occupancy rate based on capacity and active caredpersons"""
         if not self.capacity or self.capacity == 0:
             return 0.0
         
-        return round((self.total_patients / self.capacity) * 100, 1)
+        return round((self.total_caredpersons() / self.capacity) * 100, 1)

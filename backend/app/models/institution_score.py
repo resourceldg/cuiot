@@ -22,14 +22,14 @@ class InstitutionScore(BaseModel):
     # Statistics
     total_reviews = Column(Integer, default=0, nullable=False)
     total_recommendations = Column(Integer, default=0, nullable=False)
-    total_patients = Column(Integer, default=0, nullable=False)
+    total_caredpersons = Column(Integer, default=0, nullable=False)
     years_operating = Column(Integer, nullable=True)
     
     # Quality metrics
-    staff_ratio = Column(Float, nullable=True)  # Staff per patient
+    staff_ratio = Column(Float, nullable=True)  # Staff per caredperson
     response_time = Column(Integer, nullable=True)  # Average response time in minutes
     safety_incidents = Column(Integer, default=0, nullable=False)
-    satisfaction_rate = Column(Float, nullable=True)  # Percentage of satisfied patients
+    satisfaction_rate = Column(Float, nullable=True)  # Percentage of satisfied caredpersons
     
     # Certifications
     has_medical_license = Column(Boolean, default=False, nullable=False)

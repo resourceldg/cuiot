@@ -43,7 +43,7 @@ Este documento presenta el modelo de datos completo para el sistema de monitoreo
 
 **Atributos Clave**:
 - `id` (UUID, PK): Identificador único del rol
-- `name` (VARCHAR(50)): Nombre del rol (admin, caregiver, family, patient, etc.)
+- `name` (VARCHAR(50)): Nombre del rol (admin, caregiver, family, caredperson, etc.)
 - `description` (TEXT): Descripción del rol
 - `permissions` (JSONB): Permisos específicos del rol
 

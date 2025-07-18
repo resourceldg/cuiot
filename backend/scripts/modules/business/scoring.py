@@ -242,7 +242,7 @@ def populate_institution_scores():
         # Estadísticas
         total_reviews = random.randint(10, 100)
         total_recommendations = int(total_reviews * random.uniform(0.7, 0.9))
-        total_patients = random.randint(20, 200)
+        total_caredpersons = random.randint(20, 200)
         years_operating = random.randint(2, 25)
         
         # Métricas de calidad
@@ -270,7 +270,7 @@ def populate_institution_scores():
             reputation_score=reputation_score,
             total_reviews=total_reviews,
             total_recommendations=total_recommendations,
-            total_patients=total_patients,
+            total_caredpersons=total_caredpersons,
             years_operating=years_operating,
             staff_ratio=staff_ratio,
             response_time=response_time,

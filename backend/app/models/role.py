@@ -26,7 +26,7 @@ class Role(BaseModel):
 
     @classmethod
     def get_system_roles(cls) -> list:
-        return ["admin", "caregiver", "family", "patient", "institution_admin"]
+        return ["admin", "caregiver", "family", "caredperson", "institution_admin"]
 
     @classmethod
     def get_permissions(cls) -> list:
@@ -119,7 +119,7 @@ class Role(BaseModel):
                 }
             },
             {
-                "name": "patient",
+                "name": "caredperson",
                 "description": "Persona bajo cuidado con acceso a su propia información",
                 "permissions": {
                     "self": {"read": True, "write": True},

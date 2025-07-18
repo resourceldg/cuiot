@@ -188,7 +188,7 @@ class UserService:
                         obj.is_active = False
             if not user.cared_persons or len(user.cared_persons) == 0:
                 missing_fields.append("cared_person_link")
-        elif role_name == "patient":
+        elif role_name == "caredperson":
             for rel in [user.caregiver_assignments, user.caregiver_institutions]:
                 for obj in rel:
                     if hasattr(obj, 'is_active'):
@@ -348,8 +348,10 @@ class UserService:
             if package_count > 0:
                 filtered_users = []
                 for user in users:
+                    # Solo considerar paquetes activos (status_type_id = 21 o NULL)
                     user_packages = db.query(UserPackage).filter(
-                        UserPackage.user_id == user.id
+                        UserPackage.user_id == user.id,
+                        (UserPackage.status_type_id == 21) | (UserPackage.status_type_id.is_(None))
                     ).all()
                     has_matching_package = False
                     for user_package in user_packages:
@@ -370,6 +372,9 @@ class UserService:
                         filtered_users.append(user)
                 users = filtered_users
 
+        # Definir roles permitidos para paquetes personales e institucionales
+        ROLES_WITH_PACKAGE = {"cared_person_self", "family_member", "family", "institution_admin"}
+
         # Transform to UserWithRoles format
         result = []
         for user in users:
@@ -382,6 +387,25 @@ class UserService:
                 role_obj = db.query(Role).filter(Role.id == user_role.role_id).first()
                 if role_obj:
                     role_names.append(role_obj.name)
+            # Solo permitir paquetes si el usuario tiene al menos un rol permitido
+            allow_packages = any(r in ROLES_WITH_PACKAGE for r in role_names)
+            user_packages = []
+            if allow_packages:
+                user_packages = db.query(UserPackage).filter(
+                    UserPackage.user_id == user.id,
+                    (UserPackage.status_type_id == 21) | (UserPackage.status_type_id.is_(None))
+                ).all()
+            package_subscriptions = []
+            for user_package in user_packages:
+                package_obj = db.query(Package).filter(Package.id == user_package.package_id).first()
+                if package_obj:
+                    package_subscriptions.append({
+                        'id': str(user_package.id),
+                        'package_id': str(user_package.package_id),
+                        'package_name': package_obj.name,
+                        'status_type_id': user_package.status_type_id,
+                        'is_active': True
+                    })
             user_with_roles = UserWithRoles(
                 id=user.id,
                 email=user.email,
@@ -403,7 +427,8 @@ class UserService:
                 last_login=user.last_login,
                 created_at=user.created_at,
                 updated_at=user.updated_at,
-                roles=role_names
+                roles=role_names,
+                package_subscriptions=package_subscriptions
             )
             result.append(user_with_roles)
         return result

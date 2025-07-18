@@ -605,4 +605,31 @@ Todos los fixes son idempotentes y seguros para ejecutar múltiples veces.
 
 ---
 
+## 🧑‍💻 Enfoque profesional: eficiencia + eficacia
+
+Como equipo de arquitectura y desarrollo, buscamos siempre el equilibrio entre:
+- **Eficiencia:** hacer las cosas bien, de forma óptima y con recursos adecuados.
+- **Eficacia:** hacer lo correcto, alineado a la lógica de negocio y los objetivos del sistema.
+
+El profesionalismo es lograr ambas: soluciones correctas, alineadas al negocio, y construidas de manera óptima y sostenible.
+
+---
+
+## 🎯 Mapeo de roles permitidos para paquetes (lógica de negocio)
+
+Para poblar suscripciones a paquetes, se debe respetar la siguiente lógica:
+
+- **Paquetes individuales:**
+  - Roles permitidos: `cared_person_self`, `caredperson`, `family`, `family_member`
+- **Paquetes institucionales:**
+  - Roles permitidos: `institution_admin`
+- **Paquetes profesionales:**
+  - (Actualmente no hay roles profesionales independientes definidos. Si se agregan, documentar aquí)
+
+> **Nota:** Si en el futuro se agregan roles como `doctor`, `staff`, etc., actualizar este mapeo y la lógica de los scripts.
+
+Este mapeo debe ser consistente entre backend, scripts y frontend.
+
+---
+
 **Sistema de Población Modular CUIOT** - Listo para desarrollo, testing y producción. 

@@ -23,6 +23,7 @@
     import ClockIcon from "$lib/ui/icons/ClockIcon.svelte";
     import DollarIcon from "$lib/ui/icons/DollarIcon.svelte";
     import PackageIcon from "$lib/ui/icons/PackageIcon.svelte";
+    import ProhibidoIcon from "$lib/ui/icons/ProhibidoIcon.svelte";
     import RefreshIcon from "$lib/ui/icons/RefreshIcon.svelte";
     import TargetIcon from "$lib/ui/icons/TargetIcon.svelte";
     import WarningIcon from "$lib/ui/icons/WarningIcon.svelte";
@@ -125,12 +126,8 @@
 
         // Package filter
         if (packageFilter) {
-            const packageId = Number(packageFilter);
-            if (!isNaN(packageId)) {
-                params.package_id = packageFilter;
-            } else {
-                params.package = packageFilter;
-            }
+            // Los IDs de paquetes son UUIDs (strings), no números
+            params.package_id = packageFilter;
         }
 
         return params;
@@ -294,15 +291,11 @@
             error = apiError;
             users = [];
         } else if (data) {
-            // Mapear roles para compatibilidad
+            // Solo transformar roles, preservar el resto de los campos
             users = Array.isArray(data)
                 ? data.map((user) => ({
                       ...user,
                       roles: Array.isArray(user.roles) ? user.roles : [],
-                      role:
-                          Array.isArray(user.roles) && user.roles.length > 0
-                              ? user.roles[0]
-                              : "",
                   }))
                 : [];
         } else {
@@ -711,10 +704,18 @@
     }
 
     async function openPackageModal(user: any) {
-        console.log("�� openPackageModal - INICIANDO FUNCIÓN");
+        console.log("🔧 openPackageModal - INICIANDO FUNCIÓN");
         console.log("🔧 openPackageModal - Usuario:", user);
         console.log("🔧 openPackageModal - User ID:", user.id);
         console.log("🔧 openPackageModal - User email:", user.email);
+
+        // Verificar si el usuario puede tener paquetes
+        if (!userCanHavePackages(user)) {
+            console.log(
+                "🔧 openPackageModal - Usuario no puede tener paquetes",
+            );
+            return;
+        }
 
         selectedUser = user;
         userPackageSubscriptions = [];
@@ -782,10 +783,34 @@
         selectedUser = null;
         editAnchorRect = null;
     }
-    // Reemplaza handleEditSave para solo refrescar usuarios y cerrar el modal
+    // Reemplaza handleEditSave para refrescar usuarios y cerrar el modal
     async function handleEditSave() {
+        // Recargar usuarios desde la API
         await loadUsers();
         closeEditModal();
+    }
+
+    // Utilidad para obtener solo el rol activo
+    function getActiveRole(user) {
+        if (!user || !Array.isArray(user.roles)) return null;
+        return user.roles[0] || null;
+    }
+
+    // Utilidad para obtener solo el paquete activo
+    function getActivePackage(user) {
+        const packages =
+            user && Array.isArray(user.package_subscriptions)
+                ? user.package_subscriptions
+                : [];
+        // Si hay más de uno, muestra warning (opcional)
+        if (packages.length > 1) {
+            console.warn(
+                `Usuario ${user.email} tiene más de un paquete activo`,
+                packages,
+            );
+        }
+        // Devuelve el primero si existe
+        return packages[0] || null;
     }
 
     // --- Confirmación de borrado de rol ---
@@ -899,12 +924,10 @@
 
     // Unificar ROLES_WITH_PACKAGE para que solo contenga los roles canónicos permitidos
     const ROLES_WITH_PACKAGE = [
-        "institution_admin",
         "cared_person_self",
-        "caredperson",
+        "family",
         "family_member",
-        "caregiver",
-        "freelance_caregiver",
+        "institution_admin", // <-- agregado
     ];
 
     let sessionUserRoles: string[] = Array.isArray($sessionUser?.roles)
@@ -941,22 +964,40 @@
 
     // Función para verificar si un usuario puede tener paquetes
     function userCanHavePackages(user: User): boolean {
-        const userRoles = getUserRoles(user);
-        console.log(
-            "🔧 userCanHavePackages - Usuario:",
-            user.email,
-            "Roles:",
-            userRoles,
+        const userRoles = getUserRoles(user).map((role) =>
+            role.trim().toLowerCase(),
         );
-        console.log(
-            "🔧 userCanHavePackages - ROLES_WITH_PACKAGE:",
-            ROLES_WITH_PACKAGE,
+        const allowedRoles = ROLES_WITH_PACKAGE.map((role) =>
+            role.trim().toLowerCase(),
         );
-        const canHave = userRoles.some((role) =>
-            ROLES_WITH_PACKAGE.includes(role),
-        );
-        console.log("🔧 userCanHavePackages - Resultado:", canHave);
+        const canHave = userRoles.some((role) => allowedRoles.includes(role));
         return canHave;
+    }
+
+    // Función para verificar si un usuario tiene suscripciones reales
+    function userHasPackageSubscriptions(user: User): boolean {
+        // Por ahora, solo verificamos si el usuario puede tener paquetes
+        // En el futuro, podríamos hacer una llamada a la API para verificar suscripciones reales
+        return userCanHavePackages(user);
+    }
+
+    // Función para obtener las suscripciones de un usuario (para mostrar en el modal)
+    async function getUserPackageSubscriptionsForModal(user: User) {
+        if (!userHasPackageSubscriptions(user)) {
+            return [];
+        }
+
+        try {
+            const response = await getUserPackageSubscriptions(user.id);
+            console.log(
+                "🔧 getUserPackageSubscriptionsForModal - Respuesta:",
+                response,
+            );
+            return response || [];
+        } catch (error) {
+            console.error("🔧 Error al obtener suscripciones:", error);
+            return [];
+        }
     }
 </script>
 
@@ -1120,17 +1161,46 @@
             <table class="user-table">
                 <thead>
                     <tr>
-                        <th>Acciones</th>
                         <th>Nombre</th>
                         <th>Email</th>
-                        <th>Roles</th>
+                        <th>Rol</th>
+                        <th>Paquete</th>
                         <th>Estado</th>
-                        <th>Último acceso</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {#each pagedUsers as user (user.id)}
+                    {#each pagedUsers as user}
                         <tr>
+                            <td>{user.first_name} {user.last_name}</td>
+                            <td>{user.email}</td>
+                            <td>
+                                {#if Array.isArray(user.roles) && user.roles.length > 0}
+                                    {getActiveRole(user)}
+                                {:else}
+                                    <span class="error-text">Sin rol</span>
+                                {/if}
+                            </td>
+                            <td>
+                                {#if userCanHavePackages(user)}
+                                    {#if (user.package_subscriptions ?? []).length > 0}
+                                        {getActivePackage(user)?.package_name ||
+                                            "Sin paquete activo"}
+                                    {:else}
+                                        <span class="error-text"
+                                            >Sin paquete</span
+                                        >
+                                    {/if}
+                                {:else}
+                                    <span
+                                        title="Este rol no puede tener paquetes"
+                                        style="display:inline-flex;align-items:center;gap:0.2em;color:var(--color-text-secondary);"
+                                    >
+                                        <ProhibidoIcon size={18} />
+                                    </span>
+                                {/if}
+                            </td>
+                            <td>{user.is_active ? "Activo" : "Inactivo"}</td>
                             <td>
                                 <div class="actions-grid">
                                     <button
@@ -1166,7 +1236,7 @@
                                                 );
                                                 openPackageModal(user);
                                             }}
-                                            title="Ver detalles del paquete"
+                                            title="Ver suscripciones de paquetes"
                                         >
                                             <svg
                                                 width="17"
@@ -1226,41 +1296,6 @@
                                         >
                                     </button>
                                 </div>
-                            </td>
-                            <td
-                                >{`${user.first_name} ${user.last_name || ""}`.trim()}</td
-                            >
-                            <td>{user.email}</td>
-                            <td>
-                                <div class="user-roles">
-                                    <span class="role-badge">Usuario</span>
-                                    {#if user.is_freelance}
-                                        <span class="role-badge freelance"
-                                            >Freelance</span
-                                        >
-                                    {/if}
-                                    {#if user.is_verified}
-                                        <span class="role-badge verified"
-                                            >Verificado</span
-                                        >
-                                    {/if}
-                                </div>
-                            </td>
-                            <td>
-                                <span
-                                    class="user-status {user.is_active
-                                        ? 'activo'
-                                        : 'inactivo'}"
-                                >
-                                    {user.is_active ? "Activo" : "Inactivo"}
-                                </span>
-                            </td>
-                            <td>
-                                {user.last_login
-                                    ? new Date(
-                                          user.last_login,
-                                      ).toLocaleDateString("es-ES")
-                                    : "Nunca"}
                             </td>
                         </tr>
                     {/each}
@@ -3506,5 +3541,16 @@
             font-size: var(--font-size-xs);
             padding: var(--spacing-xs) var(--spacing-sm);
         }
+    }
+
+    .warning-text {
+        color: var(--color-warning, #e67e22);
+        font-weight: bold;
+        margin-right: 0.3em;
+    }
+    .error-text {
+        color: var(--color-danger, #e74c3c);
+        font-weight: bold;
+        margin-right: 0.3em;
     }
 </style>

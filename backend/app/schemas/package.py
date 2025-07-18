@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, Dict, Any, List, Union
 from datetime import datetime, date
 from uuid import UUID
 
@@ -100,7 +100,7 @@ class PackageAddOnBase(BaseModel):
     price_yearly: Optional[int] = Field(None, ge=0, description="Yearly price in cents (ARS)")
     configuration: Optional[Dict[str, Any]] = Field(None, description="JSON with add-on configuration")
     limitations: Optional[Dict[str, Any]] = Field(None, description="JSON with limitations")
-    compatible_packages: Optional[Dict[str, Any]] = Field(None, description="JSON with compatible package types")
+    compatible_packages: Optional[List[str]] = Field(None, description="Lista de tipos de paquetes compatibles")
     max_quantity: Optional[int] = Field(None, ge=1, description="Maximum quantity allowed")
 
     @field_validator('add_on_type')
@@ -124,7 +124,7 @@ class PackageAddOnUpdate(BaseModel):
     price_yearly: Optional[int] = Field(None, ge=0)
     configuration: Optional[Dict[str, Any]] = None
     limitations: Optional[Dict[str, Any]] = None
-    compatible_packages: Optional[Dict[str, Any]] = None
+    compatible_packages: Optional[List[str]] = None
     max_quantity: Optional[int] = Field(None, ge=1)
     is_active: Optional[bool] = None
 

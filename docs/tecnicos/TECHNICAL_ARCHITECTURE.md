@@ -363,7 +363,7 @@ CREATE TABLE institution_packages (
     auto_renew BOOLEAN DEFAULT true,
     status VARCHAR(20) DEFAULT 'active',
     payment_method VARCHAR(50),
-    max_patients INTEGER,
+    max_caredpersons INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

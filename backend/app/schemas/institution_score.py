@@ -19,12 +19,12 @@ class InstitutionScoreUpdate(InstitutionScoreBase):
     """Schema for updating an institution score"""
     total_reviews: Optional[int] = Field(None, ge=0, description="Total number of reviews")
     total_recommendations: Optional[int] = Field(None, ge=0, description="Total number of recommendations")
-    total_patients: Optional[int] = Field(None, ge=0, description="Total number of patients")
+    total_caredpersons: Optional[int] = Field(None, ge=0, description="Total number of caredpersons")
     years_operating: Optional[int] = Field(None, ge=0, description="Years of operation")
-    staff_ratio: Optional[float] = Field(None, ge=0.0, description="Staff per patient ratio")
+    staff_ratio: Optional[float] = Field(None, ge=0.0, description="Staff per caredperson ratio")
     response_time: Optional[int] = Field(None, ge=0, description="Average response time in minutes")
     safety_incidents: Optional[int] = Field(None, ge=0, description="Number of safety incidents")
-    satisfaction_rate: Optional[float] = Field(None, ge=0.0, le=100.0, description="Percentage of satisfied patients")
+    satisfaction_rate: Optional[float] = Field(None, ge=0.0, le=100.0, description="Percentage of satisfied caredpersons")
     has_medical_license: Optional[bool] = Field(None, description="Medical license status")
     has_safety_certification: Optional[bool] = Field(None, description="Safety certification status")
     has_quality_certification: Optional[bool] = Field(None, description="Quality certification status")
@@ -37,7 +37,7 @@ class InstitutionScore(InstitutionScoreBase):
     institution_id: int
     total_reviews: int = 0
     total_recommendations: int = 0
-    total_patients: int = 0
+    total_caredpersons: int = 0
     years_operating: Optional[int] = None
     staff_ratio: Optional[float] = None
     response_time: Optional[int] = None

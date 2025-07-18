@@ -170,20 +170,20 @@ def populate_package_add_ons():
     db.close()
 
 def populate_user_packages():
-    """Poblar suscripciones de usuario a paquetes personales (solo roles permitidos)"""
+    """Poblar suscripciones de usuario a paquetes (todos los roles permitidos y todos los tipos de paquetes)"""
     db = next(get_db())
     created = 0
     # Obtener usuarios y paquetes existentes
     users = db.query(User).filter(User.is_active == True).all()
-    # Solo paquetes personales
-    packages = db.query(Package).filter(Package.is_active == True, Package.package_type == 'individual').all()
+    # Obtener todos los paquetes activos
+    packages = db.query(Package).filter(Package.is_active == True).all()
     status_types = db.query(StatusType).filter(StatusType.category == "subscription").all()
     if not users:
         print("⚠️  No hay usuarios disponibles. Ejecuta populate_users primero.")
         db.close()
         return
     if not packages:
-        print("⚠️  No hay paquetes personales disponibles. Ejecuta populate_packages primero.")
+        print("⚠️  No hay paquetes disponibles. Ejecuta populate_packages primero.")
         db.close()
         return
     if not status_types:
@@ -192,18 +192,26 @@ def populate_user_packages():
         return
     # Mapear status types
     status_map = {st.name: st.id for st in status_types}
-    active_status_id = status_map.get("active", status_types[0].id)
-    # Roles permitidos para paquetes personales
-    allowed_roles = {"cared_person_self", "family", "family_member"}
+    active_status_id = (
+        status_map.get("active")
+        or status_map.get("subscription_active")
+        or status_types[0].id
+    )
+    # Mapeo de roles permitidos para cada tipo de paquete (ver README)
+    allowed_roles_map = {
+        "individual": {"cared_person_self", "family", "family_member"},
+        "institutional": {"institution_admin"},
+    }
     for user in users:
         # Obtener roles activos del usuario
-        user_roles = [r.name for r in user.roles if getattr(r, 'is_active', True)]
-        if not set(user_roles) & allowed_roles:
-            continue
-        # Asignar 1-2 paquetes personales por usuario
-        num_packages = random.randint(1, min(2, len(packages)))
-        selected_packages = random.sample(packages, num_packages)
-        for package in selected_packages:
+        user_roles = set(r.name for r in user.roles if getattr(r, 'is_active', True))
+        for package in packages:
+            allowed_roles = allowed_roles_map.get(package.package_type, set())
+            # Para institucionales, solo si el usuario tiene institución asociada
+            if package.package_type == "institutional" and ("institution_admin" not in user_roles or not user.institution_id):
+                continue
+            if not user_roles & allowed_roles:
+                continue
             existing = db.query(UserPackage).filter_by(user_id=user.id, package_id=package.id).first()
             if existing:
                 continue
@@ -215,7 +223,6 @@ def populate_user_packages():
             else:
                 current_amount = (package.price_yearly or package.price_monthly * 12)
                 next_billing = start_date + timedelta(days=365)
-            # Asegurar que features es una lista
             features = list(package.features) if package.features else []
             user_package = UserPackage(
                 user_id=user.id,
@@ -237,7 +244,7 @@ def populate_user_packages():
             db.add(user_package)
             created += 1
     db.commit()
-    print(f"✅ User Packages personales creados: {created} (solo roles permitidos)")
+    print(f"✅ User Packages creados: {created} (todos los roles permitidos y tipos de paquete)")
     db.close()
 
 def populate_user_package_add_ons():

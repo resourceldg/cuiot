@@ -1,37 +1,45 @@
+import sys
+import os
+import logging
+from datetime import datetime
+from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
 from app.models.user_role import UserRole
-from app.models.role import Role
-from sqlalchemy.orm import Session
-from datetime import datetime
+from app.models.package import UserPackage
 
-def fix_users_roles():
-    db: Session = next(get_db())
-    default_role = db.query(Role).filter_by(name='family_member').first()
-    if not default_role:
-        print("❌ No existe el rol 'family_member'. Aborta.")
-        return
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("fix_users_roles")
+
+def fix_user_roles_and_packages(db: Session):
     users = db.query(User).all()
-    fixed = 0
+    total_fixed_roles = 0
+    total_fixed_packages = 0
     for user in users:
-        # Asignar género por defecto si falta
-        if not user.gender:
-            user.gender = 'Otro'
-            fixed += 1
-        roles_count = db.query(UserRole).filter_by(user_id=user.id).count()
-        if roles_count == 0:
-            user_role = UserRole(
-                user_id=user.id,
-                role_id=default_role.id,
-                is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
-            db.add(user_role)
-            fixed += 1
-            print(f"🛠️  Asignado rol 'family_member' a usuario {user.email}")
+        # --- Fix roles ---
+        active_roles = [ur for ur in user.user_roles if ur.is_active]
+        if len(active_roles) > 1:
+            # Dejar solo el más reciente activo
+            active_roles.sort(key=lambda ur: ur.created_at or datetime.min, reverse=True)
+            for ur in active_roles[1:]:
+                ur.is_active = False
+                logger.info(f"Desactivado rol duplicado para usuario {user.email}: {ur.role_id}")
+            total_fixed_roles += 1
+        # --- Fix packages ---
+        active_packages = [up for up in getattr(user, 'user_packages', []) if up.is_active]
+        if len(active_packages) > 1:
+            active_packages.sort(key=lambda up: up.created_at or datetime.min, reverse=True)
+            for up in active_packages[1:]:
+                up.is_active = False
+                logger.info(f"Desactivado paquete duplicado para usuario {user.email}: {up.package_id}")
+            total_fixed_packages += 1
     db.commit()
-    print(f"✅ Usuarios corregidos: {fixed}")
+    logger.info(f"Usuarios con roles corregidos: {total_fixed_roles}")
+    logger.info(f"Usuarios con paquetes corregidos: {total_fixed_packages}")
+
+def main():
+    db = next(get_db())
+    fix_user_roles_and_packages(db)
 
 if __name__ == "__main__":
-    fix_users_roles() 
+    main() 

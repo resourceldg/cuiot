@@ -197,8 +197,8 @@ async def create_care_center(center: CareCenterCreate):
     """Crear nuevo centro de cuidado"""
     pass
 
-@router.get("/centers/{center_id}/patients")
-async def get_center_patients(center_id: UUID):
+@router.get("/centers/{center_id}/caredpersons")
+async def get_center_caredpersons(center_id: UUID):
     """Obtener pacientes de un centro"""
     pass
 

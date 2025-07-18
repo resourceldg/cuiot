@@ -119,7 +119,7 @@ classDiagram
     }
     
     Institution ||--o{ CaregiverInstitution : employs_caregivers
-    Institution ||--o{ CaredPersonInstitution : serves_patients
+    Institution ||--o{ CaredPersonInstitution : serves_caredpersons
     Institution ||--o{ Device : owns
     Institution ||--o{ EmergencyProtocol : has
     Institution ||--o{ ServiceSubscription : subscribes

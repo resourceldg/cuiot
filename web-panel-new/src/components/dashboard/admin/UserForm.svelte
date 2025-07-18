@@ -343,6 +343,12 @@
         submitting = true;
         error = "";
         debugResult = {};
+        let assignRoleNeeded = false;
+        let previousRole =
+            initialData &&
+            (Array.isArray(initialData.roles)
+                ? initialData.roles[0]
+                : initialData.role);
 
         try {
             // Guardar usuario (sin el campo 'role')
@@ -353,7 +359,10 @@
             if (!userUpdateData.date_of_birth)
                 delete (userUpdateData as any).date_of_birth;
 
-            const updateResult = await updateUser(form.id, userUpdateData);
+            const updateResult = await updateUser(
+                String(form.id),
+                userUpdateData,
+            );
             debugResult.updateResult = updateResult;
 
             if (updateResult.error) {
@@ -377,14 +386,19 @@
                 }
             }
 
-            // Si el rol cambió y el usuario es admin, asignar rol
-            if (
-                editMode &&
-                isFieldEditable("role") &&
-                form.role &&
-                form.role !== initialData.role
-            ) {
-                const assignResult = await assignRole(form.id, form.role);
+            // Siempre asignar el rol seleccionado tras guardar (si hay rol)
+            if (form.role) {
+                // Solo asignar si no tenía rol antes o si cambió
+                if (!previousRole || form.role !== previousRole) {
+                    assignRoleNeeded = true;
+                }
+            }
+
+            if (assignRoleNeeded) {
+                const assignResult = await assignRole(
+                    String(form.id),
+                    form.role,
+                );
                 debugResult.assignResult = assignResult;
                 if (assignResult.error) {
                     // Intentar parsear error JSON
@@ -403,6 +417,8 @@
                     return;
                 }
             }
+            // Mensaje de éxito
+            error = "";
             dispatch("submit", { ...form, debugResult });
         } catch (err) {
             const errorMessage =
@@ -416,7 +432,7 @@
     }
 
     function updateForm(field: keyof typeof form, value: any) {
-        form[field] = value;
+        (form as any)[field] = value;
         validateForm();
     }
 </script>
@@ -833,20 +849,14 @@
     {/if}
     {#if showMissingFieldsModal}
         <ModalNotification
-            title="Datos obligatorios faltantes"
+            type="error"
+            message={missingFieldsMessage}
+            subtitle={missingFields.length > 0
+                ? `Campos faltantes: ${missingFields.join(", ")}`
+                : ""}
+            show={showMissingFieldsModal}
             on:close={() => (showMissingFieldsModal = false)}
-        >
-            <p>{missingFieldsMessage}</p>
-            <ul>
-                {#each missingFields as field}
-                    <li>{field}</li>
-                {/each}
-            </ul>
-            <button
-                class="btn"
-                on:click={() => (showMissingFieldsModal = false)}>Cerrar</button
-            >
-        </ModalNotification>
+        />
     {/if}
 </div>
 

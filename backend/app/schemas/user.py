@@ -36,8 +36,19 @@ class UserInDB(UserBase, BaseResponse):
     password_hash: str
     last_login: Optional[datetime] = None
 
+class UserPackageResponse(BaseModel):
+    id: str
+    package_id: str
+    package_name: str
+    status_type_id: Optional[int] = None
+    is_active: bool = True
+    
+    class Config:
+        from_attributes = True
+
 class UserWithRoles(UserResponse):
     roles: List[str] = []  # List of role names
+    package_subscriptions: List[UserPackageResponse] = []  # List of user packages
     
     class Config:
         from_attributes = True
