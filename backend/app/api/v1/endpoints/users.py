@@ -30,7 +30,7 @@ def get_roles(
     """Obtener lista de todos los roles del sistema"""
     if not current_user.has_permission("users.read", db):
         raise HTTPException(status_code=403, detail="No tiene permisos para ver roles")
-    roles = db.query(Role).offset(skip).limit(limit).all()
+    roles = db.query(Role).filter(Role.is_active == True).offset(skip).limit(limit).all()
     return [
         {
             "id": str(role.id),
@@ -101,35 +101,72 @@ def delete_role(
     """Eliminar un rol por id (solo admin). Si usuarios solo tienen este rol, se les asigna 'sin_rol'."""
     if not current_user.has_role("admin"):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar roles")
+    
     role = db.query(Role).filter_by(id=role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Rol no encontrado")
+    
+    # No permitir eliminar roles de sistema
+    if role.is_system:
+        raise HTTPException(status_code=400, detail="No se puede eliminar un rol de sistema")
 
     from app.models.user_role import UserRole
     from app.models.role import Role as RoleModel
     from sqlalchemy import func
 
-    # Buscar el rol especial 'sin_rol'
+    # Crear rol 'sin_rol' si no existe
     sin_rol = db.query(RoleModel).filter(RoleModel.name == "sin_rol").first()
     if not sin_rol:
-        raise HTTPException(status_code=400, detail="El rol especial 'sin_rol' no existe. Debe crearse antes de eliminar roles.")
+        sin_rol = RoleModel(
+            name="sin_rol",
+            description="Rol temporal para usuarios sin asignación",
+            permissions="{}",
+            is_system=True,
+            is_active=True
+        )
+        db.add(sin_rol)
+        db.flush()  # Para obtener el ID
 
-    # Buscar todos los user_roles con este rol
-    user_roles = db.query(UserRole).filter(UserRole.role_id == role.id).all()
+    # Buscar todos los user_roles activos con este rol
+    user_roles = db.query(UserRole).filter(
+        UserRole.role_id == role.id,
+        UserRole.is_active == True
+    ).all()
+    
     for user_role in user_roles:
-        # Contar cuántos roles tiene el usuario
-        count_roles = db.query(func.count(UserRole.id)).filter(UserRole.user_id == user_role.user_id).scalar()
-        if count_roles <= 1:
-            # Si solo tiene este rol, asignar 'sin_rol' antes de eliminar
-            exists = db.query(UserRole).filter(UserRole.user_id == user_role.user_id, UserRole.role_id == sin_rol.id).first()
-            if not exists:
-                new_ur = UserRole(user_id=user_role.user_id, role_id=sin_rol.id)
+        # Contar cuántos roles activos tiene el usuario
+        active_roles_count = db.query(func.count(UserRole.id)).filter(
+            UserRole.user_id == user_role.user_id,
+            UserRole.is_active == True
+        ).scalar()
+        
+        if active_roles_count <= 1:
+            # Si solo tiene este rol activo, asignar 'sin_rol' antes de eliminar
+            existing_sin_rol = db.query(UserRole).filter(
+                UserRole.user_id == user_role.user_id,
+                UserRole.role_id == sin_rol.id
+            ).first()
+            
+            if not existing_sin_rol:
+                new_ur = UserRole(
+                    user_id=user_role.user_id,
+                    role_id=sin_rol.id,
+                    is_active=True
+                )
                 db.add(new_ur)
-        # Eliminar la relación con el rol a borrar
-        db.delete(user_role)
-    db.delete(role)
+        
+        # Desactivar la relación con el rol a borrar (soft delete)
+        user_role.is_active = False
+    
+    # Soft delete del rol en lugar de eliminación física
+    role.is_active = False
+    
     db.commit()
-    return {"message": "Rol eliminado exitosamente y usuarios reasignados si era necesario", "role_id": role_id}
+    return {
+        "message": "Rol desactivado exitosamente y usuarios reasignados si era necesario", 
+        "role_id": role_id,
+        "users_affected": len(user_roles)
+    }
 
 @router.get("/roles/{role_name}")
 def get_role(role_name: str, db: Session = Depends(get_db)):
@@ -289,6 +326,13 @@ def delete_user(
     current_user = Depends(AuthService.require_permission("users.delete"))
 ):
     """Delete a user"""
+    # Prevenir auto-eliminación
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes eliminar tu propia cuenta"
+        )
+    
     UserService.delete_user(db, user_id)
 
 @router.post("/{user_id}/assign-role")

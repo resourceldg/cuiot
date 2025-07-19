@@ -22,15 +22,17 @@ scripts/
 │   │   ├── events.py            # Eventos de dispositivos
 │   │   ├── alerts.py            # Alertas del sistema
 │   │   └── tracking.py          # Seguimiento de ubicación
-│   └── business/                # Datos de negocio
-│       ├── institutions.py      # Instituciones
-│       ├── packages.py          # Paquetes de servicios
-│       ├── users.py             # Usuarios del sistema
-│       ├── addons.py            # Add-ons y suscripciones
-│       └── billing.py           # Facturación y pagos
-│   └── monitoring/              # Datos de monitoreo
-│       ├── reports.py           # Reportes normalizados
-│       └── report_types.py      # Tipos de reporte
+│   ├── business/                # Datos de negocio
+│   │   ├── institutions.py      # Instituciones
+│   │   ├── packages.py          # Paquetes de servicios
+│   │   ├── users.py             # Usuarios del sistema
+│   │   ├── addons.py            # Add-ons y suscripciones
+│   │   └── billing.py           # Facturación y pagos
+│   ├── monitoring/              # Datos de monitoreo
+│   │   ├── reports.py           # Reportes normalizados
+│   │   └── report_types.py      # Tipos de reporte
+│   └── maintenance/             # Scripts de mantenimiento y limpieza
+│       └── cleanup_sin_rol_users.sql  # Limpieza de usuarios sin rol
 ├── utils/
 │   └── data_generators.py       # Generadores de datos realistas
 ├── run_modular_population.py    # Script principal con menú interactivo
@@ -510,6 +512,78 @@ print('Dispositivos sin package_id eliminados')
 db.close()
 "
 ```
+
+## 🧹 Scripts de Mantenimiento
+
+### `modules/maintenance/implement_cascade_delete.sql`
+- **Propósito:** Implementa CASCADE DELETE en relaciones seguras para mejorar la mantenibilidad de la base de datos.
+- **Ubicación:** `backend/scripts/modules/maintenance/implement_cascade_delete.sql`
+- **Uso:**
+  1. Copia el script al contenedor de postgres:
+     ```bash
+     docker cp backend/scripts/modules/maintenance/implement_cascade_delete.sql viejos_trapos_postgres:/tmp/
+     ```
+  2. Ejecuta el script:
+     ```bash
+     docker-compose exec -T postgres psql -U viejos_trapos_user -d viejos_trapos_db -f /tmp/implement_cascade_delete.sql
+     ```
+- **Beneficios:** Simplifica la eliminación de usuarios y reduce errores de integridad referencial.
+
+### `modules/maintenance/delete_user_simple.sql`
+- **Propósito:** Crea funciones simplificadas para eliminar usuarios aprovechando CASCADE DELETE.
+- **Ubicación:** `backend/scripts/modules/maintenance/delete_user_simple.sql`
+- **Funciones creadas:**
+  - `delete_user_complete(user_id UUID)`: Elimina un usuario y todas sus dependencias
+  - `delete_multiple_users(user_ids UUID[])`: Elimina múltiples usuarios en lote
+- **Uso:**
+  ```sql
+  -- Eliminar un usuario
+  SELECT delete_user_complete('user-id-aqui');
+  
+  -- Eliminar múltiples usuarios
+  SELECT * FROM delete_multiple_users(ARRAY['user-id-1', 'user-id-2']);
+  ```
+
+### `modules/maintenance/improve_ddl_cascade_delete.sql`
+- **Propósito:** Documenta cómo mejorar el diseño DDL para incluir CASCADE DELETE desde el inicio.
+- **Ubicación:** `backend/scripts/modules/maintenance/improve_ddl_cascade_delete.sql`
+- **Contenido:**
+  - Ejemplos de cómo definir relaciones con `ondelete="CASCADE"` en SQLAlchemy
+  - Relaciones que deberían usar `SET NULL` vs `CASCADE`
+  - Ejemplo de migración Alembic mejorada
+  - Beneficios y recomendaciones de implementación
+- **Uso:** Documentación de referencia para futuras migraciones y diseño de base de datos
+
+### `modules/maintenance/cleanup_sin_rol_users.sql`
+- **Propósito:** Elimina completamente usuarios que solo tienen el rol `sin_rol` y todas sus dependencias en la base de datos.
+- **Ubicación:** `backend/scripts/modules/maintenance/cleanup_sin_rol_users.sql`
+- **Uso:**
+  1. Copia el script al contenedor de postgres:
+     ```bash
+     docker cp backend/scripts/modules/maintenance/cleanup_sin_rol_users.sql viejos_trapos_postgres:/tmp/
+     ```
+  2. Ejecuta el script:
+     ```bash
+     docker-compose exec -T postgres psql -U viejos_trapos_user -d viejos_trapos_db -f /tmp/cleanup_sin_rol_users.sql
+     ```
+- **Advertencia:** Elimina datos de manera irreversible. Úsalo solo en entornos controlados o con respaldo previo.
+
+### `modules/maintenance/cleanup_specific_users.sql`
+- **Propósito:** Elimina usuarios específicos problemáticos por ID, incluyendo todas sus dependencias. Útil cuando usuarios con roles válidos no se pueden eliminar desde la UI.
+- **Ubicación:** `backend/scripts/modules/maintenance/cleanup_specific_users.sql`
+- **Uso:**
+  1. Edita el script para incluir los IDs de los usuarios problemáticos en el array `problematic_users`
+  2. Copia el script al contenedor de postgres:
+     ```bash
+     docker cp backend/scripts/modules/maintenance/cleanup_specific_users.sql viejos_trapos_postgres:/tmp/
+     ```
+  3. Ejecuta el script:
+     ```bash
+     docker-compose exec -T postgres psql -U viejos_trapos_user -d viejos_trapos_db -f /tmp/cleanup_specific_users.sql
+     ```
+- **Advertencia:** Elimina usuarios con roles válidos de manera irreversible. Úsalo solo cuando sea absolutamente necesario.
+
+---
 
 ## 📝 Estado Actual del Proyecto
 

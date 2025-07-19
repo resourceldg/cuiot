@@ -87,11 +87,20 @@
             debugResult,
             hasUpdateResult: !!debugResult?.updateResult,
             hasAssignResult: !!debugResult?.assignResult,
+            updateResult: debugResult?.updateResult,
+            assignResult: debugResult?.assignResult,
         });
 
         // Verificar si hay errores en las respuestas de la API
         const updateError = debugResult?.updateResult?.error;
         const assignError = debugResult?.assignResult?.error;
+
+        console.log("🔧 EditUserModal handleSubmit: Análisis de errores", {
+            updateError,
+            assignError,
+            hasUpdateError: !!updateError,
+            hasAssignError: !!assignError,
+        });
 
         if (updateError || assignError) {
             success = false;
@@ -121,6 +130,15 @@
             notificationSubtitle =
                 "Los cambios han sido guardados exitosamente.";
             showNotification = true;
+            console.log(
+                "🔧 EditUserModal handleSubmit: Mostrando notificación de éxito",
+                {
+                    notificationType,
+                    notificationMessage,
+                    notificationSubtitle,
+                    showNotification,
+                },
+            );
             dispatch("save"); // Notifica éxito al padre
         }
     }
@@ -132,8 +150,19 @@
     }
 
     function handleNotificationClose() {
+        console.log(
+            "🔧 EditUserModal handleNotificationClose: Cerrando notificación",
+            {
+                success,
+                showNotification,
+                submitting,
+            },
+        );
         showNotification = false;
         if (success) {
+            console.log(
+                "🔧 EditUserModal handleNotificationClose: Cerrando modal por éxito",
+            );
             handleCancel(); // Cierra el modal solo si fue exitoso
         }
         submitting = false;

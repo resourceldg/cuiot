@@ -95,11 +95,14 @@ class UserService:
             )
     
     @staticmethod
-    def update_user(db: Session, user_id: UUID, user_data: UserUpdate) -> Optional[User]:
+    def update_user(db: Session, user_id: UUID, user_data: UserUpdate) -> User:
         """Update user information"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
-            return None
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
         try:
             update_data = user_data.model_dump(exclude_unset=True)
             for field, value in update_data.items():
@@ -113,7 +116,7 @@ class UserService:
     
     @staticmethod
     def delete_user(db: Session, user_id: UUID) -> bool:
-        """Delete a user"""
+        """Delete a user with proper cascade handling"""
         user = UserService.get_user_by_id(db, user_id)
         if not user:
             raise HTTPException(
@@ -122,14 +125,50 @@ class UserService:
             )
         
         try:
-            db.delete(user)
+            # Soft delete: marcar como inactivo en lugar de eliminar físicamente
+            user.is_active = False
+            
+            # Desactivar todos los roles del usuario
+            user_roles = db.query(UserRole).filter(UserRole.user_id == user_id).all()
+            for ur in user_roles:
+                ur.is_active = False
+            
+            # Soft delete de datos relacionados (solo si tienen campo is_active)
+            try:
+                for cared_person in user.cared_persons:
+                    if hasattr(cared_person, 'is_active'):
+                        cared_person.is_active = False
+            except Exception:
+                pass  # Ignorar si no tiene el campo
+                
+            try:
+                for device in user.devices:
+                    if hasattr(device, 'is_active'):
+                        device.is_active = False
+            except Exception:
+                pass  # Ignorar si no tiene el campo
+                
+            try:
+                for assignment in user.caregiver_assignments:
+                    if hasattr(assignment, 'is_active'):
+                        assignment.is_active = False
+            except Exception:
+                pass  # Ignorar si no tiene el campo
+                
+            try:
+                for institution in user.caregiver_institutions:
+                    if hasattr(institution, 'is_active'):
+                        institution.is_active = False
+            except Exception:
+                pass  # Ignorar si no tiene el campo
+            
             db.commit()
             return True
-        except IntegrityError:
+        except Exception as e:
             db.rollback()
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete user with existing relationships"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al eliminar usuario: {str(e)}"
             )
     
     @staticmethod
@@ -348,10 +387,10 @@ class UserService:
             if package_count > 0:
                 filtered_users = []
                 for user in users:
-                    # Solo considerar paquetes activos (status_type_id = 21 o NULL)
+                    # Solo considerar paquetes activos (status_type_id = 1 para "active" o NULL)
                     user_packages = db.query(UserPackage).filter(
                         UserPackage.user_id == user.id,
-                        (UserPackage.status_type_id == 21) | (UserPackage.status_type_id.is_(None))
+                        (UserPackage.status_type_id == 1) | (UserPackage.status_type_id.is_(None))
                     ).all()
                     has_matching_package = False
                     for user_package in user_packages:
@@ -393,7 +432,7 @@ class UserService:
             if allow_packages:
                 user_packages = db.query(UserPackage).filter(
                     UserPackage.user_id == user.id,
-                    (UserPackage.status_type_id == 21) | (UserPackage.status_type_id.is_(None))
+                    (UserPackage.status_type_id == 1) | (UserPackage.status_type_id.is_(None))
                 ).all()
             package_subscriptions = []
             for user_package in user_packages:
@@ -406,6 +445,18 @@ class UserService:
                         'status_type_id': user_package.status_type_id,
                         'is_active': True
                     })
+            # Crear objetos UserPackageResponse para cada paquete
+            from app.schemas.user import UserPackageResponse
+            package_responses = []
+            for pkg in package_subscriptions:
+                package_responses.append(UserPackageResponse(
+                    id=pkg['id'],
+                    package_id=pkg['package_id'],
+                    package_name=pkg['package_name'],
+                    status_type_id=pkg['status_type_id'],
+                    is_active=pkg['is_active']
+                ))
+            
             user_with_roles = UserWithRoles(
                 id=user.id,
                 email=user.email,
@@ -428,7 +479,7 @@ class UserService:
                 created_at=user.created_at,
                 updated_at=user.updated_at,
                 roles=role_names,
-                package_subscriptions=package_subscriptions
+                package_subscriptions=package_responses
             )
             result.append(user_with_roles)
         return result

@@ -23,7 +23,6 @@
     import ClockIcon from "$lib/ui/icons/ClockIcon.svelte";
     import DollarIcon from "$lib/ui/icons/DollarIcon.svelte";
     import PackageIcon from "$lib/ui/icons/PackageIcon.svelte";
-    import ProhibidoIcon from "$lib/ui/icons/ProhibidoIcon.svelte";
     import RefreshIcon from "$lib/ui/icons/RefreshIcon.svelte";
     import TargetIcon from "$lib/ui/icons/TargetIcon.svelte";
     import WarningIcon from "$lib/ui/icons/WarningIcon.svelte";
@@ -200,13 +199,33 @@
         console.log("🔧 Debug mode:", debugMode ? "ON" : "OFF");
     }
 
-    // --- Cambiar nombres de roles a versión corta ---
+    // --- Mapeo de nombres de roles a versión amigable ---
     const ROLE_LABELS = {
+        // Roles del sistema
+        admin: "Administrador",
         sysadmin: "Sysadmin",
-        "cuidador profesional": "Cuidador profesional",
+        sin_rol: "Sin Rol",
+
+        // Roles de cuidado (estándar)
+        cared_person_self: "Sujeto de Cuidado (Autocuidado)",
+        caredperson: "Sujeto de Cuidado (Delegado)",
+        family_member: "Familiar",
+        caregiver: "Cuidador",
+        freelance_caregiver: "Cuidador Freelance",
+
+        // Roles institucionales
+        institution_admin: "Admin Institución",
+        institution_staff: "Staff Institución",
+        medical_staff: "Staff Médico",
+
+        // Roles legados (mantener compatibilidad)
+        "cuidador profesional": "Cuidador Profesional",
         familiar: "Familiar",
-        "sujeto del cuidado": "Sujeto del cuidado",
-        "admin institución": "Admin institución",
+        "sujeto del cuidado": "Sujeto de Cuidado",
+        "admin institución": "Admin Institución",
+
+        // Roles inconsistentes (mantener compatibilidad)
+        caredpersonself: "Sujeto de Cuidado (Autocuidado)",
     };
 
     // Manejo de errores para 'err' de tipo unknown
@@ -318,6 +337,23 @@
         rolesError = "";
         try {
             roles = await getRoles();
+            console.log("🔧 loadRoles - Roles cargados:", roles.length);
+            console.log(
+                "🔧 loadRoles - Roles activos:",
+                roles.filter((r) => r.is_active !== false).length,
+            );
+            console.log(
+                "🔧 loadRoles - Roles inactivos:",
+                roles.filter((r) => r.is_active === false).length,
+            );
+            if (roles.some((r) => r.is_active === false)) {
+                console.log(
+                    "🔧 loadRoles - Roles inactivos encontrados:",
+                    roles
+                        .filter((r) => r.is_active === false)
+                        .map((r) => r.name),
+                );
+            }
         } catch (err) {
             rolesError = getErrorMessage(err);
         } finally {
@@ -550,8 +586,8 @@
             );
 
             await loadUsers();
-            deleteNotificationMessage = "Usuario eliminado";
-            deleteNotificationSubtitle = `El usuario ${selectedUser.first_name} ${selectedUser.last_name || ""} ha sido eliminado.`;
+            deleteNotificationMessage = "Usuario desactivado";
+            deleteNotificationSubtitle = `El usuario ${selectedUser.first_name} ${selectedUser.last_name || ""} ha sido desactivado del sistema.`;
             showDeleteNotification = true;
         } catch (err) {
             const errorMessage = getErrorMessage(err);
@@ -561,10 +597,32 @@
                 errorMessage,
             });
 
+            // Manejar errores específicos
+            let userFriendlyMessage = "Error al eliminar usuario";
+            let userFriendlySubtitle = errorMessage;
+
+            if (errorMessage.includes("No puedes eliminar tu propia cuenta")) {
+                userFriendlyMessage = "No puedes eliminar tu propia cuenta";
+                userFriendlySubtitle =
+                    "Por seguridad, no puedes eliminar la cuenta con la que estás conectado.";
+            } else if (errorMessage.includes("404")) {
+                userFriendlyMessage = "Usuario no encontrado";
+                userFriendlySubtitle =
+                    "El usuario que intentas eliminar ya no existe en el sistema.";
+            } else if (errorMessage.includes("403")) {
+                userFriendlyMessage = "Sin permisos";
+                userFriendlySubtitle =
+                    "No tienes permisos para eliminar usuarios.";
+            } else if (errorMessage.includes("500")) {
+                userFriendlyMessage = "Error del servidor";
+                userFriendlySubtitle =
+                    "Ocurrió un error interno. Intenta nuevamente.";
+            }
+
             error = errorMessage;
             deleteNotificationType = "error";
-            deleteNotificationMessage = "Error al eliminar usuario";
-            deleteNotificationSubtitle = errorMessage;
+            deleteNotificationMessage = userFriendlyMessage;
+            deleteNotificationSubtitle = userFriendlySubtitle;
             showDeleteNotification = true;
         } finally {
             deleting = false;
@@ -610,6 +668,7 @@
                     "Los cambios han sido guardados correctamente.";
             }
             await loadRoles();
+            await loadUsers(); // Recargar usuarios para actualizar los roles
             roleNotificationType = "success";
             showRoleNotification = true;
         } catch (err) {
@@ -638,15 +697,15 @@
         try {
             const result = await deleteRole(roleId);
             console.log(
-                "✅ deleteRoleHandler: Rol eliminado exitosamente",
+                "✅ deleteRoleHandler: Rol desactivado exitosamente",
                 result,
             );
 
             await loadRoles();
+            await loadUsers(); // Recargar usuarios para actualizar los roles
             deleteRoleNotificationType = "success";
-            deleteRoleNotificationMessage = "Rol eliminado exitosamente";
-            deleteRoleNotificationSubtitle =
-                "El rol ha sido removido del sistema.";
+            deleteRoleNotificationMessage = "Rol desactivado exitosamente";
+            deleteRoleNotificationSubtitle = `El rol ha sido desactivado del sistema. ${result.users_affected || 0} usuarios afectados.`;
             showDeleteRoleNotification = true;
         } catch (err) {
             const errorMessage = getErrorMessage(err);
@@ -656,10 +715,34 @@
                 errorMessage,
             });
 
+            // Manejar errores específicos
+            let userFriendlyMessage = "Error al eliminar rol";
+            let userFriendlySubtitle = errorMessage;
+
+            if (
+                errorMessage.includes("No se puede eliminar un rol de sistema")
+            ) {
+                userFriendlyMessage = "No se puede eliminar un rol de sistema";
+                userFriendlySubtitle =
+                    "Los roles de sistema están protegidos y no pueden ser eliminados.";
+            } else if (errorMessage.includes("404")) {
+                userFriendlyMessage = "Rol no encontrado";
+                userFriendlySubtitle =
+                    "El rol que intentas eliminar ya no existe en el sistema.";
+            } else if (errorMessage.includes("403")) {
+                userFriendlyMessage = "Sin permisos";
+                userFriendlySubtitle =
+                    "No tienes permisos para eliminar roles.";
+            } else if (errorMessage.includes("400")) {
+                userFriendlyMessage = "Error de validación";
+                userFriendlySubtitle =
+                    "No se puede eliminar este rol debido a restricciones del sistema.";
+            }
+
             rolesError = errorMessage;
             deleteRoleNotificationType = "error";
-            deleteRoleNotificationMessage = "Error al eliminar rol";
-            deleteRoleNotificationSubtitle = errorMessage;
+            deleteRoleNotificationMessage = userFriendlyMessage;
+            deleteRoleNotificationSubtitle = userFriendlySubtitle;
             showDeleteRoleNotification = true;
         }
     }
@@ -790,10 +873,30 @@
         closeEditModal();
     }
 
-    // Utilidad para obtener solo el rol activo
+    // Utilidad para obtener solo el rol activo (deduplicado)
     function getActiveRole(user) {
         if (!user || !Array.isArray(user.roles)) return null;
-        return user.roles[0] || null;
+
+        // Deduplicar roles y obtener el más relevante
+        const uniqueRoles = [...new Set(user.roles)];
+
+        if (uniqueRoles.length === 0) return null;
+
+        // Priorizar roles específicos
+        const priorityRoles = [
+            "admin",
+            "institution_admin",
+            "medical_staff",
+            "cared_person_self",
+        ];
+        for (const priorityRole of priorityRoles) {
+            if (uniqueRoles.includes(priorityRole)) {
+                return priorityRole;
+            }
+        }
+
+        // Si no hay roles prioritarios, devolver el primero
+        return uniqueRoles[0];
     }
 
     // Utilidad para obtener solo el paquete activo
@@ -834,15 +937,50 @@
         if (!roleToDelete) return;
         deletingRole = true;
         try {
-            await deleteRole(roleToDelete.id);
+            const result = await deleteRole(roleToDelete.id);
+
+            // Pequeño delay para asegurar que el backend procese la eliminación
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
             await loadRoles();
-            deleteRoleSuccess = "Rol eliminado exitosamente.";
-            setTimeout(() => {
-                closeDeleteRoleModal();
-                deletingRole = false;
-            }, 1200);
+            await loadUsers(); // Recargar usuarios para actualizar los roles
+
+            // Mostrar notificación de éxito
+            deleteRoleNotificationType = "success";
+            deleteRoleNotificationMessage = "Rol desactivado exitosamente";
+            deleteRoleNotificationSubtitle = `El rol ha sido desactivado del sistema. ${result.users_affected || 0} usuarios afectados.`;
+            showDeleteRoleNotification = true;
+
+            deletingRole = false;
         } catch (err) {
-            rolesError = getErrorMessage(err);
+            const errorMessage = getErrorMessage(err);
+            let userFriendlyMessage = "Error al desactivar el rol";
+            let userFriendlySubtitle = "Ha ocurrido un error inesperado";
+
+            // Mensajes específicos según el tipo de error
+            if (
+                errorMessage.includes("No se puede eliminar un rol de sistema")
+            ) {
+                userFriendlyMessage = "Rol de sistema protegido";
+                userFriendlySubtitle =
+                    "Los roles de sistema no pueden ser eliminados por seguridad";
+            } else if (errorMessage.includes("Rol no encontrado")) {
+                userFriendlyMessage = "Rol no encontrado";
+                userFriendlySubtitle =
+                    "El rol que intentas eliminar ya no existe";
+            } else if (errorMessage.includes("Sin permisos")) {
+                userFriendlyMessage = "Sin permisos";
+                userFriendlySubtitle = "No tienes permisos para eliminar roles";
+            } else if (errorMessage.includes("Error de validación")) {
+                userFriendlyMessage = "Error de validación";
+                userFriendlySubtitle = "Los datos del rol no son válidos";
+            }
+
+            deleteRoleNotificationType = "error";
+            deleteRoleNotificationMessage = userFriendlyMessage;
+            deleteRoleNotificationSubtitle = userFriendlySubtitle;
+            showDeleteRoleNotification = true;
+
             deletingRole = false;
         }
     }
@@ -922,12 +1060,12 @@
     $: if (users.length && currentPage > totalPages)
         currentPage = totalPages || 1;
 
-    // Unificar ROLES_WITH_PACKAGE para que solo contenga los roles canónicos permitidos
+    // Roles que pueden tener paquetes (individuales o institucionales)
     const ROLES_WITH_PACKAGE = [
-        "cared_person_self",
-        "family",
-        "family_member",
-        "institution_admin", // <-- agregado
+        "cared_person_self", // Paquetes individuales
+        "caredperson", // Paquetes individuales
+        "family_member", // Paquetes individuales
+        "institution_admin", // Paquetes institucionales
     ];
 
     let sessionUserRoles: string[] = Array.isArray($sessionUser?.roles)
@@ -939,7 +1077,6 @@
             "admin_institution",
             "institution_admin",
             "cared_person_self",
-            "family",
             "family_member",
         ];
         return sessionUserRoles.some((r) => allowed.includes(r));
@@ -1008,11 +1145,43 @@
             <p>Administra usuarios, roles y permisos del sistema</p>
         </div>
         <div class="header-actions">
-            <button class="btn-secondary" on:click={toggleDebugMode}>
+            <button class="btn-secondary debug-btn" on:click={toggleDebugMode}>
                 {debugMode ? "🔧 Debug ON" : "🔧 Debug OFF"}
             </button>
-            <button class="btn-primary" on:click={() => openModal()}>
-                <span>+</span> Nuevo Usuario
+        </div>
+    </div>
+
+    <!-- Botones de acción principales -->
+    <div class="main-actions">
+        <div class="action-group">
+            <button class="btn-primary action-btn" on:click={() => openModal()}>
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span>Nuevo Usuario</span>
+            </button>
+            <button
+                class="btn-secondary action-btn"
+                on:click={openNewRoleModal}
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span>Nuevo Rol</span>
             </button>
         </div>
     </div>
@@ -1021,11 +1190,6 @@
     <div class="roles-section">
         <div class="roles-header">
             <h3>Roles del Sistema</h3>
-            <div class="roles-header-actions">
-                <button class="btn-primary" on:click={openNewRoleModal}>
-                    <span>+</span> Nuevo Rol
-                </button>
-            </div>
         </div>
         {#if rolesLoading}
             <div class="loading">Cargando roles...</div>
@@ -1035,17 +1199,22 @@
             <div class="empty">No hay roles definidos.</div>
         {/if}
         <div class="roles-grid">
-            {#each roles as role (role.id)}
-                <div class="role-card">
+            {#each roles.filter((role) => role.is_active !== false) as role (role.id)}
+                <div class="role-card {role.is_active ? 'active' : 'inactive'}">
                     <div class="role-header">
                         <h4>
                             {ROLE_LABELS[
                                 role.name as keyof typeof ROLE_LABELS
                             ] || role.name}
                         </h4>
-                        {#if role.is_system}
-                            <span class="system-badge">Sistema</span>
-                        {/if}
+                        <div class="role-badges">
+                            {#if role.is_system}
+                                <span class="system-badge">Sistema</span>
+                            {/if}
+                            {#if !role.is_active}
+                                <span class="inactive-badge">Inactivo</span>
+                            {/if}
+                        </div>
                     </div>
                     <p class="role-description">
                         {role.description || "Sin descripción"}
@@ -1119,7 +1288,7 @@
         </select>
         <select class="filter-select" bind:value={roleFilter}>
             <option value="">Todos los roles</option>
-            {#each roles as role}
+            {#each roles.filter((role) => role.is_active !== false) as role}
                 <option value={role.name}>{role.name}</option>
             {/each}
         </select>
@@ -1131,6 +1300,7 @@
         </select>
         <select class="filter-select" bind:value={institutionFilter}>
             <option value="">Todas las instituciones</option>
+            <option value="none">Sin institución</option>
             {#each institutions as inst}
                 <option value={inst.id}>{inst.name}</option>
             {/each}
@@ -1150,7 +1320,21 @@
 
     <!-- Sección de Usuarios -->
     <div class="users-section">
-        <h3>Usuarios</h3>
+        <div class="section-header-with-stats">
+            <h3>Usuarios</h3>
+            {#if users.length > 0}
+                <div class="stats-info">
+                    <span class="stat-item">
+                        📊 {users.length} usuarios encontrados
+                    </span>
+                    {#if searchTerm || statusFilter || roleFilter || packageFilter || institutionFilter}
+                        <span class="stat-item filters-applied">
+                            🔍 Filtros aplicados
+                        </span>
+                    {/if}
+                </div>
+            {/if}
+        </div>
         {#if loading}
             <div class="loading">Cargando usuarios...</div>
         {:else if error}
@@ -1176,7 +1360,21 @@
                             <td>{user.email}</td>
                             <td>
                                 {#if Array.isArray(user.roles) && user.roles.length > 0}
-                                    {getActiveRole(user)}
+                                    {@const activeRole = getActiveRole(user)}
+                                    {@const roleLabel =
+                                        ROLE_LABELS[activeRole] || activeRole}
+                                    <span class="role-badge" title={activeRole}>
+                                        {roleLabel}
+                                    </span>
+                                    {#if user.roles.length > 1}
+                                        <span
+                                            class="role-count"
+                                            title="{user.roles
+                                                .length} roles asignados"
+                                        >
+                                            +{user.roles.length - 1}
+                                        </span>
+                                    {/if}
                                 {:else}
                                     <span class="error-text">Sin rol</span>
                                 {/if}
@@ -1193,10 +1391,10 @@
                                     {/if}
                                 {:else}
                                     <span
-                                        title="Este rol no puede tener paquetes"
+                                        title="Este rol no requiere paquetes"
                                         style="display:inline-flex;align-items:center;gap:0.2em;color:var(--color-text-secondary);"
                                     >
-                                        <ProhibidoIcon size={18} />
+                                        No aplica
                                     </span>
                                 {/if}
                             </td>
@@ -1408,11 +1606,37 @@
             <h3 id="role-modal-title">
                 {isNewRole ? "Nuevo rol" : "Editar rol"}
             </h3>
+
             <form
                 class="modal-form"
                 on:submit|preventDefault={saveRole}
                 autocomplete="off"
             >
+                <!-- Información sobre roles activos -->
+                {#if isNewRole}
+                    <div class="info-message">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4" />
+                            <path d="M12 8h.01" />
+                        </svg>
+                        <div>
+                            <strong>Rol activo por defecto</strong>
+                            <p>
+                                Los nuevos roles se crean automáticamente como
+                                activos y pueden ser asignados a usuarios
+                                inmediatamente.
+                            </p>
+                        </div>
+                    </div>
+                {/if}
                 <label>
                     Nombre del Rol
                     <input
@@ -1962,35 +2186,119 @@
                 title="Cerrar"
                 disabled={deletingRole}>&times;</button
             >
-            <h3>¿Eliminar rol?</h3>
-            <p>
-                ¿Estás seguro de que deseas eliminar el rol <strong
-                    >{roleToDelete?.name}</strong
-                >? Esta acción no se puede deshacer.
-            </p>
-            <div class="modal-actions">
-                <button
-                    class="btn-secondary"
-                    on:click={closeDeleteRoleModal}
-                    disabled={deletingRole}>Cancelar</button
+
+            <!-- Notificación de éxito/error -->
+            {#if showDeleteRoleNotification}
+                <div
+                    class="simple-success-notification {deleteRoleNotificationType}"
                 >
-                <button
-                    class="btn-danger"
-                    on:click={handleDeleteRole}
-                    disabled={deletingRole}
-                >
-                    {#if deletingRole}
-                        <span class="loading-spinner"></span> Eliminando...
+                    <svg class="checkmark" viewBox="0 0 52 52">
+                        <circle
+                            class="checkmark-circle"
+                            cx="26"
+                            cy="26"
+                            r="25"
+                            fill="none"
+                        />
+                        <path
+                            class="checkmark-check"
+                            fill="none"
+                            d="M14 27l7 7 16-16"
+                        />
+                    </svg>
+                    <div class="simple-success-text">
+                        <h2>{deleteRoleNotificationMessage}</h2>
+                        <p>{deleteRoleNotificationSubtitle}</p>
+                    </div>
+                </div>
+            {:else}
+                <h3>¿Desactivar rol?</h3>
+
+                <!-- Información del rol -->
+                <div class="role-info-card">
+                    <div class="role-info-header">
+                        <h4>{roleToDelete?.name}</h4>
+                        {#if roleToDelete?.is_system}
+                            <span class="system-badge">Sistema</span>
+                        {/if}
+                    </div>
+                    <p class="role-info-description">
+                        {roleToDelete?.description || "Sin descripción"}
+                    </p>
+                </div>
+
+                <!-- Advertencias -->
+                <div class="warning-section">
+                    {#if roleToDelete?.is_system}
+                        <div class="warning-message system-warning">
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 6v6m0 0v6" />
+                            </svg>
+                            <div>
+                                <strong>Rol de sistema protegido</strong>
+                                <p>
+                                    Los roles de sistema no pueden ser
+                                    eliminados por seguridad.
+                                </p>
+                            </div>
+                        </div>
                     {:else}
-                        Eliminar
+                        <div class="warning-message">
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                                />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            <div>
+                                <strong>Acción irreversible</strong>
+                                <p>
+                                    Al desactivar este rol, todos los usuarios
+                                    que lo tengan asignado serán reasignados al
+                                    rol "sin_rol".
+                                </p>
+                            </div>
+                        </div>
                     {/if}
-                </button>
-            </div>
-            {#if deleteRoleSuccess}
-                <div class="success-text">{deleteRoleSuccess}</div>
-            {/if}
-            {#if rolesError}
-                <div class="error-text">{rolesError}</div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="modal-actions">
+                    <button
+                        class="btn-secondary"
+                        on:click={closeDeleteRoleModal}
+                        disabled={deletingRole}>Cancelar</button
+                    >
+                    {#if !roleToDelete?.is_system}
+                        <button
+                            class="btn-danger"
+                            on:click={handleDeleteRole}
+                            disabled={deletingRole}
+                        >
+                            {#if deletingRole}
+                                <span class="loading-spinner"></span> Desactivando...
+                            {:else}
+                                Desactivar Rol
+                            {/if}
+                        </button>
+                    {/if}
+                </div>
             {/if}
         </div>
     {/if}
@@ -2066,6 +2374,37 @@
         font-size: 1.25rem;
     }
 
+    .section-header-with-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .section-header-with-stats h3 {
+        margin: 0;
+    }
+
+    .stats-info {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .stat-item {
+        font-size: 0.9rem;
+        color: var(--color-text-secondary);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background: var(--color-bg-secondary);
+    }
+
+    .stat-item.filters-applied {
+        color: var(--color-accent);
+        background: rgba(var(--color-accent-rgb), 0.1);
+        border: 1px solid rgba(var(--color-accent-rgb), 0.2);
+    }
+
     .roles-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -2085,6 +2424,22 @@
         margin-bottom: 0.3rem;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
         position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .role-card.active {
+        border-color: #28a745;
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+    }
+
+    .role-card.inactive {
+        border-color: #dc3545;
+        background: #f8f9fa;
+        opacity: 0.7;
+    }
+
+    .role-card.inactive:hover {
+        opacity: 1;
     }
     .role-header {
         display: flex;
@@ -2093,12 +2448,23 @@
         margin-bottom: 0;
         padding-right: 0.5rem;
     }
-    .roles-header-actions {
+
+    .role-badges {
         display: flex;
-        align-items: center;
         gap: 0.5rem;
-        margin-left: auto;
-        margin-bottom: 1rem; /* Agregado para separar el botón de las cards */
+        align-items: center;
+    }
+    .roles-header {
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .roles-header h3 {
+        margin: 0;
+        color: var(--color-text-primary);
+        font-size: 1.25rem;
+        font-weight: 600;
     }
     .btn-primary {
         padding: 0.45em 1.2em;
@@ -2120,7 +2486,19 @@
         font-size: 0.78em;
         padding: 0.08em 0.5em;
         font-weight: 500;
-        margin-left: 0.5em;
+        height: 1.3em;
+        display: flex;
+        align-items: center;
+    }
+
+    .inactive-badge {
+        background: #dc3545;
+        color: white;
+        border: 1px solid #dc3545;
+        border-radius: 6px;
+        font-size: 0.78em;
+        padding: 0.08em 0.5em;
+        font-weight: 500;
         height: 1.3em;
         display: flex;
         align-items: center;
@@ -2221,12 +2599,25 @@
     }
 
     .role-badge {
-        background: var(--color-primary);
-        color: white;
-        padding: 0.25rem 0.5rem;
+        background: transparent;
+        color: #d1d5db;
+        padding: 0.2rem 0.5rem;
         border-radius: 0.25rem;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         font-weight: 500;
+        display: inline-block;
+        border: 1px solid #d1d5db;
+    }
+
+    .role-count {
+        background: var(--color-text-secondary);
+        color: white;
+        padding: 0.1rem 0.3rem;
+        border-radius: 0.2rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-left: 0.25rem;
+        display: inline-block;
     }
 
     .no-role {
@@ -2334,6 +2725,13 @@
         gap: 1.2rem;
         box-sizing: border-box;
     }
+
+    /* Modal específico para roles - más grande */
+    .modal[aria-labelledby="role-modal-title"] {
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
     @media (max-width: 600px) {
         .modal {
             min-width: 0;
@@ -2403,6 +2801,11 @@
         gap: 1rem;
         justify-content: flex-end;
         margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--color-border);
+        position: sticky;
+        bottom: 0;
+        background: var(--color-bg-card);
     }
     .modal-actions button {
         padding: 0.75rem 1.5rem;
@@ -2511,6 +2914,20 @@
 
         .header-actions {
             justify-content: center;
+        }
+
+        .main-actions {
+            padding: 1rem;
+        }
+
+        .action-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .action-btn {
+            min-width: auto;
+            width: 100%;
         }
 
         .roles-grid {
@@ -3113,6 +3530,139 @@
         color: #333;
     }
 
+    /* Estilos para el modal de eliminación de roles */
+    .role-info-card {
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    .role-info-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .role-info-header h4 {
+        margin: 0;
+        color: var(--color-text-primary);
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .role-info-description {
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .warning-section {
+        margin: 1rem 0;
+    }
+
+    .warning-message {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+
+    .warning-message.system-warning {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+
+    .warning-message svg {
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+    }
+
+    .warning-message strong {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+    }
+
+    .warning-message p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .info-message {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        margin-bottom: 1rem;
+    }
+
+    .info-message svg {
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+    }
+
+    .info-message strong {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+    }
+
+    .info-message p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    /* Estilos específicos para el formulario de roles */
+    .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .permissions-editor {
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        background: var(--color-bg-secondary);
+    }
+
+    .permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .perm-category h5 {
+        margin: 0 0 0.5rem 0;
+        color: var(--color-text-primary);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
     .pagination {
         display: flex;
         justify-content: center;
@@ -3178,6 +3728,55 @@
         align-items: flex-end;
         justify-content: space-between;
         margin-bottom: 1.2rem;
+    }
+
+    /* Botones de acción principales */
+    .main-actions {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: var(--color-bg-card);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .action-group {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        min-width: 140px;
+        justify-content: center;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .action-btn svg {
+        flex-shrink: 0;
+    }
+
+    .debug-btn {
+        font-size: 0.85rem;
+        padding: 0.5rem 1rem;
+        opacity: 0.8;
+    }
+
+    .debug-btn:hover {
+        opacity: 1;
     }
     .roles-section {
         padding-top: 0.5rem;
