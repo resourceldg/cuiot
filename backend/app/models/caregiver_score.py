@@ -10,7 +10,7 @@ class CaregiverScore(BaseModel):
     __tablename__ = "caregiver_scores"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Overall scores
     overall_score = Column(Float, nullable=True)  # 0.0 to 5.0

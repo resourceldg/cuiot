@@ -29,9 +29,9 @@ class Geofence(BaseModel):
     days_of_week = Column(String(50), nullable=True)  # "1,2,3,4,5,6,7" for days
     
     # Relationships
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="geofences")

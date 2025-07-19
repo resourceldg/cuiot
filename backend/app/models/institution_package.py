@@ -7,8 +7,8 @@ from app.models.base import BaseModel
 class InstitutionPackage(BaseModel):
     __tablename__ = "institution_packages"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
-    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=False)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=False)
+    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id", ondelete="CASCADE"), nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=True)
     status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True)

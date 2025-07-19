@@ -13,7 +13,7 @@ class RestraintProtocol(BaseModel):
     
     # Relationships
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=False, index=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True, index=True)
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     
     # Protocol details

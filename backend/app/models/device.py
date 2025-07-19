@@ -40,10 +40,10 @@ class Device(BaseModel):
     hardware_version = Column(String(50), nullable=True)
     
     # Relationships
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
-    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=False, index=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
+    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id", ondelete="CASCADE"), nullable=False, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="devices")

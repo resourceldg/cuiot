@@ -31,8 +31,8 @@ class ServiceSubscription(BaseModel):
     status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     
     # Relationships
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="service_subscriptions")

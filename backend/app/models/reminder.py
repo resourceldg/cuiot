@@ -37,7 +37,7 @@ class Reminder(BaseModel):
     notes = Column(Text, nullable=True)
     
     # Relationships
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True)
     
     # Relationships

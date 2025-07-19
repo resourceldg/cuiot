@@ -40,7 +40,7 @@ class User(BaseModel):
     last_login = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     institution = relationship("Institution", back_populates="users")

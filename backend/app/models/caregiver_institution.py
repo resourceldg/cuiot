@@ -10,8 +10,8 @@ class CaregiverInstitution(BaseModel):
     __tablename__ = "caregiver_institutions"
     
     # Relationship info
-    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
+    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=False, index=True)
     
     # Contract details
     contract_type = Column(String(50), nullable=False)  # employee, contractor, volunteer, intern

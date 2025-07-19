@@ -150,8 +150,8 @@ class UserPackage(BaseModel):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Subscription info
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id", ondelete="CASCADE"), nullable=False)
     
     # Subscription period
     start_date = Column(Date, nullable=False)
@@ -173,7 +173,7 @@ class UserPackage(BaseModel):
     
     # Legal capacity validation
     legal_capacity_verified = Column(Boolean, default=False, nullable=False)
-    legal_representative_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    legal_representative_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     verification_date = Column(DateTime, nullable=True)
     
     # Referral info
@@ -296,7 +296,7 @@ class UserPackageAddOn(BaseModel):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Relationship
-    user_package_id = Column(UUID(as_uuid=True), ForeignKey("user_packages.id"), nullable=False)
+    user_package_id = Column(UUID(as_uuid=True), ForeignKey("user_packages.id", ondelete="CASCADE"), nullable=False)
     add_on_id = Column(UUID(as_uuid=True), ForeignKey("package_add_ons.id"), nullable=False)
     
     # Configuration

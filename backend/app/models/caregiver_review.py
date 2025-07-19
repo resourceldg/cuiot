@@ -13,8 +13,8 @@ class CaregiverReview(BaseModel):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Relationships
-    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=True, index=True)
     caregiver_score_id = Column(UUID(as_uuid=True), ForeignKey("caregiver_scores.id"), nullable=True, index=True)
     

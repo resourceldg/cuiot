@@ -11,7 +11,7 @@ class CaredPersonInstitution(BaseModel):
     
     # Relationship info
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=False, index=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=False, index=True)
     
     # Service details
     service_type_id = Column(Integer, ForeignKey('service_types.id'), nullable=False)
@@ -39,7 +39,7 @@ class CaredPersonInstitution(BaseModel):
     is_primary = Column(Boolean, default=False, nullable=False)  # Primary institution for this person
     
     # Admin info
-    registered_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    registered_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     registered_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     notes = Column(Text, nullable=True)
     

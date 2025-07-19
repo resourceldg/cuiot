@@ -29,10 +29,10 @@ class BillingRecord(BaseModel):
     transaction_id = Column(String(100), nullable=True)
     
     # Relationships
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True)
     service_subscription_id = Column(Integer, ForeignKey("service_subscriptions.id"), nullable=True)
-    user_package_id = Column(UUID(as_uuid=True), ForeignKey("user_packages.id"), nullable=True)
+    user_package_id = Column(UUID(as_uuid=True), ForeignKey("user_packages.id", ondelete="CASCADE"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="billing_records")

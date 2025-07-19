@@ -10,7 +10,7 @@ class CaregiverAssignment(BaseModel):
     __tablename__ = "caregiver_assignments"
     
     # Assignment info
-    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=False, index=True)
     
     # Schedule
@@ -43,7 +43,7 @@ class CaregiverAssignment(BaseModel):
     # Status (normalized)
     status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True)
     is_primary = Column(Boolean, default=False, nullable=False)  # Primary caregiver for this person
-    assigned_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    assigned_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     notes = Column(Text, nullable=True)
     

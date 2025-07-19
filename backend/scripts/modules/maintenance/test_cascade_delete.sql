@@ -2,13 +2,15 @@
 -- NO ejecutar en producción - solo para demostración
 
 -- Crear un usuario de prueba
-INSERT INTO users (id, email, first_name, last_name, password_hash, is_active, created_at, updated_at)
+INSERT INTO users (id, email, first_name, last_name, password_hash, is_freelance, is_verified, is_active, created_at, updated_at)
 VALUES (
     gen_random_uuid(),
     'test.user.cascade@cuiot.com',
     'Test',
     'User',
     'pbkdf2:sha256:dummyhash',
+    false,
+    false,
     true,
     NOW(),
     NOW()

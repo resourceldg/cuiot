@@ -44,8 +44,8 @@ class CaredPerson(BaseModel):
     longitude = Column(Float, nullable=True)
     
     # Relationships
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # Family member or guardian (for delegated care)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)  # Primary institution (legacy)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)  # Family member or guardian (for delegated care)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True)  # Primary institution (legacy)
     
     # Relationships
     user = relationship("User", back_populates="cared_persons")

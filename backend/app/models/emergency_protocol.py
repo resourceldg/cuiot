@@ -25,7 +25,7 @@ class EmergencyProtocol(BaseModel):
     is_default = Column(Boolean, default=False, nullable=False)
     
     # Relationships
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     institution = relationship("Institution", back_populates="protocols")

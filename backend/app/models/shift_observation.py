@@ -89,13 +89,13 @@ class ShiftObservation(Base):
     # Estado y validación (normalizado)
     status_type_id = Column(Integer, ForeignKey("status_types.id"), nullable=True, index=True, comment="Estado normalizado")
     is_verified = Column(Boolean, default=False, comment="Observación verificada")
-    verified_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), comment="Usuario que verificó")
+    verified_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), comment="Usuario que verificó")
     verified_at = Column(DateTime, comment="Fecha de verificación")
     
     # Relaciones
     cared_person_id = Column(UUID(as_uuid=True), ForeignKey("cared_persons.id"), nullable=False)
-    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), comment="Institución asociada")
+    caregiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), comment="Institución asociada")
     
     # Auditoría
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

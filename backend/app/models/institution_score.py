@@ -10,7 +10,7 @@ class InstitutionScore(BaseModel):
     __tablename__ = "institution_scores"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="SET NULL"), nullable=False, index=True)
     
     # Overall scores
     overall_score = Column(Float, nullable=True)  # 0.0 to 5.0
