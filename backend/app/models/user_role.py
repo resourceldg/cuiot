@@ -77,7 +77,7 @@ class UserRole(BaseModel):
     @classmethod
     def remove_role_from_user(cls, db, user_id: uuid.UUID, role_name: str) -> bool:
         """
-        Remueve un rol de un usuario por nombre de rol.
+        Remueve un rol de un usuario por nombre de rol (soft delete).
         
         Args:
             db: Sesión de base de datos
@@ -88,20 +88,23 @@ class UserRole(BaseModel):
             bool: True si se removió correctamente, False en caso contrario
         """
         from app.models.role import Role
+        from datetime import datetime
         
         # Buscar el rol por nombre
         role = db.query(Role).filter(Role.name == role_name).first()
         if not role:
             return False
         
-        # Buscar y eliminar la asignación
+        # Buscar y desactivar la asignación (soft delete)
         user_role = db.query(cls).filter(
             cls.user_id == user_id,
-            cls.role_id == role.id
+            cls.role_id == role.id,
+            cls.is_active == True
         ).first()
         
         if user_role:
-            db.delete(user_role)
+            user_role.is_active = False
+            user_role.expires_at = datetime.utcnow()
             db.commit()
             return True
         

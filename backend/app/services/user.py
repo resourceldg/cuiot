@@ -198,10 +198,11 @@ class UserService:
             )
 
         # Desactivar todos los roles activos actuales del usuario (soft delete)
-        user_roles = db.query(UserRole).filter(UserRole.user_id == user_id, UserRole.is_active == True).all()
-        for ur in user_roles:
-            ur.is_active = False
-        db.commit()
+        # NOTA: Esto se hace en UserRole.assign_role_to_user, no aquí
+        # user_roles = db.query(UserRole).filter(UserRole.user_id == user_id, UserRole.is_active == True).all()
+        # for ur in user_roles:
+        #     ur.is_active = False
+        # db.commit()
 
         # 1. Soft delete (inactivar) registros de roles que ya no debe tener
         # 2. Validar y crear registros esenciales para el nuevo rol

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -76,3 +76,17 @@ def get_current_user(
     )
     print("DEBUG /auth/me - user_data:", user_data)
     return user_data
+
+@router.get("/check-email")
+def check_email_exists(
+    email: str = Query(..., description="Email to check"),
+    db: Session = Depends(get_db)
+):
+    """Check if an email already exists in the system (public endpoint)"""
+    from app.models.user import User
+    existing_user = db.query(User).filter(User.email == email).first()
+    
+    return {
+        "exists": existing_user is not None,
+        "email": email
+    }

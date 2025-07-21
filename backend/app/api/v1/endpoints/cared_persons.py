@@ -8,7 +8,6 @@ from app.services.auth import AuthService
 from app.schemas.cared_person import CaredPersonCreate, CaredPersonUpdate, CaredPersonResponse
 from app.models.cared_person import CaredPerson
 from app.models.user import User
-from app.models.care_type import CareType
 
 router = APIRouter()
 
@@ -24,21 +23,17 @@ def create_cared_person(
         data_dict = cared_person_data.model_dump()
         data_dict.pop('user_id', None)  # Remove user_id if present
         
-        # Resolver care_type (string) a care_type_id si es necesario
-        care_type_name = data_dict.pop('care_type', None)
-        if care_type_name and not data_dict.get('care_type_id'):
-            care_type = db.query(CareType).filter(CareType.name == care_type_name).first()
-            if care_type:
-                data_dict['care_type_id'] = care_type.id
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Care type '{care_type_name}' not found"
-                )
+        # Resolver is_self_care basado en el rol del usuario
+        is_self_care = data_dict.pop('is_self_care', None)
+        if is_self_care is None:
+            # Determinar automáticamente basado en el rol del usuario
+            user_roles = [r.name for r in current_user.roles if getattr(r, 'is_active', True)]
+            is_self_care = "cared_person_self" in user_roles
         
         cared_person = CaredPerson(
             **data_dict,
-            user_id=current_user.id
+            user_id=current_user.id,
+            is_self_care=is_self_care
         )
         
         db.add(cared_person)

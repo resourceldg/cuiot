@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals, packages, diagnoses_router, medical_profile, medication_schedule, medication_log, restraint_protocols, shift_observations, status_types_router, caregiver_assignments, service_subscriptions, care_types, relationship_types, report_types, reminder_types, shift_observation_types, referral_types, caregiver_assignment_types, service_types, alert_types, event_types, device_types, catalogs, dashboard_router, institutions
+from app.api.v1.endpoints import auth, users, debug, health, cared_persons, devices, alerts, events, reminders, reports, referrals, packages, diagnoses_router, medical_profile, medication_schedule, medication_log, restraint_protocols, shift_observations, status_types_router, caregiver_assignments, service_subscriptions, relationship_types, report_types, reminder_types, shift_observation_types, referral_types, caregiver_assignment_types, service_types, alert_types, event_types, device_types, catalogs, dashboard_router, institutions
 
 api_router = APIRouter()
 
@@ -26,7 +26,6 @@ api_router.include_router(shift_observations.router, prefix="/shift-observations
 api_router.include_router(status_types_router, prefix="/status-types", tags=["status-types"])
 api_router.include_router(caregiver_assignments.router, prefix="/caregiver-assignments", tags=["caregiver-assignments"])
 api_router.include_router(service_subscriptions.router, prefix="/service-subscriptions", tags=["service-subscriptions"])
-api_router.include_router(care_types.router, prefix="/care-types", tags=["care-types"])
 api_router.include_router(relationship_types.router, prefix="/relationship-types", tags=["relationship-types"])
 api_router.include_router(report_types.router, prefix="/report-types", tags=["report-types"])
 

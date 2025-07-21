@@ -6,7 +6,6 @@ from app.models.diagnosis import Diagnosis
 from app.models.allergy import Allergy
 from app.models.medical_condition import MedicalCondition
 from app.models.medication import Medication
-from app.models.care_type import CareType
 import uuid
 
 class CaredPerson(BaseModel):
@@ -31,9 +30,8 @@ class CaredPerson(BaseModel):
     # Medical info
     blood_type = Column(String(10), nullable=True)
     
-    # Care info
-    care_type_id = Column(Integer, ForeignKey('care_types.id'), nullable=True, index=True)
-    care_type = relationship('CareType', backref='cared_persons')
+    # Care info - Updated to use is_self_care instead of care_type_id
+    is_self_care = Column(Boolean, nullable=False, default=False)
     care_level = Column(String(50), nullable=True)  # low, medium, high, critical
     special_needs = Column(Text, nullable=True)
     mobility_level = Column(String(50), nullable=True)  # independent, assisted, wheelchair, bedridden
@@ -86,7 +84,7 @@ class CaredPerson(BaseModel):
     # medical_referrals relationship removed - MedicalReferral model was deleted
     
     def __repr__(self):
-        return f"<CaredPerson(name='{self.first_name} {self.last_name}', care_type='{self.care_type}')>"
+        return f"<CaredPerson(name='{self.first_name} {self.last_name}', is_self_care='{self.is_self_care}')>"
     
     @property
     def full_name(self) -> str:
@@ -101,14 +99,9 @@ class CaredPerson(BaseModel):
         return None
     
     @property
-    def is_self_care(self) -> bool:
-        """Check if person is in self-care mode"""
-        return self.care_type_id == 1  # Assuming 1 is the ID for self_care
-    
-    @property
     def is_delegated_care(self) -> bool:
         """Check if person is in delegated care mode"""
-        return self.care_type_id == 2  # Assuming 2 is the ID for delegated care
+        return not self.is_self_care
     
     @property
     def can_make_purchases(self) -> bool:
@@ -198,20 +191,24 @@ class CaredPerson(BaseModel):
         """Check if person has 24-hour care coverage"""
         # This would check if there are caregivers covering all hours
         # For now, we'll use a simplified check
-        return self.care_coverage_hours >= 168  # 24 * 7 hours per week
+        return self.care_coverage_hours >= 168  # 24 * 7 = 168 hours per week
     
     @property
     def can_receive_referrals(self) -> bool:
-        """Check if person can receive referral commissions"""
-        return self.is_self_care or (self.is_delegated_care and self.user_id is not None)
+        """Check if person can receive referrals (self-care users can refer others)"""
+        return self.is_self_care
     
     @property
     def referral_code(self) -> str:
-        """Generate unique referral code for this person"""
-        return f"CP{self.id.hex[:8].upper()}"
+        """Generate referral code for this person"""
+        if self.can_receive_referrals:
+            return f"REF-{self.id.hex[:8].upper()}"
+        return ""
     
     @property
     def care_type_name(self) -> str | None:
-        if self.care_type:
-            return self.care_type.name
-        return None
+        """Get care type name based on is_self_care"""
+        if self.is_self_care:
+            return "Autocuidado"
+        else:
+            return "Cuidado delegado"

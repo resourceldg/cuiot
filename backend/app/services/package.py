@@ -13,7 +13,6 @@ from app.schemas.package import (
     LegalCapacityVerification, PackageRecommendationRequest
 )
 from app.services.referral import ReferralService
-from app.models.care_type import CareType
 
 class PackageService:
     """Service for managing packages and subscriptions"""
@@ -78,19 +77,11 @@ class PackageService:
                 "message": "Usuario no encontrado"
             }
         
-        # Buscar el ID del tipo de cuidado "delegated"
-        delegated_care_type = db.query(CareType).filter(CareType.name == "delegated").first()
-        if not delegated_care_type:
-            return {
-                "can_contract": True,
-                "requires_representative": False,
-                "verification_status": "verified",
-                "message": "Usuario puede contratar directamente"
-            }
-        
+        # Verificar si el usuario tiene personas bajo cuidado delegado
         cared_persons = db.query(CaredPerson).filter(
-            and_(CaredPerson.user_id == user_id, CaredPerson.care_type_id == delegated_care_type.id)
+            and_(CaredPerson.user_id == user_id, CaredPerson.is_self_care == False)
         ).all()
+        
         if cared_persons:
             return {
                 "can_contract": False,
@@ -98,9 +89,12 @@ class PackageService:
                 "verification_status": "required",
                 "message": "Usuario tiene personas bajo cuidado delegado. Se requiere verificación de capacidad legal."
             }
+        
+        # Verificar si el usuario mismo está bajo cuidado delegado
         cared_person = db.query(CaredPerson).filter(
-            and_(CaredPerson.user_id == user_id, CaredPerson.care_type_id == delegated_care_type.id)
+            and_(CaredPerson.user_id == user_id, CaredPerson.is_self_care == False)
         ).first()
+        
         if cared_person:
             return {
                 "can_contract": False,
@@ -108,6 +102,7 @@ class PackageService:
                 "verification_status": "required",
                 "message": "Usuario bajo cuidado delegado. Debe contratar a través de su representante legal."
             }
+        
         return {
             "can_contract": True,
             "requires_representative": False,

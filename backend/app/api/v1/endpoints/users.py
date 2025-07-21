@@ -419,3 +419,18 @@ def change_password(
     user.password_hash = AuthService.get_password_hash(data.new_password)
     db.commit()
     return {"ok": True, "message": "Contraseña cambiada correctamente"}
+
+@router.get("/check-email")
+def check_email_exists(
+    email: str = Query(..., description="Email to check"),
+    db: Session = Depends(get_db)
+):
+    """Check if an email already exists in the system"""
+    # No requerir autenticación para verificar emails (permite verificación pública)
+    from app.models.user import User
+    existing_user = db.query(User).filter(User.email == email).first()
+    
+    return {
+        "exists": existing_user is not None,
+        "email": email
+    }

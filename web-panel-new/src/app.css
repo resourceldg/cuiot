@@ -17,6 +17,10 @@
     --color-text: #f3f6fa;
     --color-text-secondary: #b0b8c9;
 
+    /* Variables RGB para transparencias */
+    --color-bg-card-rgb: 35, 39, 46;
+    --color-bg-rgb: 35, 39, 46;
+
     /* Espaciado */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;

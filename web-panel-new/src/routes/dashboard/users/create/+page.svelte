@@ -1,6 +1,5 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { createUser } from "$lib/api/users";
     import ArrowLeftIcon from "$lib/ui/icons/ArrowLeftIcon.svelte";
     import UserIcon from "$lib/ui/icons/UserIcon.svelte";
     import UserForm from "../../../../components/dashboard/admin/UserForm.svelte";
@@ -9,72 +8,44 @@
 
     // Estados
     let showGuide = false;
-    let formData: any = {};
     let loading = false;
     let error = "";
     let success = "";
+    let isTransitioning = false; // Nuevo estado para controlar la transición
 
     function goBack() {
+        if (isTransitioning) return; // Prevenir navegación durante transición
         goto("/dashboard/users");
     }
 
     async function handleFormSubmit(event: any) {
-        formData = event.detail;
+        const formData = event.detail;
+        console.log("📝 Página create: Usuario creado exitosamente", formData);
+
+        // Activar estado de transición
+        isTransitioning = true;
         loading = true;
-        error = "";
-        success = "";
 
-        try {
-            // Preparar datos para la API
-            const userData = {
-                email: formData.email,
-                first_name: formData.first_name,
-                last_name: formData.last_name,
-                phone: formData.phone,
-                password: formData.password,
-                username: formData.username || null,
-                date_of_birth: formData.date_of_birth || null,
-                gender: formData.gender || null,
-                professional_license: formData.professional_license || null,
-                specialization: formData.specialization || null,
-                experience_years: formData.experience_years || null,
-                is_freelance: formData.is_freelance || false,
-                hourly_rate: formData.hourly_rate || null,
-                availability: formData.availability || null,
-                is_verified: formData.is_verified || false,
-                institution_id: formData.institution_id || null,
-                is_active:
-                    formData.is_active !== undefined
-                        ? formData.is_active
-                        : true,
-            };
+        // El UserForm ya maneja toda la lógica de creación y asignación de roles
+        // Solo necesitamos manejar el éxito y redirección
+        success = "Usuario creado exitosamente";
 
-            const { data, error: apiError } = await createUser(userData);
-
-            if (apiError) {
-                error = apiError;
-            } else if (data) {
-                success = "Usuario creado exitosamente";
-                formData = {
-                    name: "",
-                    email: "",
-                    password: "",
-                    role: "",
-                    status: "activo",
-                };
-                goto("/dashboard/users");
-            }
-        } catch (err) {
-            error =
-                err instanceof Error
-                    ? err.message
-                    : "Error desconocido al crear usuario";
-        } finally {
-            loading = false;
+        // Pasar el ID del usuario recién creado a la página de usuarios
+        const userId = formData.debugResult?.createResult?.data?.id;
+        if (userId) {
+            // Guardar el ID en sessionStorage para que UserTable lo detecte
+            sessionStorage.setItem("newlyCreatedUserId", userId);
+            console.log("🎉 Página create: Usuario recién creado ID:", userId);
         }
+
+        // Redirigir después de un breve delay
+        setTimeout(() => {
+            goto("/dashboard/users");
+        }, 1500);
     }
 
     function toggleGuide() {
+        if (isTransitioning) return; // Prevenir apertura durante transición
         showGuide = !showGuide;
     }
 </script>
@@ -85,7 +56,7 @@
 
 <div class="create-user-page">
     <div class="page-header">
-        <button class="back-btn" on:click={goBack}>
+        <button class="back-btn" on:click={goBack} disabled={isTransitioning}>
             <ArrowLeftIcon size={20} />
             <span>Volver a Usuarios</span>
         </button>
@@ -99,7 +70,13 @@
             </span>
         </SectionHeader>
 
-        <button class="guide-btn" on:click={toggleGuide}> 📋 Ver Guía </button>
+        <button
+            class="guide-btn"
+            on:click={toggleGuide}
+            disabled={isTransitioning}
+        >
+            📋 Ver Guía
+        </button>
     </div>
 
     {#if error}
@@ -115,12 +92,13 @@
     {/if}
 
     <div class="page-content">
-        <UserForm on:submit={handleFormSubmit} disabled={loading} />
+        <UserForm on:submit={handleFormSubmit} disabled={isTransitioning} />
 
-        {#if loading}
+        <!-- Overlay de loading durante transición -->
+        {#if isTransitioning}
             <div class="loading-overlay">
                 <div class="loading-spinner"></div>
-                <p>Creando usuario...</p>
+                <p>Redirigiendo a la lista de usuarios...</p>
             </div>
         {/if}
     </div>
@@ -164,9 +142,15 @@
         font-size: 0.9rem;
     }
 
-    .back-btn:hover {
+    .back-btn:hover:not(:disabled) {
         background: var(--color-bg-hover);
         border-color: var(--color-accent);
+    }
+
+    .back-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: var(--color-bg-disabled);
     }
 
     .guide-btn {
@@ -180,8 +164,14 @@
         transition: all 0.2s;
     }
 
-    .guide-btn:hover {
+    .guide-btn:hover:not(:disabled) {
         background: var(--color-accent-dark);
+    }
+
+    .guide-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: var(--color-accent-disabled);
     }
 
     .error-banner,
@@ -238,13 +228,14 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(var(--color-bg-card-rgb, 255, 255, 255), 0.9);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         z-index: 1001;
         border-radius: var(--border-radius);
+        backdrop-filter: blur(2px);
     }
 
     .loading-spinner {

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from "$app/navigation";
     import { getInstitutions } from "$lib/api/institutions";
     import {
         getPackages,
@@ -16,7 +17,6 @@
         getUsers,
         updateUser,
     } from "$lib/api/users";
-    import { authStore } from "$lib/authStore.js";
     import { user as sessionUser } from "$lib/sessionStore.js";
     import CalendarIcon from "$lib/ui/icons/CalendarIcon.svelte";
     import CheckIcon from "$lib/ui/icons/CheckIcon.svelte";
@@ -69,7 +69,7 @@
     let rolesLoading = false;
     let error = "";
     let rolesError = "";
-    let showModal = false;
+
     let showDeleteModal = false;
     let showRoleModal = false;
     // Cambia la declaración de selectedUser para aceptar null
@@ -96,9 +96,17 @@
             params.search = searchTerm.trim();
         }
 
-        // Status filter - convert to boolean
+        // Status filter - convert to boolean for API
         if (statusFilter) {
-            params.is_active = statusFilter === "activo";
+            if (statusFilter === "todos") {
+                // No aplicar filtro de estado
+                delete params.is_active;
+            } else {
+                params.is_active = statusFilter === "activo";
+            }
+        } else {
+            // Por defecto, solo mostrar usuarios activos
+            params.is_active = true;
         }
 
         // Role filter
@@ -189,6 +197,11 @@
     let deleteRoleNotificationMessage = "";
     let deleteRoleNotificationSubtitle = "";
 
+    // Estados para notificaciones de usuarios creados
+    let showUserCreatedNotification = false;
+    let userCreatedNotificationMessage = "";
+    let userCreatedNotificationSubtitle = "";
+
     // Modo debug visual
     let debugMode = false;
     let debugData: any = null;
@@ -242,24 +255,29 @@
     let catalogsError = "";
 
     // Cargar datos al montar el componente - CON VERIFICACIÓN DE AUTH
-    onMount(() => {
-        // Suscribirse al store de autenticación
-        const unsubscribe = authStore.subscribe(async (auth) => {
-            if (auth.isAuthenticated && !auth.loading) {
-                console.log(
-                    "🔧 UserTable - Usuario autenticado, cargando datos...",
-                );
-                await loadDataIfAuthenticated();
-            }
-        });
+    onMount(async () => {
+        console.log("🔧 UserTable onMount - Iniciando carga...");
 
-        // Cargar datos iniciales si ya está autenticado
-        const token = localStorage.getItem("authToken");
-        if (token) {
-            loadDataIfAuthenticated();
+        // Verificar si hay un usuario recién creado
+        const newlyCreatedUserId = sessionStorage.getItem("newlyCreatedUserId");
+        if (newlyCreatedUserId) {
+            console.log(
+                "🎉 UserTable onMount: Detectado usuario recién creado:",
+                newlyCreatedUserId,
+            );
+
+            // Mostrar notificación de éxito
+            userCreatedNotificationMessage = "Usuario creado exitosamente";
+            userCreatedNotificationSubtitle =
+                "El usuario ha sido registrado en el sistema y aparece en la primera línea de la tabla.";
+            showUserCreatedNotification = true;
+
+            // Limpiar el sessionStorage
+            sessionStorage.removeItem("newlyCreatedUserId");
         }
 
-        return () => unsubscribe();
+        await loadUsers();
+        await loadRoles();
     });
 
     // Función para cargar datos solo si está autenticado
@@ -317,6 +335,13 @@
                       roles: Array.isArray(user.roles) ? user.roles : [],
                   }))
                 : [];
+
+            // Ordenar usuarios por fecha de creación descendente (más recientes primero)
+            users.sort((a, b) => {
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                return dateB.getTime() - dateA.getTime();
+            });
         } else {
             users = [];
         }
@@ -359,40 +384,6 @@
         } finally {
             rolesLoading = false;
         }
-    }
-
-    function openModal(user: User | null = null) {
-        selectedUser = user;
-        if (user) {
-            form = {
-                name: `${user.first_name} ${user.last_name || ""}`.trim(),
-                email: user.email || "",
-                password: "",
-                role: "", // Los roles se manejan por separado
-                status: user.is_active ? "activo" : "inactivo",
-            };
-        } else {
-            form = {
-                name: "",
-                email: "",
-                password: "",
-                role: roles[0]?.name || "",
-                status: "activo",
-            };
-        }
-        showModal = true;
-    }
-
-    function closeModal() {
-        showModal = false;
-        selectedUser = null;
-        form = {
-            name: "",
-            email: "",
-            password: "",
-            role: "",
-            status: "activo",
-        };
     }
 
     function openDeleteModal(user: User) {
@@ -555,7 +546,6 @@
             }
         }
         await loadUsers();
-        closeModal();
     }
 
     async function deleteUserHandler() {
@@ -1009,6 +999,13 @@
         }, 1300);
     }
 
+    // Timeout para notificación de usuario creado
+    $: if (showUserCreatedNotification) {
+        setTimeout(() => {
+            showUserCreatedNotification = false;
+        }, 3000); // Mostrar por 3 segundos
+    }
+
     let notification = "";
 
     $: if (institutionFilter === "none") {
@@ -1063,7 +1060,6 @@
     // Roles que pueden tener paquetes (individuales o institucionales)
     const ROLES_WITH_PACKAGE = [
         "cared_person_self", // Paquetes individuales
-        "caredperson", // Paquetes individuales
         "family_member", // Paquetes individuales
         "institution_admin", // Paquetes institucionales
     ];
@@ -1154,7 +1150,10 @@
     <!-- Botones de acción principales -->
     <div class="main-actions">
         <div class="action-group">
-            <button class="btn-primary action-btn" on:click={() => openModal()}>
+            <button
+                class="btn-primary action-btn"
+                on:click={() => goto("/dashboard/users/create")}
+            >
                 <svg
                     width="20"
                     height="20"
@@ -1282,9 +1281,10 @@
             bind:value={searchTerm}
         />
         <select class="filter-select" bind:value={statusFilter}>
-            <option value="">Todos los estados</option>
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
+            <option value="">Solo activos (por defecto)</option>
+            <option value="activo">Solo activos</option>
+            <option value="inactivo">Solo inactivos</option>
+            <option value="todos">Todos los estados</option>
         </select>
         <select class="filter-select" bind:value={roleFilter}>
             <option value="">Todos los roles</option>
@@ -2312,6 +2312,30 @@
             <button on:click={nextPage} disabled={currentPage === totalPages}
                 >Siguiente</button
             >
+        </div>
+    {/if}
+
+    <!-- Notificación de usuario creado exitosamente -->
+    {#if showUserCreatedNotification}
+        <div class="simple-success-notification user-created-notification">
+            <svg class="checkmark" viewBox="0 0 52 52">
+                <circle
+                    class="checkmark-circle"
+                    cx="26"
+                    cy="26"
+                    r="25"
+                    fill="none"
+                />
+                <path
+                    class="checkmark-check"
+                    fill="none"
+                    d="M14 27l7 7 16-16"
+                />
+            </svg>
+            <div class="simple-success-text">
+                <h2>{userCreatedNotificationMessage}</h2>
+                <p>{userCreatedNotificationSubtitle}</p>
+            </div>
         </div>
     {/if}
 </div>
@@ -4151,5 +4175,54 @@
         color: var(--color-danger, #e74c3c);
         font-weight: bold;
         margin-right: 0.3em;
+    }
+
+    /* Estilos específicos para notificación de usuario creado */
+    .user-created-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        transform: none;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(40, 167, 69, 0.3);
+        pointer-events: auto;
+        animation: slideInRight 0.5s ease-out;
+        z-index: 3000;
+    }
+
+    .user-created-notification .checkmark {
+        stroke: white;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 1rem;
+    }
+
+    .user-created-notification .checkmark-circle {
+        stroke: rgba(255, 255, 255, 0.3);
+    }
+
+    .user-created-notification .simple-success-text h2 {
+        color: white;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .user-created-notification .simple-success-text p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.95rem;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
     }
 </style>

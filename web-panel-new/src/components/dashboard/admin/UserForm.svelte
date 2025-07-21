@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getInstitutions } from "$lib/api/institutions";
     import { getRoles } from "$lib/api/roles";
-    import { assignRole, updateUser } from "$lib/api/users";
+    import { assignRole, createUser, updateUser } from "$lib/api/users";
     import PlusIcon from "$lib/ui/icons/PlusIcon.svelte";
     import { validateFullUser } from "$lib/validations/userValidations";
     import { createEventDispatcher, onMount } from "svelte";
@@ -21,6 +21,7 @@
         name: string;
         description?: string;
         is_system?: boolean;
+        is_active?: boolean;
     }
 
     interface Institution {
@@ -50,6 +51,8 @@
     let institutions: Institution[] = [];
     let rolesLoadError = false;
     let institutionsLoadError = false;
+    let emailChecking = false;
+    let emailExists = false;
 
     // Inicialización robusta SOLO cuando cambia initialData y editMode
     let form = {
@@ -112,6 +115,49 @@
         errors = validateFullUser(form, "edit");
     }
 
+    // Función para verificar si el email ya existe
+    async function checkEmailExists(email: string) {
+        if (!email || email.length < 3 || !email.includes("@")) {
+            emailExists = false;
+            return;
+        }
+
+        emailChecking = true;
+        try {
+            const response = await fetch(
+                `/api/v1/auth/check-email?email=${encodeURIComponent(email)}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                },
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                emailExists = data.exists;
+            } else {
+                emailExists = false;
+            }
+        } catch (error) {
+            emailExists = false;
+        } finally {
+            emailChecking = false;
+        }
+    }
+
+    // Verificar email cuando cambie (con debounce)
+    let emailCheckTimeout: number;
+    $: if (form.email && form.email.length > 2 && form.email.includes("@")) {
+        clearTimeout(emailCheckTimeout);
+        emailCheckTimeout = setTimeout(() => {
+            if (!editMode || form.email !== initialData?.email) {
+                checkEmailExists(form.email);
+            }
+        }, 500);
+    }
+
     // Secciones expandibles
     let expandedSections: {
         [key: string]: boolean;
@@ -170,13 +216,36 @@
     $: isDelegatedCare = form.role === "cared_person_delegated";
     $: requiresRepresentative = isDelegatedCare;
 
-    // Validar datos mínimos
+    // Validar datos mínimos según reglas de negocio
     $: hasMinimumData =
-        form.first_name &&
-        form.last_name &&
-        form.email &&
-        form.phone &&
-        form.role;
+        form.first_name?.trim() &&
+        form.last_name?.trim() &&
+        form.email?.trim() &&
+        form.phone?.trim() &&
+        form.role &&
+        !emailExists && // No permitir emails duplicados
+        !emailChecking && // Esperar a que termine la verificación
+        (editMode ||
+            (form.password?.trim() && form.password === form.confirm_password)); // Password requerido y coincidente para creación
+
+    // Validación específica por rol
+    $: roleSpecificValidation = {
+        caregiver: form.professional_license?.trim(),
+        freelance_caregiver:
+            form.professional_license?.trim() && form.hourly_rate > 0,
+        medical_staff: form.professional_license?.trim(),
+        institution_admin: form.institution_id,
+        institution_staff: form.institution_id,
+        family_member: true, // Solo requiere datos básicos
+        cared_person_self: true, // Solo requiere datos básicos
+        caredperson: true, // Solo requiere datos básicos
+    };
+
+    $: hasRoleSpecificData = form.role
+        ? roleSpecificValidation[
+              form.role as keyof typeof roleSpecificValidation
+          ]
+        : true;
 
     // --- Lógica de edición por rol ---
     function isFieldEditable(field: string): boolean {
@@ -244,12 +313,35 @@
     }
 
     // --- Ajuste del botón Actualizar ---
-    $: canUpdate =
-        form.first_name &&
-        form.last_name &&
-        form.email &&
-        form.phone &&
-        (form.role || !editMode);
+    $: canUpdate = hasMinimumData && hasRoleSpecificData;
+
+    // Debug para el botón
+    $: buttonDebug = {
+        hasMinimumData,
+        hasRoleSpecificData,
+        canUpdate,
+        role: form.role,
+        firstName: form.first_name?.trim(),
+        lastName: form.last_name?.trim(),
+        email: form.email?.trim(),
+        phone: form.phone?.trim(),
+        // Debug detallado de validación
+        firstNameValid: !!form.first_name?.trim(),
+        lastNameValid: !!form.last_name?.trim(),
+        emailValid: !!form.email?.trim(),
+        phoneValid: !!form.phone?.trim(),
+        roleValid: !!form.role,
+        passwordValid: editMode || !!form.password?.trim(),
+        passwordMatch: editMode || form.password === form.confirm_password,
+        // Valores exactos para debugging
+        firstNameValue: form.first_name,
+        lastNameValue: form.last_name,
+        emailValue: form.email,
+        phoneValue: form.phone,
+        roleValue: form.role,
+        passwordValue: form.password ? "***" : "",
+        confirmPasswordValue: form.confirm_password ? "***" : "",
+    };
 
     let showMissingFieldsModal = false;
     let missingFields: string[] = [];
@@ -259,23 +351,35 @@
         console.log("🔧 UserForm onMount - Cargando datos...");
         try {
             console.log("🔧 Cargando roles...");
-            roles = await getRoles();
-            console.log("✅ Roles cargados:", roles.length);
+            const rolesData = await getRoles();
+            console.log("✅ Roles cargados:", rolesData);
+            roles = Array.isArray(rolesData) ? rolesData : [];
+            console.log("✅ Roles procesados:", roles.length);
+            console.log(
+                "✅ Roles activos:",
+                roles.filter((r) => r.is_active !== false).length,
+            );
             rolesLoadError = false;
         } catch (err) {
             console.error("❌ Error cargando roles:", err);
             roles = [];
             rolesLoadError = true;
+            error = `Error cargando roles: ${err instanceof Error ? err.message : "Error desconocido"}`;
         }
         try {
             console.log("🔧 Cargando instituciones...");
-            institutions = await getInstitutions();
-            console.log("✅ Instituciones cargadas:", institutions.length);
+            const institutionsData = await getInstitutions();
+            console.log("✅ Instituciones cargadas:", institutionsData);
+            institutions = Array.isArray(institutionsData)
+                ? institutionsData
+                : [];
+            console.log("✅ Instituciones procesadas:", institutions.length);
             institutionsLoadError = false;
         } catch (err) {
             console.error("❌ Error cargando instituciones:", err);
             institutions = [];
             institutionsLoadError = true;
+            error = `${error ? error + "; " : ""}Error cargando instituciones: ${err instanceof Error ? err.message : "Error desconocido"}`;
         }
     });
 
@@ -340,6 +444,42 @@
             return;
         }
 
+        // Validación preventiva de email duplicado
+        if (!editMode && form.email) {
+            console.log(
+                "🔍 UserForm handleSubmit: Verificando email antes del envío...",
+            );
+            try {
+                const response = await fetch(
+                    `/api/v1/auth/check-email?email=${encodeURIComponent(form.email)}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    },
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.exists) {
+                        error =
+                            "❌ El email ya está registrado en el sistema. Por favor, use un email diferente.";
+                        console.log(
+                            "❌ UserForm handleSubmit: Email duplicado detectado preventivamente",
+                        );
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error(
+                    "❌ UserForm handleSubmit: Error verificando email:",
+                    error,
+                );
+                // Continuar con el envío si hay error en la verificación
+            }
+        }
+
         submitting = true;
         error = "";
         debugResult = {};
@@ -351,22 +491,58 @@
                 : initialData.role);
 
         try {
-            // Guardar usuario (sin el campo 'role')
-            const userUpdateData = { ...form };
-            delete (userUpdateData as any).role;
-            if (!userUpdateData.password)
-                delete (userUpdateData as any).password;
-            if (!userUpdateData.date_of_birth)
-                delete (userUpdateData as any).date_of_birth;
+            let result;
 
-            const updateResult = await updateUser(
-                String(form.id),
-                userUpdateData,
-            );
-            debugResult.updateResult = updateResult;
+            if (editMode) {
+                // Modo edición: actualizar usuario existente
+                const userUpdateData = { ...form };
+                delete (userUpdateData as any).role;
+                if (!userUpdateData.password)
+                    delete (userUpdateData as any).password;
+                if (!userUpdateData.date_of_birth)
+                    delete (userUpdateData as any).date_of_birth;
+                else {
+                    // Convertir fecha a formato datetime para el backend
+                    const dateValue = userUpdateData.date_of_birth;
+                    if (typeof dateValue === "string" && dateValue) {
+                        // Agregar tiempo (00:00:00) a la fecha para convertirla a datetime
+                        userUpdateData.date_of_birth = `${dateValue}T00:00:00`;
+                    }
+                }
 
-            if (updateResult.error) {
-                if (updateResult.error.includes("401")) {
+                result = await updateUser(String(form.id), userUpdateData);
+                debugResult.updateResult = result;
+            } else {
+                // Modo creación: crear nuevo usuario
+                const userCreateData = { ...form };
+                delete (userCreateData as any).role;
+                delete (userCreateData as any).id;
+                delete (userCreateData as any).confirm_password; // Eliminar confirm_password
+
+                // Para creación, password es requerido
+                if (!userCreateData.password) {
+                    error =
+                        "La contraseña es requerida para crear un nuevo usuario";
+                    return;
+                }
+
+                if (!userCreateData.date_of_birth)
+                    delete (userCreateData as any).date_of_birth;
+                else {
+                    // Convertir fecha a formato datetime para el backend
+                    const dateValue = userCreateData.date_of_birth;
+                    if (typeof dateValue === "string" && dateValue) {
+                        // Agregar tiempo (00:00:00) a la fecha para convertirla a datetime
+                        userCreateData.date_of_birth = `${dateValue}T00:00:00`;
+                    }
+                }
+
+                result = await createUser(userCreateData);
+                debugResult.createResult = result;
+            }
+
+            if (result.error) {
+                if (result.error.includes("401")) {
                     // Forzar logout y redirigir
                     if (typeof window !== "undefined") {
                         localStorage.removeItem("token");
@@ -377,28 +553,38 @@
                         window.location.href = "/login";
                     }
                     return;
-                } else if (updateResult.error.includes("403")) {
-                    error = "No tienes permisos para editar este usuario.";
+                } else if (result.error.includes("403")) {
+                    error = editMode
+                        ? "No tienes permisos para editar este usuario."
+                        : "No tienes permisos para crear usuarios.";
+                    return;
+                } else if (
+                    result.error.includes("Email already registered") ||
+                    result.error.includes("already registered")
+                ) {
+                    error =
+                        "❌ El email ya está registrado en el sistema. Por favor, use un email diferente.";
                     return;
                 } else {
-                    error = updateResult.error;
+                    error = result.error;
                     return;
                 }
             }
 
-            // Siempre asignar el rol seleccionado tras guardar (si hay rol)
-            if (form.role) {
-                // Solo asignar si no tenía rol antes o si cambió
-                if (!previousRole || form.role !== previousRole) {
+            // Obtener el ID del usuario (nuevo o existente)
+            const userId = editMode ? String(form.id) : result.data?.id;
+
+            // Siempre asignar el rol seleccionado tras guardar (si hay rol y usuario)
+            if (form.role && userId) {
+                // En modo creación, siempre asignar el rol
+                // En modo edición, solo asignar si cambió
+                if (!editMode || !previousRole || form.role !== previousRole) {
                     assignRoleNeeded = true;
                 }
             }
 
-            if (assignRoleNeeded) {
-                const assignResult = await assignRole(
-                    String(form.id),
-                    form.role,
-                );
+            if (assignRoleNeeded && userId) {
+                const assignResult = await assignRole(userId, form.role);
                 debugResult.assignResult = assignResult;
                 if (assignResult.error) {
                     // Intentar parsear error JSON
@@ -453,9 +639,34 @@
                             ? "Modifica los datos necesarios y actualiza el usuario."
                             : "Complete los datos mínimos requeridos o expanda las secciones para información adicional"}
                     </p>
+                    {#if !editMode}
+                        <div class="form-progress">
+                            <div class="progress-bar">
+                                <div
+                                    class="progress-fill"
+                                    style="width: {hasMinimumData
+                                        ? hasRoleSpecificData
+                                            ? '100%'
+                                            : '75%'
+                                        : '50%'}"
+                                ></div>
+                            </div>
+                            <span class="progress-text">
+                                {hasMinimumData
+                                    ? hasRoleSpecificData
+                                        ? "✅ Completado"
+                                        : "⚠️ Datos básicos completos"
+                                    : "📝 Datos básicos requeridos"}
+                            </span>
+                        </div>
+                    {/if}
                 </div>
                 {#if !editMode}
-                    <button class="expand-all-btn" on:click={expandAllSections}>
+                    <button
+                        class="expand-all-btn"
+                        on:click={expandAllSections}
+                        {disabled}
+                    >
                         <PlusIcon size={16} />
                         Expandir Todo
                     </button>
@@ -482,6 +693,8 @@
                                 "first_name",
                             )}
                             placeholder="Ingrese el nombre"
+                            disabled={disabled ||
+                                !isFieldEditable("first_name")}
                         />
                         {#if !isFieldEditable("first_name")}
                             <span style="color:red;font-weight:bold;"
@@ -503,7 +716,7 @@
                                 updateForm("last_name", t ? t.value : "");
                             }}
                             placeholder="Ingrese el apellido"
-                            disabled={!isFieldEditable("last_name")}
+                            disabled={disabled || !isFieldEditable("last_name")}
                         />
                         {#if errors.last_name}<span class="error-text"
                                 >{errors.last_name}</span
@@ -520,11 +733,20 @@
                                 updateForm("email", t ? t.value : "");
                             }}
                             placeholder="usuario@ejemplo.com"
-                            disabled={!isFieldEditable("email")}
+                            disabled={disabled || !isFieldEditable("email")}
+                            class:error={errors.email || emailExists}
                         />
-                        {#if errors.email}<span class="error-text"
-                                >{errors.email}</span
-                            >{/if}
+                        {#if emailChecking}
+                            <span class="info-text"
+                                >🔍 Verificando email...</span
+                            >
+                        {:else if emailExists}
+                            <span class="error-text"
+                                >❌ Este email ya está registrado en el sistema</span
+                            >
+                        {:else if errors.email}
+                            <span class="error-text">{errors.email}</span>
+                        {/if}
                     </div>
                     <div class="form-group">
                         <label for="phone">Teléfono *</label>
@@ -537,14 +759,90 @@
                                 updateForm("phone", t ? t.value : "");
                             }}
                             placeholder="+54 11 1234-5678"
-                            disabled={!isFieldEditable("phone")}
+                            disabled={disabled || !isFieldEditable("phone")}
                         />
                         {#if errors.phone}<span class="error-text"
                                 >{errors.phone}</span
                             >{/if}
                     </div>
+                    {#if !editMode}
+                        <div class="form-group">
+                            <label for="password">Contraseña *</label>
+                            <input
+                                id="password"
+                                type="password"
+                                bind:value={form.password}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm("password", t ? t.value : "");
+                                }}
+                                placeholder="Ingrese la contraseña"
+                                class:error={errors.password}
+                                disabled={disabled ||
+                                    !isFieldEditable("password")}
+                            />
+                            {#if errors.password}<span class="error-text"
+                                    >{errors.password}</span
+                                >{/if}
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm_password"
+                                >Confirmar Contraseña *</label
+                            >
+                            <input
+                                id="confirm_password"
+                                type="password"
+                                bind:value={form.confirm_password}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm(
+                                        "confirm_password",
+                                        t ? t.value : "",
+                                    );
+                                }}
+                                placeholder="Confirme la contraseña"
+                                class:error={errors.confirm_password}
+                                disabled={disabled ||
+                                    !isFieldEditable("confirm_password")}
+                            />
+                            {#if errors.confirm_password}<span
+                                    class="error-text"
+                                    >{errors.confirm_password}</span
+                                >{/if}
+                            {#if form.password && form.confirm_password && form.password !== form.confirm_password}
+                                <span class="error-text"
+                                    >❌ Las contraseñas no coinciden</span
+                                >
+                            {/if}
+                        </div>
+                    {:else}
+                        <div class="form-group">
+                            <label for="password"
+                                >Nueva Contraseña (opcional)</label
+                            >
+                            <input
+                                id="password"
+                                type="password"
+                                bind:value={form.password}
+                                on:input={(e) => {
+                                    const t =
+                                        e.target as HTMLInputElement | null;
+                                    updateForm("password", t ? t.value : "");
+                                }}
+                                placeholder="Dejar vacío para mantener la actual"
+                                class:error={errors.password}
+                                disabled={disabled ||
+                                    !isFieldEditable("password")}
+                            />
+                            {#if errors.password}<span class="error-text"
+                                    >{errors.password}</span
+                                >{/if}
+                        </div>
+                    {/if}
                     <div class="form-group">
-                        <label for="gender">Género</label>
+                        <label for="gender">Género *</label>
                         <select
                             id="gender"
                             value={form.gender ?? ""}
@@ -555,9 +853,10 @@
                                     t && t.value ? t.value : "",
                                 );
                             }}
-                            disabled={!isFieldEditable("gender")}
+                            class:error={errors.gender}
+                            disabled={disabled || !isFieldEditable("gender")}
                         >
-                            <option value="">Seleccionar</option>
+                            <option value="">Seleccionar género</option>
                             <option value="female">Femenino</option>
                             <option value="male">Masculino</option>
                             <option value="other">Otro</option>
@@ -565,6 +864,9 @@
                                 >Prefiero no decir</option
                             >
                         </select>
+                        {#if errors.gender}<span class="error-text"
+                                >{errors.gender}</span
+                            >{/if}
                     </div>
                     <div class="form-group">
                         <label for="date_of_birth">Fecha de nacimiento</label>
@@ -576,8 +878,14 @@
                                 const t = e.target as HTMLInputElement | null;
                                 updateForm("date_of_birth", t ? t.value : "");
                             }}
-                            disabled={!isFieldEditable("date_of_birth")}
+                            disabled={disabled ||
+                                !isFieldEditable("date_of_birth")}
                         />
+                        {#if errors.date_of_birth}
+                            <span class="error-text"
+                                >{errors.date_of_birth}</span
+                            >
+                        {/if}
                     </div>
                     <div class="form-group">
                         <label for="role">Rol *</label>
@@ -589,7 +897,7 @@
                                 updateForm("role", t && t.value ? t.value : "");
                             }}
                             class:error={errors.role}
-                            disabled={!isFieldEditable("role")}
+                            disabled={disabled || !isFieldEditable("role")}
                         >
                             {#if roles.length === 0}
                                 <option value="">Sin datos</option>
@@ -603,13 +911,33 @@
                             {/if}
                         </select>
                         {#if rolesLoadError}
+                            <div class="error-section">
+                                <span class="error-text"
+                                    >❌ No se pudieron cargar los roles.
+                                    Verifique la conexión.</span
+                                >
+                                <button
+                                    class="retry-btn"
+                                    on:click={loadRoles}
+                                    disabled={loading}
+                                >
+                                    🔄 Reintentar
+                                </button>
+                            </div>
+                        {:else if roles.length === 0}
                             <span class="warning-text"
-                                >No se pudieron cargar los roles.</span
+                                >⚠️ No hay roles disponibles en el sistema.</span
                             >
                         {/if}
                         {#if errors.role}<span class="error-text"
                                 >{errors.role}</span
                             >{/if}
+                        {#if form.role && !hasRoleSpecificData}
+                            <span class="warning-text">
+                                ⚠️ Este rol requiere información adicional.
+                                Complete las secciones expandibles.
+                            </span>
+                        {/if}
                     </div>
                     <div class="form-group">
                         <label for="is_active">Estado</label>
@@ -651,9 +979,8 @@
                                 }}
                                 class:error={errors.professional_license}
                                 placeholder="Ingrese la licencia profesional"
-                                disabled={!isFieldEditable(
-                                    "professional_license",
-                                )}
+                                disabled={disabled ||
+                                    !isFieldEditable("professional_license")}
                             />
                             {#if errors.professional_license}
                                 <span class="error-text"
@@ -675,7 +1002,8 @@
                                         t ? t.value : "",
                                     );
                                 }}
-                                disabled={!isFieldEditable("specialization")}
+                                disabled={disabled ||
+                                    !isFieldEditable("specialization")}
                             />
                         </div>
                         <div class="form-group">
@@ -695,7 +1023,8 @@
                                         t ? t.value : "",
                                     );
                                 }}
-                                disabled={!isFieldEditable("experience_years")}
+                                disabled={disabled ||
+                                    !isFieldEditable("experience_years")}
                             />
                         </div>
                         <div class="form-group">
@@ -723,7 +1052,8 @@
                                         e.target as HTMLInputElement | null;
                                     updateForm("hourly_rate", t ? t.value : "");
                                 }}
-                                disabled={!isFieldEditable("hourly_rate")}
+                                disabled={disabled ||
+                                    !isFieldEditable("hourly_rate")}
                             />
                         </div>
                         <div class="form-group">
@@ -740,7 +1070,8 @@
                                         t ? t.value : "",
                                     );
                                 }}
-                                disabled={!isFieldEditable("availability")}
+                                disabled={disabled ||
+                                    !isFieldEditable("availability")}
                             />
                         </div>
                         <div class="form-group">
@@ -784,7 +1115,8 @@
                                             : undefined;
                                     updateForm("institution_id", val);
                                 }}
-                                disabled={!isFieldEditable("institution_id")}
+                                disabled={disabled ||
+                                    !isFieldEditable("institution_id")}
                             >
                                 {#if institutions.length === 0}
                                     <option value="">Sin datos</option>
@@ -807,6 +1139,83 @@
                 </div>
             {/if}
             <div class="form-actions">
+                <!-- Debug info para el botón -->
+                {#if !editMode}
+                    <div class="button-debug">
+                        <details>
+                            <summary>🔍 Debug del botón</summary>
+                            <div class="debug-content">
+                                <h4>Estado de Validación:</h4>
+                                <ul>
+                                    <li>
+                                        ✅ Nombre: {buttonDebug.firstNameValid
+                                            ? "Válido"
+                                            : "❌ Faltante"}
+                                    </li>
+                                    <li>
+                                        ✅ Apellido: {buttonDebug.lastNameValid
+                                            ? "Válido"
+                                            : "❌ Faltante"}
+                                    </li>
+                                    <li>
+                                        ✅ Email: {buttonDebug.emailValid
+                                            ? "Válido"
+                                            : "❌ Faltante"}
+                                    </li>
+                                    <li>
+                                        ✅ Teléfono: {buttonDebug.phoneValid
+                                            ? "Válido"
+                                            : "❌ Faltante"}
+                                    </li>
+                                    <li>
+                                        ✅ Rol: {buttonDebug.roleValid
+                                            ? "Válido"
+                                            : "❌ Faltante"}
+                                    </li>
+                                    <li>
+                                        🔒 Contraseña: {buttonDebug.passwordValid
+                                            ? "Válida"
+                                            : "❌ Faltante"}
+                                    </li>
+                                    {#if !editMode}
+                                        <li>
+                                            🔐 Confirmación: {buttonDebug.passwordMatch
+                                                ? "✅ Coincide"
+                                                : "❌ No coincide"}
+                                        </li>
+                                    {/if}
+                                </ul>
+
+                                <h4>Estado Final:</h4>
+                                <ul>
+                                    <li>
+                                        📋 Datos mínimos: {buttonDebug.hasMinimumData
+                                            ? "✅ Completos"
+                                            : "❌ Incompletos"}
+                                    </li>
+                                    <li>
+                                        🎯 Datos específicos del rol: {buttonDebug.hasRoleSpecificData
+                                            ? "✅ Completos"
+                                            : "❌ Incompletos"}
+                                    </li>
+                                    <li>
+                                        🚀 Botón habilitado: {buttonDebug.canUpdate
+                                            ? "✅ Sí"
+                                            : "❌ No"}
+                                    </li>
+                                </ul>
+
+                                <h4>Valores Actuales:</h4>
+                                <pre>{JSON.stringify(
+                                        buttonDebug,
+                                        null,
+                                        2,
+                                    )}</pre>
+                            </div>
+                        </details>
+                    </div>
+                {/if}
+
                 <button
                     type="submit"
                     class="btn-primary"
@@ -863,113 +1272,467 @@
 <style>
     .user-form-container {
         width: 100%;
-        max-width: 100%;
+        margin: 0 auto;
+        padding: 0;
     }
+
+    .user-form {
+        background: var(--color-bg-card);
+        border-radius: 16px;
+        border: 1px solid var(--color-border);
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid var(--color-border);
+        gap: 1rem;
+    }
+
+    .form-info h2 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--color-text);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .form-info p {
+        color: var(--color-text-secondary);
+        font-size: 1rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .expand-all-btn {
+        background: var(--color-accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+
+    .expand-all-btn:hover {
+        background: var(--color-accent-dark);
+        transform: translateY(-1px);
+    }
+
     .form-section {
         background: var(--color-bg);
-        border-radius: var(--border-radius);
-        border: 1px solid var(--color-accent);
-        margin-bottom: var(--spacing-xl);
-        padding: var(--spacing-lg);
+        border-radius: 12px;
+        border: 1px solid var(--color-border);
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
         box-sizing: border-box;
         width: 100%;
-        max-width: 100%;
+        transition: all 0.2s;
     }
+
+    .form-section:hover {
+        border-color: var(--color-accent);
+        box-shadow: 0 2px 8px rgba(0, 230, 118, 0.1);
+    }
+
+    .form-section.required {
+        border-left: 4px solid var(--color-accent);
+    }
+
     .section-header {
-        margin-bottom: var(--spacing-lg);
-        padding-bottom: var(--spacing-sm);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
         border-bottom: 1px solid var(--color-border);
     }
+
+    .section-header h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--color-text);
+        margin: 0;
+    }
+
+    .required-badge {
+        background: var(--color-accent);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
     .form-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: var(--spacing-lg) var(--spacing-md);
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
         width: 100%;
         box-sizing: border-box;
     }
+
     .form-group {
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-xs);
-        margin-bottom: var(--spacing-md);
+        gap: 0.5rem;
+        margin-bottom: 1rem;
         width: 100%;
         min-width: 0;
         box-sizing: border-box;
     }
+
     .form-group label {
-        font-weight: 500;
+        font-weight: 600;
         color: var(--color-text);
         font-size: 0.95rem;
-        margin-bottom: 0.2rem;
+        margin-bottom: 0.25rem;
     }
+
     .form-group input,
-    .form-group select {
-        padding: var(--spacing-sm);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius);
+    .form-group select,
+    .form-group textarea {
+        padding: 0.875rem;
+        border: 2px solid var(--color-border);
+        border-radius: 8px;
         background: var(--color-bg-card);
         color: var(--color-text);
-        font-size: 0.95rem;
+        font-size: 1rem;
         transition: all 0.2s;
         width: 100%;
         min-width: 0;
         box-sizing: border-box;
     }
+
     .form-group input:focus,
-    .form-group select:focus {
+    .form-group select:focus,
+    .form-group textarea:focus {
         outline: none;
         border-color: var(--color-accent);
-        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.1);
+        box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.15);
         background: var(--color-bg-hover);
         color: var(--color-text);
+        transform: translateY(-1px);
     }
+
+    .form-group input:disabled,
+    .form-group select:disabled,
+    .form-group textarea:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: var(--color-bg-disabled);
+        color: var(--color-text-disabled);
+    }
+
+    .form-group input:disabled:focus,
+    .form-group select:disabled:focus,
+    .form-group textarea:disabled:focus {
+        border-color: var(--color-border);
+        box-shadow: none;
+        transform: none;
+    }
+
     .form-group input.error,
-    .form-group select.error {
+    .form-group select.error,
+    .form-group textarea.error {
         border-color: var(--color-danger);
+        box-shadow: 0 0 0 3px rgba(255, 77, 109, 0.15);
     }
+
     .error-text {
         color: var(--color-danger);
         font-size: 0.85rem;
-        margin-top: 2px;
+        margin-top: 0.25rem;
+        font-weight: 500;
     }
-    @media (max-width: 900px) {
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
+
+    .warning-text {
+        color: #f59e0b;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        background: rgba(245, 158, 11, 0.1);
+        border-radius: 8px;
+        border-left: 4px solid #f59e0b;
     }
-    @media (max-width: 600px) {
-        .form-section {
-            padding: var(--spacing-md);
-        }
-        .form-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: var(--spacing-md);
-        }
+
+    .error-section {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
     }
+
+    .retry-btn {
+        background: var(--color-accent);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .retry-btn:hover:not(:disabled) {
+        background: var(--color-accent-dark);
+        transform: translateY(-1px);
+    }
+
+    .retry-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
     .form-actions {
         display: flex;
         justify-content: flex-end;
-        gap: var(--spacing-md);
-        margin-top: var(--spacing-lg);
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid var(--color-border);
     }
+
     .form-actions .btn-primary {
         background: var(--color-accent);
         color: #fff;
         border: none;
-        border-radius: var(--border-radius);
-        padding: 0.7rem 1.5rem;
-        font-size: 1rem;
-        font-weight: 600;
+        border-radius: 10px;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 700;
         cursor: pointer;
-        transition: background 0.18s;
-        box-shadow: 0 1.5px 6px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0, 230, 118, 0.3);
+        min-width: 160px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
     }
+
     .form-actions .btn-primary:disabled {
-        opacity: 0.6;
+        opacity: 0.5;
         cursor: not-allowed;
+        transform: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
+
     .form-actions .btn-primary:hover:not(:disabled) {
-        background: var(--color-accent-dark, #00c060);
+        background: var(--color-accent-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 230, 118, 0.4);
+    }
+
+    .form-actions .btn-primary:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    .loading-spinner-small {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .form-progress {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: rgba(0, 230, 118, 0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(0, 230, 118, 0.2);
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 10px;
+        background: var(--color-border);
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            var(--color-accent),
+            var(--color-accent-dark)
+        );
+        transition: width 0.4s ease;
+        border-radius: 5px;
+    }
+
+    .progress-text {
+        font-size: 0.9rem;
+        color: var(--color-text);
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .error-banner {
+        background: rgba(255, 77, 109, 0.1);
+        color: var(--color-danger);
+        border: 1px solid var(--color-danger);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .button-debug {
+        margin-bottom: 1rem;
+    }
+
+    .button-debug details {
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+
+    .button-debug summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--color-text);
+        padding: 0.5rem;
+    }
+
+    .button-debug pre {
+        background: rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        overflow-x: auto;
+        margin: 0.5rem 0 0 0;
+    }
+
+    .debug-content {
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        margin-top: 0.5rem;
+    }
+
+    .debug-content h4 {
+        margin: 0 0 0.5rem 0;
+        color: var(--color-text);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .debug-content ul {
+        margin: 0 0 1rem 0;
+        padding-left: 1.5rem;
+    }
+
+    .debug-content li {
+        margin-bottom: 0.25rem;
+        font-size: 0.85rem;
+        color: var(--color-text);
+    }
+
+    /* Responsividad mejorada */
+    @media (max-width: 1200px) {
+        .user-form {
+            padding: 1.5rem;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .form-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .user-form {
+            padding: 1.5rem;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .form-section {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-info h2 {
+            font-size: 1.5rem;
+        }
+
+        .form-actions {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .form-actions .btn-primary {
+            width: 100%;
+            min-width: auto;
+        }
+
+        .user-form {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-grid {
+            gap: 0.75rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .user-form {
+            padding: 0.75rem;
+        }
+
+        .form-section {
+            padding: 0.75rem;
+        }
     }
 </style>
