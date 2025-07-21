@@ -1,97 +1,64 @@
 #!/usr/bin/env python3
 """
-Limpieza completa de la base de datos de prueba
-- Borra todas las entidades principales
-- Mantiene la estructura de tablas
-- Listo para nueva carga de datos
+Script para limpiar todas las tablas de datos de la base de datos CUIOT.
+Respeta el orden de eliminación para evitar conflictos de claves foráneas.
 """
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app.core.database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-def clean_database():
-    db: Session = next(get_db())
+def clean_database(db: Session):
+    """Elimina todos los datos de las tablas en el orden correcto."""
+    print("🧹 INICIANDO LIMPIEZA DE LA BASE DE DATOS...")
+    
+    # El orden es crucial para respetar las dependencias de claves foráneas
+    tables_to_clean = [
+        "user_packages",
+        "user_roles",
+        # "cared_person_institution", # La tabla parece tener otro nombre o no existir, la comentamos para evitar error
+        # "caregiver_institution", # La tabla parece tener otro nombre o no existir, la comentamos para evitar error
+        "caregiver_assignments",
+        "shift_observations",
+        "restraint_protocols",
+        "medication_schedules",
+        "diagnoses",
+        "medical_profiles",
+        "alerts",
+        "events",
+        "reminders",
+        "reports",
+        "billing_records",
+        "referrals",
+        "devices",
+        "users",
+        "cared_persons",
+        "packages",
+        "institutions",
+        "roles"
+        # Las tablas de catálogo generalmente no se limpian, pero si es necesario, agrégalas aquí.
+    ]
+    
     try:
-        print("🧹 Limpiando base de datos de prueba...")
-        
-        # Tablas a limpiar en orden (respetando foreign keys)
-        tables_to_clean = [
-            # Entidades dependientes primero
-            "user_package_history",
-            "cared_person_institutions", 
-            "user_roles",
-            "institution_reviews",
-            "institution_scores",
-            "shift_observations",
-            "restraint_protocols",
-            "medication_logs",
-            "activity_participations",
-            "alerts",
-            "events",
-            "reminders",
-            "medical_referrals",
-            "vital_signs",
-            "diagnoses",
-            "devices",
-            "caregiver_assignments",
-            
-            # Entidades principales
-            "cared_persons",
-            "users",
-            "packages", 
-            "institutions",
-            "roles",
-            
-            # Catálogos (opcional - mantener algunos básicos)
-            # "status_types",
-            # "service_types", 
-            # "alert_types",
-            # "event_types",
-            # "reminder_types",
-            # "referral_types",
-            # "device_types",
-            # "activity_types",
-            # "shift_observation_types",
-            # "medication_types",
-            # "diagnosis_types",
-            # "vital_sign_types",
-        ]
-        
-        cleaned_count = 0
         for table in tables_to_clean:
-            try:
-                result = db.execute(text(f"DELETE FROM {table}"))
-                count = result.rowcount
-                if count > 0:
-                    print(f"  🗑️ {table}: {count} registros eliminados")
-                    cleaned_count += count
-                else:
-                    print(f"  ⚪ {table}: sin datos")
-            except Exception as e:
-                print(f"  ⚠️ Error en {table}: {e}")
-                continue
+            print(f"   - Limpiando tabla: {table}...")
+            # Usamos TRUNCATE ... RESTART IDENTITY CASCADE para reiniciar secuencias y manejar dependencias
+            db.execute(text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE;'))
         
         db.commit()
-        print(f"\n✅ Limpieza completada: {cleaned_count} registros eliminados")
-        
-        # Verificar estado
-        print("\n📊 Estado de la base de datos:")
-        for table in ["users", "institutions", "packages", "roles", "cared_persons"]:
-            try:
-                result = db.execute(text(f"SELECT COUNT(*) FROM {table}"))
-                count = result.scalar()
-                print(f"  📋 {table}: {count} registros")
-            except Exception as e:
-                print(f"  ❌ {table}: error - {e}")
+        print("\n✅ LIMPIEZA COMPLETADA EXITOSAMENTE.")
         
     except Exception as e:
-        print(f"❌ Error general: {e}")
+        print(f"❌ Error durante la limpieza: {e}")
         db.rollback()
+        raise
     finally:
         db.close()
 
 if __name__ == "__main__":
-    clean_database() 
+    db: Session = next(get_db())
+    clean_database(db) 

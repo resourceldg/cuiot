@@ -25,7 +25,6 @@ from app.models.user_role import UserRole
 from app.models.institution import Institution
 from app.models.package import Package, UserPackage
 from app.models.cared_person import CaredPerson
-from app.models.care_type import CareType
 from app.models.status_type import StatusType
 from app.models.device_type import DeviceType
 from app.models.alert_type import AlertType
@@ -89,22 +88,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         status_types[data["name"]] = status
     
-    # 2. Care Types
-    care_types_data = [
-        {"name": "self_care", "description": "Autocuidado - Persona independiente"},
-        {"name": "delegated_care", "description": "Cuidado delegado - Necesita representación"},
-    ]
-    
-    care_types = {}
-    for data in care_types_data:
-        care_type = db.query(CareType).filter(CareType.name == data["name"]).first()
-        if not care_type:
-            care_type = CareType(**data)
-            db.add(care_type)
-            db.flush()
-        care_types[data["name"]] = care_type
-    
-    # 3. Device Types
+    # 2. Device Types
     device_types_data = [
         {"name": "motion_sensor", "description": "Sensor de movimiento", "category": "sensor", "icon_name": "motion", "color_code": "#FF6B6B"},
         {"name": "temperature_sensor", "description": "Sensor de temperatura", "category": "sensor", "icon_name": "thermometer", "color_code": "#4ECDC4"},
@@ -123,7 +107,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         device_types[data["name"]] = device_type
     
-    # 4. Alert Types
+    # 3. Alert Types
     alert_types_data = [
         {"name": "fall_detected", "description": "Caída detectada", "category": "health", "icon_name": "alert-triangle", "color_code": "#FF0000"},
         {"name": "temperature_high", "description": "Temperatura alta", "category": "health", "icon_name": "thermometer", "color_code": "#FF6B6B"},
@@ -141,7 +125,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         alert_types[data["name"]] = alert_type
     
-    # 5. Event Types
+    # 4. Event Types
     event_types_data = [
         {"name": "motion_detected", "description": "Movimiento detectado", "category": "sensor", "icon_name": "activity", "color_code": "#4ECDC4"},
         {"name": "temperature_reading", "description": "Lectura de temperatura", "category": "sensor", "icon_name": "thermometer", "color_code": "#FF6B6B"},
@@ -158,7 +142,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         event_types[data["name"]] = event_type
     
-    # 6. Reminder Types
+    # 5. Reminder Types
     reminder_types_data = [
         {"name": "medication", "description": "Medicación", "category": "health", "icon_name": "pill", "color_code": "#4ECDC4"},
         {"name": "appointment", "description": "Cita médica", "category": "health", "icon_name": "calendar", "color_code": "#45B7D1"},
@@ -176,7 +160,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         reminder_types[data["name"]] = reminder_type
     
-    # 7. Service Types
+    # 6. Service Types
     service_types_data = [
         {"name": "inpatient", "description": "Internación", "category": "healthcare"},
         {"name": "outpatient", "description": "Ambulatorio", "category": "healthcare"},
@@ -197,7 +181,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         service_types[data["name"]] = service_type
     
-    # 8. Caregiver Assignment Types
+    # 7. Caregiver Assignment Types
     caregiver_assignment_types_data = [
         {"name": "full_time", "description": "Tiempo completo", "category": "schedule"},
         {"name": "part_time", "description": "Tiempo parcial", "category": "schedule"},
@@ -215,7 +199,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         caregiver_assignment_types[data["name"]] = assignment_type
     
-    # 9. Shift Observation Types
+    # 8. Shift Observation Types
     shift_observation_types_data = [
         {"name": "morning", "description": "Turno mañana", "category": "shift"},
         {"name": "afternoon", "description": "Turno tarde", "category": "shift"},
@@ -232,7 +216,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         shift_observation_types[data["name"]] = observation_type
     
-    # 10. Referral Types
+    # 9. Referral Types
     referral_types_data = [
         {"name": "caregiver", "description": "Referido por cuidador", "category": "referral"},
         {"name": "institution", "description": "Referido por institución", "category": "referral"},
@@ -249,7 +233,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         referral_types[data["name"]] = referral_type
     
-    # 11. Relationship Types
+    # 10. Relationship Types
     relationship_types_data = [
         {"name": "employee", "description": "Empleado"},
         {"name": "contractor", "description": "Contratista"},
@@ -266,7 +250,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         relationship_types[data["name"]] = relationship_type
     
-    # 12. Report Types
+    # 11. Report Types
     report_types_data = [
         {"name": "daily", "description": "Reporte diario"},
         {"name": "weekly", "description": "Reporte semanal"},
@@ -284,7 +268,7 @@ def populate_catalog_tables(db: Session):
             db.flush()
         report_types[data["name"]] = report_type
     
-    # 13. Activity Types - ELIMINADO (tabla no existe en BD)
+    # 12. Activity Types - ELIMINADO (tabla no existe en BD)
     # activity_types_data = [
     #     {"type_name": "physical_exercise", "description": "Ejercicio físico", "requirements": {"equipment": ["silla", "bastón"], "skills": ["movilidad básica"]}},
     #     {"type_name": "cognitive_stimulation", "description": "Estimulación cognitiva", "requirements": {"equipment": ["puzzles", "libros"], "skills": ["concentración"]}},
@@ -301,7 +285,7 @@ def populate_catalog_tables(db: Session):
     #         db.flush()
     #     activity_types[data["type_name"]] = activity_type
     
-    # 14. Difficulty Levels - ELIMINADO (tabla no existe en BD)
+    # 13. Difficulty Levels - ELIMINADO (tabla no existe en BD)
     # difficulty_levels_data = [
     #     {"name": "easy", "description": "Fácil", "color_code": "#4ECDC4"},
     #     {"name": "moderate", "description": "Moderado", "color_code": "#FFEAA7"},
@@ -323,7 +307,6 @@ def populate_catalog_tables(db: Session):
     
     return {
         "status_types": status_types,
-        "care_types": care_types,
         "device_types": device_types,
         "alert_types": alert_types,
         "event_types": event_types,
@@ -708,7 +691,7 @@ def assign_packages_to_users(db: Session, users: dict, roles: dict, packages: di
     db.commit()
     print(f"   ✅ {count} paquetes asignados a usuarios permitidos")
 
-def populate_cared_persons(db: Session, users: dict, care_types: dict):
+def populate_cared_persons(db: Session, users: dict):
     """Poblar personas cuidadas"""
     print("👴 Poblando personas cuidadas...")
     
@@ -717,7 +700,6 @@ def populate_cared_persons(db: Session, users: dict, care_types: dict):
             "first_name": "Doña Carmen",
             "last_name": "García",
             "date_of_birth": date(1945, 3, 15),
-            "care_type": "self_care",
             "user_email": "familiar1@cuiot.com",
             "phone": "+54 11 9999-1111",
             "email": "carmen.garcia@email.com",
@@ -736,7 +718,6 @@ def populate_cared_persons(db: Session, users: dict, care_types: dict):
             "first_name": "Don Manuel",
             "last_name": "López",
             "date_of_birth": date(1941, 7, 22),
-            "care_type": "delegated_care",
             "user_email": "familiar2@cuiot.com",
             "phone": "+54 11 9999-2222",
             "email": "manuel.lopez@email.com",
@@ -755,7 +736,6 @@ def populate_cared_persons(db: Session, users: dict, care_types: dict):
             "first_name": "Sra. Rosa",
             "last_name": "Martínez",
             "date_of_birth": date(1948, 11, 8),
-            "care_type": "delegated_care",
             "user_email": "cuidador1@cuiot.com",
             "phone": "+54 11 9999-3333",
             "email": "rosa.martinez@email.com",
@@ -774,7 +754,6 @@ def populate_cared_persons(db: Session, users: dict, care_types: dict):
             "first_name": "Sr. Antonio",
             "last_name": "Rodríguez",
             "date_of_birth": date(1944, 5, 12),
-            "care_type": "delegated_care",
             "user_email": "cuidador2@cuiot.com",
             "phone": "+54 11 9999-4444",
             "email": "antonio.rodriguez@email.com",
@@ -808,16 +787,10 @@ def populate_cared_persons(db: Session, users: dict, care_types: dict):
         if not user:
             continue
         
-        # Obtener tipo de cuidado
-        care_type = care_types.get(data["care_type"])
-        if not care_type:
-            continue
-        
         cared_person = CaredPerson(
             first_name=data["first_name"],
             last_name=data["last_name"],
             date_of_birth=data["date_of_birth"],
-            care_type_id=care_type.id,
             user_id=user.id,
             phone=data["phone"],
             email=data["email"],
@@ -873,7 +846,7 @@ def main():
         # Asignar paquetes a usuarios permitidos
         # 6. Poblar personas cuidadas
         print("\n6️⃣ POBLANDO PERSONAS CUIDADAS...")
-        cared_persons = populate_cared_persons(db, users, catalogs["care_types"])
+        cared_persons = populate_cared_persons(db, users)
         
         # RESUMEN FINAL
         print("\n" + "=" * 70)

@@ -13,6 +13,7 @@ from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserWithRoles
 from app.schemas.role import RoleAssign, RoleBase, RoleUpdate
 from app.models.role import Role
 from app.models.user import User
+from app.core.auth import require_admin
 import traceback
 import sys
 
@@ -25,11 +26,9 @@ def get_roles(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(require_admin) # FIX: Usar require_admin para proteger el endpoint
 ):
     """Obtener lista de todos los roles del sistema"""
-    if not current_user.has_permission("users.read", db):
-        raise HTTPException(status_code=403, detail="No tiene permisos para ver roles")
     roles = db.query(Role).filter(Role.is_active == True).offset(skip).limit(limit).all()
     return [
         {
@@ -221,10 +220,10 @@ def update_role(
         "role_id": str(role.id)
     }
 
-@router.get("/")
+@router.get("/", response_model=List[UserWithRoles])
 async def get_users(
     db: Session = Depends(get_db),
-    current_user: User = Depends(AuthService.get_current_active_user),
+    current_user: User = Depends(require_admin), # FIX: Usar require_admin para proteger el endpoint
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
@@ -238,9 +237,6 @@ async def get_users(
     no_institution: Optional[bool] = None,
 ):
     try:
-        # Handle no_institution parameter
-        if no_institution:
-            institution_id = None  # This will be handled specially in the service
         users = UserService.get_users_with_roles(
             db=db,
             skip=skip,
@@ -255,15 +251,10 @@ async def get_users(
             is_freelance=is_freelance,
             no_institution=no_institution,
         )
-        validated = []
-        for u in users:
-            try:
-                validated.append(UserWithRoles.model_validate(u).model_dump(mode="json"))
-            except Exception as e:
-                print(f"[DEBUG] Error validando usuario {getattr(u, 'id', None)}: {e}")
-                continue
-        return JSONResponse(content=validated)
+        return users
     except Exception as e:
+        # Log the full error for debugging
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
 @router.get("/{user_id}", response_model=UserWithRoles)

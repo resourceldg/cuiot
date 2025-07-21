@@ -238,7 +238,8 @@ class UserPackageResponse(UserPackageBase):
 
     class Config:
         from_attributes = True
-
+        
+# --- API Response Schemas with String UUIDs ---
 
 class PackageCustomization(BaseModel):
     """Schema for package customization options"""

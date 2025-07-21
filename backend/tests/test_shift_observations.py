@@ -32,11 +32,8 @@ def create_test_user(db_session, email, first_name="Test", last_name="User", pas
 
 def create_test_cared_person(db_session, user_id, first_name="Test", last_name="Person"):
     # Get care_type_id for "delegated"
-    from app.models.care_type import CareType
-    care_type = db_session.query(CareType).filter(CareType.name == "delegated").first()
     if not care_type:
         # Create if not exists
-        care_type = CareType(name="delegated", description="Delegated care")
         db_session.add(care_type)
         db_session.commit()
         db_session.refresh(care_type)

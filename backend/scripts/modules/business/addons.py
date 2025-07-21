@@ -169,9 +169,42 @@ def populate_package_add_ons():
     print(f"✅ Package Add-ons creados: {created} (idempotente)")
     db.close()
 
+def ensure_test_users_for_package_roles(db):
+    """Asegura que existan usuarios con los roles clave para pruebas de paquetes."""
+    from app.models.role import Role
+    from app.models.user import User
+    from app.core.auth import AuthService
+    roles_needed = [
+        ("cared_person_self", "selfcare@cuiot.com", "selfcare123"),
+        ("caredperson", "caredperson@cuiot.com", "caredperson123"),
+        ("family", "family@cuiot.com", "family123"),
+        ("family_member", "familymember@cuiot.com", "familymember123"),
+        ("institution_admin", "institutionadmin@cuiot.com", "institutionadmin123"),
+    ]
+    for role_name, email, password in roles_needed:
+        user = db.query(User).filter_by(email=email).first()
+        if not user:
+            user = User(
+                email=email,
+                password_hash=AuthService.get_password_hash(password),
+                is_active=True,
+                first_name=role_name.capitalize(),
+                last_name="Test"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        # Asignar rol si no lo tiene
+        if not any(r.name == role_name for r in user.roles):
+            role = db.query(Role).filter_by(name=role_name).first()
+            if role:
+                user.roles.append(role)
+                db.commit()
+
 def populate_user_packages():
     """Poblar suscripciones de usuario a paquetes (todos los roles permitidos y todos los tipos de paquetes)"""
     db = next(get_db())
+    ensure_test_users_for_package_roles(db)
     created = 0
     # Obtener usuarios y paquetes existentes
     users = db.query(User).filter(User.is_active == True).all()
@@ -199,7 +232,7 @@ def populate_user_packages():
     )
     # Mapeo de roles permitidos para cada tipo de paquete (ver README)
     allowed_roles_map = {
-        "individual": {"cared_person_self", "family", "family_member"},
+        "individual": {"cared_person_self", "caredperson", "family", "family_member"},
         "institutional": {"institution_admin"},
     }
     for user in users:

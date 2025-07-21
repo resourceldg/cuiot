@@ -6,11 +6,13 @@ from uuid import UUID
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, and_
 
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.role import Role
-from app.models.user_role import UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserWithRoles
-from app.models.package import Package, UserPackage
+from app.models.package import UserPackage, Package, PackageAddOn
+from app.schemas.user import UserWithRoles, UserCreate, UserUpdate
+from app.models.status_type import StatusType
+import logging
+
 from app.models.institution import Institution
 
 class UserService:
@@ -279,46 +281,14 @@ class UserService:
     
     @staticmethod
     def get_user_with_roles(db: Session, user_id: UUID) -> Optional[UserWithRoles]:
-        """Get user with role information"""
-        # Get user first
-        user = db.query(User).filter(User.id == user_id).first()
+        """Get a single user with role and package information"""
+        users = UserService.get_users_with_roles(db=db, skip=0, limit=1)
         
-        if not user:
-            return None
-        
-        # Get roles separately to avoid lazy loading issues
-        user_roles = db.query(UserRole).filter(UserRole.user_id == user_id).all()
-        role_ids = [ur.role_id for ur in user_roles]
-        roles = []
-        if role_ids:
-            roles = [r.name for r in db.query(Role).filter(Role.id.in_(role_ids)).all()]
-        
-        # Convert user to dict and add roles
-        user_dict = {
-            'id': user.id,
-            'email': user.email,
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'phone': user.phone,
-            'date_of_birth': user.date_of_birth,
-            'gender': user.gender,
-            'professional_license': user.professional_license,
-            'specialization': user.specialization,
-            'experience_years': user.experience_years,
-            'is_freelance': user.is_freelance,
-            'hourly_rate': user.hourly_rate,
-            'availability': user.availability,
-            'is_verified': user.is_verified,
-            'is_active': user.is_active,
-            'last_login': user.last_login,
-            'institution_id': user.institution_id,
-            'created_at': user.created_at,
-            'updated_at': user.updated_at,
-            'roles': roles
-        }
-        
-        return UserWithRoles(**user_dict)
+        # Filtrar por el usuario específico después de obtener la lista
+        for user in users:
+            if user.id == user_id:
+                return user
+        return None
 
     @staticmethod
     def get_users_with_roles(
@@ -388,10 +358,10 @@ class UserService:
             if package_count > 0:
                 filtered_users = []
                 for user in users:
-                    # Solo considerar paquetes activos (status_type_id = 1 para "active" o NULL)
+                    # Solo considerar paquetes activos (status_type_id = 21 o NULL)
                     user_packages = db.query(UserPackage).filter(
                         UserPackage.user_id == user.id,
-                        (UserPackage.status_type_id == 1) | (UserPackage.status_type_id.is_(None))
+                        (UserPackage.status_type_id == 21) | (UserPackage.status_type_id.is_(None))
                     ).all()
                     has_matching_package = False
                     for user_package in user_packages:
@@ -431,9 +401,9 @@ class UserService:
             allow_packages = any(r in ROLES_WITH_PACKAGE for r in role_names)
             user_packages = []
             if allow_packages:
+                # FIX: Eliminar el filtro de status_type_id que estaba incorrecto
                 user_packages = db.query(UserPackage).filter(
-                    UserPackage.user_id == user.id,
-                    (UserPackage.status_type_id == 1) | (UserPackage.status_type_id.is_(None))
+                    UserPackage.user_id == user.id
                 ).all()
             package_subscriptions = []
             for user_package in user_packages:
@@ -446,18 +416,6 @@ class UserService:
                         'status_type_id': user_package.status_type_id,
                         'is_active': True
                     })
-            # Crear objetos UserPackageResponse para cada paquete
-            from app.schemas.user import UserPackageResponse
-            package_responses = []
-            for pkg in package_subscriptions:
-                package_responses.append(UserPackageResponse(
-                    id=pkg['id'],
-                    package_id=pkg['package_id'],
-                    package_name=pkg['package_name'],
-                    status_type_id=pkg['status_type_id'],
-                    is_active=pkg['is_active']
-                ))
-            
             user_with_roles = UserWithRoles(
                 id=user.id,
                 email=user.email,
@@ -480,7 +438,7 @@ class UserService:
                 created_at=user.created_at,
                 updated_at=user.updated_at,
                 roles=role_names,
-                package_subscriptions=package_responses
+                package_subscriptions=package_subscriptions
             )
             result.append(user_with_roles)
         return result

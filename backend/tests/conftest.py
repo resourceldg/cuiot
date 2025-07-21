@@ -12,7 +12,6 @@ from app.models.base import Base
 from sqlalchemy import text
 from app.models.referral_type import ReferralType
 from app.models.status_type import StatusType
-from app.models.care_type import CareType
 from app.models.device_type import DeviceType
 from app.models.alert_type import AlertType
 from app.models.event_type import EventType
@@ -53,7 +52,6 @@ def setup_test_database():
     # Inicializar catálogos normalizados una sola vez para toda la sesión de tests
     print("📚 Inicializando catálogos normalizados...")
     from app.models.alert_type import AlertType
-    from app.models.care_type import CareType
     from app.models.status_type import StatusType
     from app.models.reminder_type import ReminderType
     from app.models.event_type import EventType
@@ -69,14 +67,6 @@ def setup_test_database():
         for at in alert_types:
             if not db.query(AlertType).filter_by(name=at["name"]).first():
                 db.add(AlertType(**at))
-        # Care types
-        care_types = [
-            {"name": "self_care", "description": "Self care"},
-            {"name": "delegated", "description": "Delegated care"},
-        ]
-        for ct in care_types:
-            if not db.query(CareType).filter_by(name=ct["name"]).first():
-                db.add(CareType(**ct))
         # Status types
         status_types = [
             {"name": "draft", "description": "Draft status", "category": "general"},
@@ -181,7 +171,6 @@ async def clean_db():
     
     # Repoblar catálogos normalizados después de limpiar
     from app.models.alert_type import AlertType
-    from app.models.care_type import CareType
     from app.models.status_type import StatusType
     from app.models.reminder_type import ReminderType
     from app.models.event_type import EventType
@@ -197,14 +186,6 @@ async def clean_db():
         for at in alert_types:
             if not db.query(AlertType).filter_by(name=at["name"]).first():
                 db.add(AlertType(**at))
-        # Care types
-        care_types = [
-            {"name": "self_care", "description": "Self care"},
-            {"name": "delegated", "description": "Delegated care"},
-        ]
-        for ct in care_types:
-            if not db.query(CareType).filter_by(name=ct["name"]).first():
-                db.add(CareType(**ct))
         # Status types
         status_types = [
             {"name": "draft", "description": "Draft status", "category": "general"},
@@ -494,7 +475,6 @@ def clean_database(db_session):
             "enumeration_types",
             "referral_types",
             "status_types",
-            "care_types",
             "device_types",
             "alert_types",
             "event_types",
@@ -568,12 +548,6 @@ def normalized_catalogs(clean_database):
             {"name": "verified", "description": "Verified status", "category": "general"},
             {"name": "unverified", "description": "Unverified status", "category": "general"}
         ],
-        "care_types": [
-            {"name": "autocuidado", "description": "Self-care"},
-            {"name": "delegated", "description": "Delegated care"},
-            {"name": "assisted", "description": "Assisted care"},
-            {"name": "supervised", "description": "Supervised care"}
-        ],
         "device_types": [
             {"name": "sensor", "description": "Sensor device"},
             {"name": "monitor", "description": "Monitoring device"},
@@ -641,7 +615,6 @@ def normalized_catalogs(clean_database):
     catalog_to_model = {
         "referral_types": ReferralType,
         "status_types": StatusType,
-        "care_types": CareType,
         "device_types": DeviceType,
         "alert_types": AlertType,
         "event_types": EventType,

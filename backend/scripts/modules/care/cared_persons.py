@@ -6,7 +6,6 @@ import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models.cared_person import CaredPerson
-from app.models.care_type import CareType
 from app.models.relationship_type import RelationshipType
 from app.models.user import User
 from app.models.package import Package
@@ -21,13 +20,12 @@ def populate_cared_persons(db: Session, num_cared_persons: int = 20):
     print(f"🌱 Populating {num_cared_persons} cared persons...")
     
     # Get existing data
-    care_types = db.query(CareType).all()
     relationship_types = db.query(RelationshipType).all()
     packages = db.query(Package).all()
     institutions = db.query(Institution).all()
     
-    if not care_types or not relationship_types or not packages:
-        print("❌ Missing required data: care_types, relationship_types, or packages")
+    if not relationship_types or not packages:
+        print("❌ Missing required data: relationship_types or packages")
         return
     
     # Sample cared person data
@@ -127,7 +125,6 @@ def populate_cared_persons(db: Session, num_cared_persons: int = 20):
             gender=data["gender"],
             emergency_contact=data["emergency_contact"],
             medical_notes=data["medical_conditions"] + "\nAlergias: " + data["allergies"] + "\nMedicamentos: " + data["medications"],
-            care_type_id=random.choice(care_types).id,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )

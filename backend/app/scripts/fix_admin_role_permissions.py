@@ -23,8 +23,13 @@ ADMIN_PERMISSIONS = {
     "institutions": {"read": True, "write": True, "delete": True},
     "devices": {"read": True, "write": True, "delete": True},
     "protocols": {"read": True, "write": True, "delete": True},
-    "reports": {"read": True, "write": True},
-    "system": {"read": True, "write": True, "delete": True}
+    "reports": {"read": True, "write": True, "delete": True},
+    "system": {"read": True, "write": True, "delete": True},
+    "dashboard": {"read": True, "write": True, "delete": True},
+    "alerts": {"read": True, "write": True, "delete": True},
+    "reminders": {"read": True, "write": True, "delete": True},
+    "billing": {"read": True, "write": True, "delete": True},
+    "audit_log": {"read": True, "write": True, "delete": True}
 }
 
 ADMIN_EMAIL = "admin@cuiot.com"

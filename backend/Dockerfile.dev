@@ -15,6 +15,9 @@ COPY requirements.txt .
 # Instalar dependencias de Python
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Forzar versiones compatibles para evitar errores de bcrypt
+RUN pip install --force-reinstall bcrypt==3.2.2 passlib==1.7.4
+
 # Copiar el código de la aplicación
 COPY . .
 

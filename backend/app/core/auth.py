@@ -78,21 +78,34 @@ async def get_current_active_user(
     return current_user
 
 def require_admin(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ) -> User:
     """
-    Requerir que el usuario sea administrador
+    Requerir que el usuario tenga el rol 'admin'.
     
     Args:
         current_user: Usuario actual obtenido del token
+        db: Sesión de base de datos
         
     Returns:
         User: Usuario administrador
         
     Raises:
-        HTTPException: Si el usuario no es administrador
+        HTTPException: Si el usuario no tiene el rol 'admin'
     """
-    if not current_user.is_admin:
+    from app.models.role import Role
+    from app.models.user_role import UserRole
+    
+    # Obtener los roles del usuario
+    user_roles = db.query(UserRole).filter(UserRole.user_id == current_user.id, UserRole.is_active == True).all()
+    role_names = []
+    for ur in user_roles:
+        role = db.query(Role).filter(Role.id == ur.role_id).first()
+        if role:
+            role_names.append(role.name)
+            
+    if "admin" not in role_names:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Se requieren permisos de administrador"
