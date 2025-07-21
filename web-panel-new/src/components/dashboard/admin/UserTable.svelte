@@ -1132,6 +1132,13 @@
             return [];
         }
     }
+
+    function asignarNuevoPaquete(user) {
+        alert(
+            `Asignar paquete a: ${user.first_name} ${user.last_name || ""} (${user.email})`,
+        );
+        // Aquí irá el flujo real de asignación/creación de paquete
+    }
 </script>
 
 <div class="user-table-section">
@@ -2025,6 +2032,24 @@
                     <p>
                         Este usuario no tiene suscripciones de paquetes activas.
                     </p>
+                    {#if userCanHavePackages(selectedUser)}
+                        <button
+                            class="btn-primary"
+                            style="margin-top:1.2rem;"
+                            on:click={() => asignarNuevoPaquete(selectedUser)}
+                        >
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                ><path d="M12 5v14M5 12h14" /></svg
+                            >
+                            Asignar nuevo paquete
+                        </button>
+                    {/if}
                 </div>
             {:else}
                 <div class="package-subscriptions">
