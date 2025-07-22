@@ -4,7 +4,7 @@
 
     export let open = false;
     export let editMode = false;
-    export let initialData = null;
+    export let initialData: any = null;
     export let loading = false;
 
     const dispatch = createEventDispatcher();

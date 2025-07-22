@@ -1,3 +1,5 @@
 <script>
-    // Archivo temporal vacío para evitar errores de build
+    import PackageTable from "../../../components/dashboard/admin/packages/PackageTable.svelte";
 </script>
+
+<PackageTable />

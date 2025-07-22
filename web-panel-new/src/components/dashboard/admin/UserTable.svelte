@@ -30,6 +30,7 @@
     import XIcon from "$lib/ui/icons/XIcon.svelte";
     import { onMount } from "svelte";
     import EditUserModal from "./EditUserModal.svelte";
+    import UserForm from "./UserForm.svelte";
 
     // Tipos explícitos para usuarios y roles
     interface Role {
@@ -80,6 +81,11 @@
     let deleteNotificationType: "success" | "error" = "success";
     let deleteNotificationMessage = "";
     let deleteNotificationSubtitle = "";
+
+    // Variables para paquetes
+    let availablePackages: any[] = [];
+    let selectedPackage = "";
+    let showPackageSelection = false;
 
     // Filtros
     let searchTerm = "";
@@ -395,13 +401,53 @@
     }
 
     const PERMISSION_CATEGORIES = {
-        users: { read: false, write: false, delete: false },
-        roles: { read: false, write: false, delete: false },
-        institutions: { read: false, write: false, delete: false },
-        packages: { read: false, write: false, delete: false },
-        alerts: { read: false, write: false, delete: false },
-        events: { read: false, write: false, delete: false },
-        reports: { read: false, write: false, delete: false },
+        users: {
+            read_own: false,
+            read_all: false,
+            write_own: false,
+            write_all: false,
+            delete_own: false,
+            delete_all: false,
+        },
+        roles: {
+            read: false,
+            write: false,
+            delete: false,
+        },
+        institutions: {
+            read_own: false,
+            read_all: false,
+            write_own: false,
+            write_all: false,
+            delete_own: false,
+            delete_all: false,
+        },
+        packages: {
+            read_own: false,
+            read_all: false,
+            write_own: false,
+            write_all: false,
+            delete_own: false,
+            delete_all: false,
+        },
+        alerts: {
+            read_own: false,
+            read_all: false,
+            write_own: false,
+            write_all: false,
+        },
+        events: {
+            read_own: false,
+            read_all: false,
+            write_own: false,
+            write_all: false,
+        },
+        reports: {
+            read_own: false,
+            read_all: false,
+            write_own: false,
+            write_all: false,
+        },
     };
 
     function openNewRoleModal() {
@@ -788,6 +834,39 @@
         // Recargar usuarios desde la API
         await loadUsers();
         closeEditModal();
+    }
+
+    // Maneja la creación de usuarios
+    async function handleCreateSubmit(event: CustomEvent) {
+        const userData = event.detail;
+        console.log("🔧 handleCreateSubmit: Datos recibidos", userData);
+
+        try {
+            // Recargar usuarios desde la API
+            await loadUsers();
+            closeModal();
+
+            // Mostrar notificación de éxito
+            showDeleteNotification = true;
+            deleteNotificationType = "success";
+            deleteNotificationMessage = "Usuario creado exitosamente";
+            deleteNotificationSubtitle = `El usuario ${userData.first_name} ${userData.last_name || ""} ha sido creado.`;
+
+            setTimeout(() => {
+                showDeleteNotification = false;
+            }, 5000);
+        } catch (err) {
+            console.error("Error creating user:", err);
+            showDeleteNotification = true;
+            deleteNotificationType = "error";
+            deleteNotificationMessage = "Error al crear usuario";
+            deleteNotificationSubtitle =
+                "No se pudo crear el usuario. Inténtalo de nuevo.";
+
+            setTimeout(() => {
+                showDeleteNotification = false;
+            }, 5000);
+        }
     }
 
     // Utilidad para obtener solo el rol activo
@@ -1402,308 +1481,380 @@
             aria-modal="true"
             aria-labelledby="role-modal-title"
         >
-            <button class="modal-close" on:click={closeRoleModal} title="Cerrar"
-                >&times;</button
-            >
-            <h3 id="role-modal-title">
-                {isNewRole ? "Nuevo rol" : "Editar rol"}
-            </h3>
-            <form
-                class="modal-form"
-                on:submit|preventDefault={saveRole}
-                autocomplete="off"
-            >
-                <label>
-                    Nombre del Rol
-                    <input
-                        type="text"
-                        bind:value={roleForm.name}
-                        placeholder="admin, caregiver, etc."
-                        required
-                        disabled={roleForm.is_system}
-                    />
-                    {#if roleErrors.name}<span class="form-error"
-                            >{roleErrors.name}</span
-                        >{/if}
-                </label>
-                <label>
-                    Descripción
-                    <textarea
-                        bind:value={roleForm.description}
-                        placeholder="Descripción del rol"
-                        rows="3"
-                        disabled={roleForm.is_system}
-                    ></textarea>
-                    {#if roleErrors.description}<span class="form-error"
-                            >{roleErrors.description}</span
-                        >{/if}
-                </label>
-                {#if roleForm.is_system}
-                    <div class="form-info">Rol de sistema. No editable.</div>
-                {/if}
-                <label>
-                    Permisos
-                    <div class="permissions-editor">
-                        <h4>Permisos del Rol</h4>
-                        <div class="permissions-grid">
-                            <div class="perm-category">
-                                <h5>Usuarios</h5>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.users.read
-                                        }
-                                    />
-                                    Leer usuarios
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.users.write
-                                        }
-                                    />
-                                    Crear/editar usuarios
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.users.delete
-                                        }
-                                    />
-                                    Eliminar usuarios
-                                </label>
-                            </div>
-                            <div class="perm-category">
-                                <h5>Roles</h5>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.roles.read
-                                        }
-                                    />
-                                    Leer roles
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.roles.write
-                                        }
-                                    />
-                                    Crear/editar roles
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.roles.delete
-                                        }
-                                    />
-                                    Eliminar roles
-                                </label>
-                            </div>
-                            <div class="perm-category">
-                                <h5>Instituciones</h5>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.institutions
-                                                .read
-                                        }
-                                    />
-                                    Leer instituciones
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.institutions
-                                                .write
-                                        }
-                                    />
-                                    Crear/editar instituciones
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.institutions
-                                                .delete
-                                        }
-                                    />
-                                    Eliminar instituciones
-                                </label>
-                            </div>
-                            <div class="perm-category">
-                                <h5>Paquetes</h5>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.packages.read
-                                        }
-                                    />
-                                    Leer paquetes
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.packages.write
-                                        }
-                                    />
-                                    Crear/editar paquetes
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.packages.delete
-                                        }
-                                    />
-                                    Eliminar paquetes
-                                </label>
-                            </div>
-                            <div class="perm-category">
-                                <h5>Alertas</h5>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.alerts.read
-                                        }
-                                    />
-                                    Leer alertas
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.alerts.write
-                                        }
-                                    />
-                                    Crear/editar alertas
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.alerts.delete
-                                        }
-                                    />
-                                    Eliminar alertas
-                                </label>
-                            </div>
-                            <div class="perm-category">
-                                <h5>Eventos</h5>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.events.read
-                                        }
-                                    />
-                                    Leer eventos
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.events.write
-                                        }
-                                    />
-                                    Crear/editar eventos
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.events.delete
-                                        }
-                                    />
-                                    Eliminar eventos
-                                </label>
-                            </div>
-                            <div class="perm-category">
-                                <h5>Reportes</h5>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.reports.read
-                                        }
-                                    />
-                                    Leer reportes
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.reports.write
-                                        }
-                                    />
-                                    Crear/editar reportes
-                                </label>
-                                <label class="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            editablePermissions.reports.delete
-                                        }
-                                    />
-                                    Eliminar reportes
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </label>
-                {#if rolesError && !showRoleNotification}
-                    <div class="form-error">{rolesError}</div>
-                {/if}
-                <div class="modal-actions">
-                    {#if !roleForm.is_system}
-                        <button type="submit" class="btn-primary"
-                            >{isNewRole
-                                ? "Crear rol"
-                                : "Guardar cambios"}</button
-                        >
-                    {/if}
-                    <button
-                        type="button"
-                        class="btn-secondary"
-                        on:click={closeRoleModal}>Cerrar</button
+            <div class="modal-header">
+                <h3 id="role-modal-title">
+                    {isNewRole ? "Nuevo rol" : "Editar rol"}
+                </h3>
+                <button
+                    class="modal-close"
+                    on:click={closeRoleModal}
+                    title="Cerrar"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
                     >
-                </div>
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form
+                    class="modal-form"
+                    on:submit|preventDefault={saveRole}
+                    autocomplete="off"
+                >
+                    <label>
+                        Nombre del Rol
+                        <input
+                            type="text"
+                            bind:value={roleForm.name}
+                            placeholder="admin, caregiver, etc."
+                            required
+                            disabled={roleForm.is_system}
+                        />
+                        {#if roleErrors.name}<span class="form-error"
+                                >{roleErrors.name}</span
+                            >{/if}
+                    </label>
 
-                <!-- Notificación de éxito simple con check animado -->
-                {#if showRoleNotification}
-                    <div class="simple-success-notification">
-                        <svg class="checkmark" viewBox="0 0 52 52">
-                            <circle
-                                class="checkmark-circle"
-                                cx="26"
-                                cy="26"
-                                r="25"
-                                fill="none"
-                            />
-                            <path
-                                class="checkmark-check"
-                                fill="none"
-                                d="M14 27l7 7 16-16"
-                            />
-                        </svg>
-                        <div class="simple-success-text">
-                            <h2>{roleNotificationMessage}</h2>
-                            <p>{roleNotificationSubtitle}</p>
+                    <label>
+                        Descripción
+                        <textarea
+                            bind:value={roleForm.description}
+                            placeholder="Descripción del rol"
+                            rows="3"
+                            disabled={roleForm.is_system}
+                        ></textarea>
+                        {#if roleErrors.description}<span class="form-error"
+                                >{roleErrors.description}</span
+                            >{/if}
+                    </label>
+                    {#if roleForm.is_system}
+                        <div class="form-info">
+                            Rol de sistema. No editable.
                         </div>
+                    {/if}
+                    <label>
+                        Permisos
+                        <div class="permissions-editor">
+                            <h4>Permisos del Rol</h4>
+                            <div class="permissions-grid">
+                                <div class="perm-category">
+                                    <h5>Usuarios</h5>
+                                    <div class="permission-group">
+                                        <h6>Lectura</h6>
+                                        <label class="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    editablePermissions.users
+                                                        .read_own
+                                                }
+                                            />
+                                            Ver usuarios propios
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    editablePermissions.users
+                                                        .read_all
+                                                }
+                                            />
+                                            Ver todos los usuarios
+                                        </label>
+                                    </div>
+                                    <div class="permission-group">
+                                        <h6>Escritura</h6>
+                                        <label class="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    editablePermissions.users
+                                                        .write_own
+                                                }
+                                            />
+                                            Editar usuarios propios
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    editablePermissions.users
+                                                        .write_all
+                                                }
+                                            />
+                                            Crear/editar cualquier usuario
+                                        </label>
+                                    </div>
+                                    <div class="permission-group">
+                                        <h6>Eliminación</h6>
+                                        <label class="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    editablePermissions.users
+                                                        .delete_own
+                                                }
+                                            />
+                                            Eliminar usuarios propios
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    editablePermissions.users
+                                                        .delete_all
+                                                }
+                                            />
+                                            Eliminar cualquier usuario
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="perm-category">
+                                    <h5>Roles</h5>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.roles.read
+                                            }
+                                        />
+                                        Leer roles
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.roles.write
+                                            }
+                                        />
+                                        Crear/editar roles
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.roles.delete
+                                            }
+                                        />
+                                        Eliminar roles
+                                    </label>
+                                </div>
+                                <div class="perm-category">
+                                    <h5>Instituciones</h5>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.institutions
+                                                    .read
+                                            }
+                                        />
+                                        Leer instituciones
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.institutions
+                                                    .write
+                                            }
+                                        />
+                                        Crear/editar instituciones
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.institutions
+                                                    .delete
+                                            }
+                                        />
+                                        Eliminar instituciones
+                                    </label>
+                                </div>
+                                <div class="perm-category">
+                                    <h5>Paquetes</h5>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.packages
+                                                    .read
+                                            }
+                                        />
+                                        Leer paquetes
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.packages
+                                                    .write
+                                            }
+                                        />
+                                        Crear/editar paquetes
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.packages
+                                                    .delete
+                                            }
+                                        />
+                                        Eliminar paquetes
+                                    </label>
+                                </div>
+                                <div class="perm-category">
+                                    <h5>Alertas</h5>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.alerts.read
+                                            }
+                                        />
+                                        Leer alertas
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.alerts.write
+                                            }
+                                        />
+                                        Crear/editar alertas
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.alerts
+                                                    .delete
+                                            }
+                                        />
+                                        Eliminar alertas
+                                    </label>
+                                </div>
+                                <div class="perm-category">
+                                    <h5>Eventos</h5>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.events.read
+                                            }
+                                        />
+                                        Leer eventos
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.events.write
+                                            }
+                                        />
+                                        Crear/editar eventos
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.events
+                                                    .delete
+                                            }
+                                        />
+                                        Eliminar eventos
+                                    </label>
+                                </div>
+                                <div class="perm-category">
+                                    <h5>Reportes</h5>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.reports.read
+                                            }
+                                        />
+                                        Leer reportes
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.reports
+                                                    .write
+                                            }
+                                        />
+                                        Crear/editar reportes
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={
+                                                editablePermissions.reports
+                                                    .delete
+                                            }
+                                        />
+                                        Eliminar reportes
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                    {#if rolesError && !showRoleNotification}
+                        <div class="form-error">{rolesError}</div>
+                    {/if}
+                    <div class="modal-actions">
+                        {#if !roleForm.is_system}
+                            <button type="submit" class="btn-primary"
+                                >{isNewRole
+                                    ? "Crear rol"
+                                    : "Guardar cambios"}</button
+                            >
+                        {/if}
+                        <button
+                            type="button"
+                            class="btn-secondary"
+                            on:click={closeRoleModal}>Cerrar</button
+                        >
                     </div>
-                {/if}
-            </form>
+
+                    <!-- Notificación de éxito simple con check animado -->
+                    {#if showRoleNotification}
+                        <div class="simple-success-notification">
+                            <svg class="checkmark" viewBox="0 0 52 52">
+                                <circle
+                                    class="checkmark-circle"
+                                    cx="26"
+                                    cy="26"
+                                    r="25"
+                                    fill="none"
+                                />
+                                <path
+                                    class="checkmark-check"
+                                    fill="none"
+                                    d="M14 27l7 7 16-16"
+                                />
+                            </svg>
+                            <div class="simple-success-text">
+                                <h2>{roleNotificationMessage}</h2>
+                                <p>{roleNotificationSubtitle}</p>
+                            </div>
+                        </div>
+                    {/if}
+                </form>
+            </div>
         </div>
     {/if}
 
@@ -1716,35 +1867,61 @@
             aria-modal="true"
             aria-labelledby="history-modal-title"
         >
-            <button
-                class="modal-close"
-                on:click={closeHistoryModal}
-                title="Cerrar">&times;</button
-            >
-            <h3 id="history-modal-title">Historial de {historyUser?.name}</h3>
-            {#if historyLoading}
-                <div class="loading">Cargando historial...</div>
-            {:else if historyError}
-                <div class="form-error">{historyError}</div>
-            {:else if userHistory.length === 0}
-                <div class="empty">Sin historial disponible.</div>
-            {:else}
-                <div class="timeline-vertical">
-                    {#each userHistory as item}
-                        <div class="timeline-item">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <span class="timeline-date">{item.date}</span>
-                                <span class="timeline-type">{item.type}</span>
-                                <span class="timeline-desc">{item.desc}</span>
+            <div class="modal-header">
+                <h3 id="history-modal-title">
+                    Historial de {historyUser?.name}
+                </h3>
+                <button
+                    class="modal-close"
+                    on:click={closeHistoryModal}
+                    title="Cerrar"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                {#if historyLoading}
+                    <div class="loading">Cargando historial...</div>
+                {:else if historyError}
+                    <div class="form-error">{historyError}</div>
+                {:else if userHistory.length === 0}
+                    <div class="empty">Sin historial disponible.</div>
+                {:else}
+                    <div class="timeline-vertical">
+                        {#each userHistory as item}
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <span class="timeline-date"
+                                        >{item.date}</span
+                                    >
+                                    <span class="timeline-type"
+                                        >{item.type}</span
+                                    >
+                                    <span class="timeline-desc"
+                                        >{item.desc}</span
+                                    >
+                                </div>
                             </div>
-                        </div>
-                    {/each}
-                </div>
-                {#if userHistory.length > 4}
-                    <button class="btn-secondary">Ampliar historial</button>
+                        {/each}
+                    </div>
+                    {#if userHistory.length > 4}
+                        <button class="btn-secondary">Ampliar historial</button>
+                    {/if}
                 {/if}
-            {/if}
+            </div>
         </div>
     {/if}
 
@@ -1760,12 +1937,6 @@
             aria-modal="true"
             aria-labelledby="package-modal-title"
         >
-            <button
-                class="modal-close"
-                on:click={() => (showPackageModal = false)}
-                title="Cerrar">&times;</button
-            >
-
             <div class="modal-header">
                 <div class="modal-title-section">
                     <h3 id="package-modal-title">
@@ -1777,160 +1948,211 @@
                         <span class="user-email">({selectedUser?.email})</span>
                     </p>
                 </div>
+                <button
+                    class="modal-close"
+                    on:click={() => (showPackageModal = false)}
+                    title="Cerrar"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
-
-            {#if loadingPackages}
-                <div class="loading-container">
-                    <div class="loading-spinner"></div>
-                    <p>Cargando suscripciones...</p>
-                </div>
-            {:else if packageModalError}
-                <div class="error-container">
-                    <div class="error-icon">
-                        <WarningIcon size={48} />
+            <div class="modal-content">
+                {#if loadingPackages}
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <p>Cargando suscripciones...</p>
                     </div>
-                    <h4>Error al cargar suscripciones</h4>
-                    <p>{packageModalError}</p>
-                </div>
-            {:else if userPackageSubscriptions.length === 0}
-                <div class="empty-container">
-                    <div class="empty-icon">
-                        <PackageIcon size={48} />
+                {:else if packageModalError}
+                    <div class="error-container">
+                        <div class="error-icon">
+                            <WarningIcon size={48} />
+                        </div>
+                        <h4>Error al cargar suscripciones</h4>
+                        <p>{packageModalError}</p>
                     </div>
-                    <h4>Sin suscripciones</h4>
-                    <p>
-                        Este usuario no tiene suscripciones de paquetes activas.
-                    </p>
-                </div>
-            {:else}
-                <div class="package-subscriptions">
-                    {#each userPackageSubscriptions as sub (sub.id || sub.package_id)}
-                        <div class="package-card">
-                            <div class="package-header">
-                                <h4 class="package-name">
-                                    {sub.package?.name || "Paquete sin nombre"}
-                                </h4>
-                                <span class="package-status {sub.status}">
-                                    {#if sub.status === "active"}
-                                        <span class="status-dot active"></span> Activo
-                                    {:else if sub.status === "expired"}
-                                        <span class="status-dot expired"></span>
-                                        Expirado
-                                    {:else}
-                                        {sub.status}
-                                    {/if}
-                                </span>
-                            </div>
-
-                            <div class="package-details">
-                                <div class="detail-row">
-                                    <span class="detail-label">
-                                        <RefreshIcon size={16} />
-                                        Ciclo de facturación:
-                                    </span>
-                                    <span class="detail-value">
-                                        {sub.billing_cycle === "monthly"
-                                            ? "Mensual"
-                                            : "Anual"}
-                                    </span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="detail-label">
-                                        <CalendarIcon size={16} />
-                                        Fecha inicio:
-                                    </span>
-                                    <span class="detail-value">
-                                        {sub.start_date
-                                            ? new Date(
-                                                  sub.start_date,
-                                              ).toLocaleDateString("es-ES", {
-                                                  year: "numeric",
-                                                  month: "long",
-                                                  day: "numeric",
-                                              })
-                                            : "-"}
-                                    </span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="detail-label">
-                                        <ClockIcon size={16} />
-                                        Próxima facturación:
-                                    </span>
-                                    <span class="detail-value">
-                                        {sub.next_billing_date
-                                            ? new Date(
-                                                  sub.next_billing_date,
-                                              ).toLocaleDateString("es-ES", {
-                                                  year: "numeric",
-                                                  month: "long",
-                                                  day: "numeric",
-                                              })
-                                            : "-"}
-                                    </span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="detail-label">
-                                        <DollarIcon size={16} />
-                                        Monto actual:
-                                    </span>
-                                    <span class="detail-value amount">
-                                        ${(sub.current_amount / 100).toFixed(2)}
-                                        ARS
-                                    </span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="detail-label">
-                                        <RefreshIcon size={16} />
-                                        Auto renovación:
-                                    </span>
-                                    <span class="detail-value">
-                                        {#if sub.auto_renew}
-                                            <CheckIcon size={16} /> Sí
+                {:else if userPackageSubscriptions.length === 0}
+                    <div class="empty-container">
+                        <div class="empty-icon">
+                            <PackageIcon size={48} />
+                        </div>
+                        <h4>Sin suscripciones</h4>
+                        <p>
+                            Este usuario no tiene suscripciones de paquetes
+                            activas.
+                        </p>
+                        <div class="package-actions">
+                            <button
+                                class="btn-primary"
+                                on:click={() => (showPackageSelection = true)}
+                            >
+                                <PackageIcon size={16} />
+                                Asignar paquete
+                            </button>
+                            <button
+                                class="btn-secondary"
+                                on:click={() =>
+                                    window.open(
+                                        "/dashboard/packages",
+                                        "_blank",
+                                    )}
+                            >
+                                <PlusIcon size={16} />
+                                Crear nuevo paquete
+                            </button>
+                        </div>
+                    </div>
+                {:else}
+                    <div class="package-subscriptions">
+                        {#each userPackageSubscriptions as sub (sub.id || sub.package_id)}
+                            <div class="package-card">
+                                <div class="package-header">
+                                    <h4 class="package-name">
+                                        {sub.package?.name ||
+                                            "Paquete sin nombre"}
+                                    </h4>
+                                    <span class="package-status {sub.status}">
+                                        {#if sub.status === "active"}
+                                            <span class="status-dot active"
+                                            ></span> Activo
+                                        {:else if sub.status === "expired"}
+                                            <span class="status-dot expired"
+                                            ></span>
+                                            Expirado
                                         {:else}
-                                            <XIcon size={16} /> No
+                                            {sub.status}
                                         {/if}
                                     </span>
                                 </div>
-                            </div>
 
-                            {#if sub.selected_features && sub.selected_features.length > 0}
-                                <div class="package-features">
-                                    <span class="features-label">
-                                        <TargetIcon size={16} />
-                                        Características seleccionadas:
-                                    </span>
-                                    <div class="features-list">
-                                        {#each sub.selected_features as feature}
-                                            <span
-                                                class="feature-badge"
-                                                title={feature}
-                                            >
-                                                {feature}
-                                            </span>
-                                        {/each}
+                                <div class="package-details">
+                                    <div class="detail-row">
+                                        <span class="detail-label">
+                                            <RefreshIcon size={16} />
+                                            Ciclo de facturación:
+                                        </span>
+                                        <span class="detail-value">
+                                            {sub.billing_cycle === "monthly"
+                                                ? "Mensual"
+                                                : "Anual"}
+                                        </span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">
+                                            <CalendarIcon size={16} />
+                                            Fecha inicio:
+                                        </span>
+                                        <span class="detail-value">
+                                            {sub.start_date
+                                                ? new Date(
+                                                      sub.start_date,
+                                                  ).toLocaleDateString(
+                                                      "es-ES",
+                                                      {
+                                                          year: "numeric",
+                                                          month: "long",
+                                                          day: "numeric",
+                                                      },
+                                                  )
+                                                : "-"}
+                                        </span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">
+                                            <ClockIcon size={16} />
+                                            Próxima facturación:
+                                        </span>
+                                        <span class="detail-value">
+                                            {sub.next_billing_date
+                                                ? new Date(
+                                                      sub.next_billing_date,
+                                                  ).toLocaleDateString(
+                                                      "es-ES",
+                                                      {
+                                                          year: "numeric",
+                                                          month: "long",
+                                                          day: "numeric",
+                                                      },
+                                                  )
+                                                : "-"}
+                                        </span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">
+                                            <DollarIcon size={16} />
+                                            Monto actual:
+                                        </span>
+                                        <span class="detail-value amount">
+                                            ${(
+                                                sub.current_amount / 100
+                                            ).toFixed(2)}
+                                            ARS
+                                        </span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">
+                                            <RefreshIcon size={16} />
+                                            Auto renovación:
+                                        </span>
+                                        <span class="detail-value">
+                                            {#if sub.auto_renew}
+                                                <CheckIcon size={16} /> Sí
+                                            {:else}
+                                                <XIcon size={16} /> No
+                                            {/if}
+                                        </span>
                                     </div>
                                 </div>
-                            {:else}
-                                <div class="package-features">
-                                    <span class="features-label">
-                                        <TargetIcon size={16} />
-                                        Características seleccionadas:
-                                    </span>
-                                    <div class="no-features">
-                                        No hay características seleccionadas
-                                        para este paquete
+
+                                {#if sub.selected_features && sub.selected_features.length > 0}
+                                    <div class="package-features">
+                                        <span class="features-label">
+                                            <TargetIcon size={16} />
+                                            Características seleccionadas:
+                                        </span>
+                                        <div class="features-list">
+                                            {#each sub.selected_features as feature}
+                                                <span
+                                                    class="feature-badge"
+                                                    title={feature}
+                                                >
+                                                    {feature}
+                                                </span>
+                                            {/each}
+                                        </div>
                                     </div>
-                                </div>
-                            {/if}
-                        </div>
-                    {/each}
-                </div>
-            {/if}
+                                {:else}
+                                    <div class="package-features">
+                                        <span class="features-label">
+                                            <TargetIcon size={16} />
+                                            Características seleccionadas:
+                                        </span>
+                                        <div class="no-features">
+                                            No hay características seleccionadas
+                                            para este paquete
+                                        </div>
+                                    </div>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
         </div>
     {/if}
 
-    <!-- Elimina el modal clásico de usuario -->
-    <!-- Mantén solo el modal avanzado: -->
+    <!-- Modal de Edición de Usuario -->
     <EditUserModal
         user={selectedUser}
         open={showEditModal}
@@ -1941,57 +2163,100 @@
         on:cancel={closeEditModal}
     />
 
-    <!-- DEBUG: Estado del modal de edición -->
-    <details>
-        <summary>DEBUG: Modal edición</summary>
-        <div style="background:#222;color:#0f0;padding:1em;font-size:0.9em;">
-            <div><b>showEditModal:</b> {showEditModal ? "true" : "false"}</div>
-            <div><b>selectedUser:</b></div>
-            <pre>{selectedUser
-                    ? JSON.stringify(selectedUser, null, 2)
-                    : "null"}</pre>
+    <!-- Modal de Creación de Usuario -->
+    {#if showModal}
+        <div class="modal-backdrop" on:click={closeModal}></div>
+        <div class="modal" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h3>Crear nuevo usuario</h3>
+                <button
+                    class="modal-close"
+                    on:click={closeModal}
+                    title="Cerrar"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <UserForm
+                    initialData={null}
+                    on:submit={handleCreateSubmit}
+                    editMode={false}
+                    {sessionUserRole}
+                />
+            </div>
         </div>
-    </details>
+    {/if}
 
     {#if showDeleteRoleModal}
         <div class="modal-backdrop" />
         <div class="modal" role="dialog" aria-modal="true">
-            <button
-                class="modal-close"
-                on:click={closeDeleteRoleModal}
-                title="Cerrar"
-                disabled={deletingRole}>&times;</button
-            >
-            <h3>¿Eliminar rol?</h3>
-            <p>
-                ¿Estás seguro de que deseas eliminar el rol <strong
-                    >{roleToDelete?.name}</strong
-                >? Esta acción no se puede deshacer.
-            </p>
-            <div class="modal-actions">
+            <div class="modal-header">
+                <h3>¿Eliminar rol?</h3>
                 <button
-                    class="btn-secondary"
+                    class="modal-close"
                     on:click={closeDeleteRoleModal}
-                    disabled={deletingRole}>Cancelar</button
-                >
-                <button
-                    class="btn-danger"
-                    on:click={handleDeleteRole}
+                    title="Cerrar"
                     disabled={deletingRole}
                 >
-                    {#if deletingRole}
-                        <span class="loading-spinner"></span> Eliminando...
-                    {:else}
-                        Eliminar
-                    {/if}
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </button>
             </div>
-            {#if deleteRoleSuccess}
-                <div class="success-text">{deleteRoleSuccess}</div>
-            {/if}
-            {#if rolesError}
-                <div class="error-text">{rolesError}</div>
-            {/if}
+            <div class="modal-content">
+                <p>
+                    ¿Estás seguro de que deseas eliminar el rol <strong
+                        >{roleToDelete?.name}</strong
+                    >? Esta acción no se puede deshacer.
+                </p>
+                <div class="modal-actions">
+                    <button
+                        class="btn-secondary"
+                        on:click={closeDeleteRoleModal}
+                        disabled={deletingRole}>Cancelar</button
+                    >
+                    <button
+                        class="btn-danger"
+                        on:click={handleDeleteRole}
+                        disabled={deletingRole}
+                    >
+                        {#if deletingRole}
+                            <span class="loading-spinner"></span> Eliminando...
+                        {:else}
+                            Eliminar
+                        {/if}
+                    </button>
+                </div>
+                {#if deleteRoleSuccess}
+                    <div class="success-text">{deleteRoleSuccess}</div>
+                {/if}
+                {#if rolesError}
+                    <div class="error-text">{rolesError}</div>
+                {/if}
+            </div>
         </div>
     {/if}
 
@@ -2305,14 +2570,25 @@
         color: var(--color-danger);
     }
 
-    .modal-backdrop {
+    .modal-outer {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        right: 0;
+        bottom: 0;
         z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
     }
 
     .modal {
@@ -2321,46 +2597,354 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: var(--color-bg-card);
-        padding: 1.5rem 1.5rem;
         border-radius: var(--border-radius);
         box-shadow: var(--shadow-lg);
         z-index: 1001;
+        width: 90%;
+        max-width: 700px;
         min-width: 320px;
-        max-width: 420px;
-        width: 100%;
-        min-height: 100px;
+        max-height: 85vh;
+        min-height: 300px;
         display: flex;
         flex-direction: column;
-        gap: 1.2rem;
+        overflow: hidden;
         box-sizing: border-box;
     }
-    @media (max-width: 600px) {
+
+    /* Responsive para tablets */
+    @media (max-width: 1024px) {
         .modal {
-            min-width: 0;
-            max-width: 98vw;
-            width: 98vw;
-            padding: 0.7rem 0.5rem;
+            width: 95%;
+            max-width: 700px;
+            max-height: 85vh;
+        }
+    }
+
+    /* Responsive para móviles */
+    @media (max-width: 768px) {
+        .modal {
+            width: 98%;
+            max-width: none;
+            max-height: 95vh;
+            top: 2.5%;
+            left: 1%;
+            transform: none;
+            border-radius: 0.5rem;
+        }
+    }
+
+    /* Responsive para móviles pequeños */
+    @media (max-width: 480px) {
+        .modal {
+            width: 100%;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            transform: none;
+            border-radius: 0;
+            max-height: 100vh;
+        }
+
+        /* Mejorar experiencia cuando el teclado está abierto */
+        .modal-content {
+            padding-bottom: 2rem;
+        }
+    }
+
+    /* Mejorar experiencia en dispositivos con teclado virtual */
+    @media (max-height: 600px) {
+        .modal {
+            max-height: 95vh;
+            top: 2.5%;
+            transform: translate(-50%, 0);
         }
     }
     .modal-close {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
+        position: relative;
         background: none;
         border: none;
-        font-size: 1.5rem;
         color: var(--color-text-secondary);
         cursor: pointer;
-        z-index: 10;
-        transition: color 0.2s;
+        padding: 0.75rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        margin: -0.25rem;
     }
+
     .modal-close:hover {
-        color: var(--color-accent);
+        background: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        transform: scale(1.05);
+    }
+
+    .modal-close:active {
+        transform: scale(0.95);
     }
     .modal-close:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
+
+    .modal-close:focus {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    /* Mejorar accesibilidad del modal */
+    .modal:focus {
+        outline: none;
+    }
+
+    /* Animación suave para el modal */
+    .modal {
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -60%);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+    }
+
+    /* Animación para móviles */
+    @media (max-width: 768px) {
+        .modal {
+            animation: modalSlideInMobile 0.3s ease-out;
+        }
+
+        @keyframes modalSlideInMobile {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-bg-card);
+        flex-shrink: 0;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        position: relative;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: var(--color-text-primary);
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .modal-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        min-height: 0;
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border) transparent;
+        max-height: calc(85vh - 100px); /* Restar altura del header */
+    }
+
+    .modal-content::-webkit-scrollbar {
+        width: 12px;
+    }
+
+    .modal-content::-webkit-scrollbar-track {
+        background: var(--color-bg-secondary);
+        border-radius: 6px;
+        margin: 2px;
+    }
+
+    .modal-content::-webkit-scrollbar-thumb {
+        background-color: var(--color-text-secondary);
+        border-radius: 6px;
+        border: 2px solid var(--color-bg-secondary);
+        min-height: 40px;
+    }
+
+    .modal-content::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-text-primary);
+    }
+
+    .modal-content::-webkit-scrollbar-corner {
+        background: var(--color-bg-secondary);
+    }
+
+    /* Estilos específicos para UserForm dentro del modal */
+    .modal .user-form {
+        padding: 1.25rem;
+        margin: 0;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        min-height: 500px; /* Asegurar altura mínima para scroll */
+    }
+
+    .modal .form-header {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .modal .form-info h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+    }
+
+    .modal .form-info p {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: var(--color-text-secondary);
+        margin-bottom: 1rem;
+    }
+
+    .modal .form-section {
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 8px;
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+    }
+
+    .modal .section-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .modal .section-header h3 {
+        font-size: 1.1rem;
+    }
+
+    /* Responsive para UserForm en modal */
+    @media (max-width: 768px) {
+        .modal .user-form {
+            padding: 1rem;
+        }
+
+        .modal .form-info h2 {
+            font-size: 1.3rem;
+        }
+
+        .modal .form-section {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .modal .user-form {
+            padding: 0.75rem;
+            min-height: 300px;
+        }
+
+        .modal .form-info h2 {
+            font-size: 1.2rem;
+        }
+
+        .modal .form-section {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+    }
+
+    /* Mejorar experiencia con contenido largo */
+    .modal-content:has(.user-form) {
+        padding-bottom: 2rem; /* Espacio extra al final */
+    }
+
+    /* Indicador de scroll */
+    .modal-content::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: linear-gradient(transparent, var(--color-bg-card));
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .modal-content:has(.user-form:not(:hover))::after {
+        opacity: 1;
+    }
+
+    /* Responsive para el header */
+    @media (max-width: 768px) {
+        .modal-header {
+            padding: 1rem 1.25rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .modal-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+        }
+
+        .modal-content {
+            padding: 0;
+            max-height: calc(95vh - 80px);
+        }
+    }
+
+    /* Responsive para el content */
+    @media (max-width: 768px) {
+        .modal-content {
+            padding: 0;
+            max-height: calc(85vh - 100px);
+        }
+    }
+
+    /* Mejorar experiencia en pantallas pequeñas (15 pulgadas) */
+    @media (max-height: 800px) {
+        .modal {
+            max-height: 80vh;
+        }
+
+        .modal-content {
+            max-height: calc(80vh - 100px);
+        }
+
+        .modal .user-form {
+            padding: 1rem;
+            min-height: 350px;
+        }
+
+        .modal .form-section {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    }
+
     .modal h3 {
         margin-top: 0;
         margin-bottom: 1.5rem;
@@ -2383,6 +2967,26 @@
         color: var(--color-text-primary);
         margin-top: 0.25rem;
         font-size: 1rem;
+        box-sizing: border-box;
+    }
+
+    /* Responsive para inputs */
+    @media (max-width: 768px) {
+        .modal input,
+        .modal select,
+        .modal textarea {
+            padding: 0.625rem;
+            font-size: 0.95rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .modal input,
+        .modal select,
+        .modal textarea {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
     }
     .modal textarea {
         resize: vertical;
@@ -2402,15 +3006,32 @@
         display: flex;
         gap: 1rem;
         justify-content: flex-end;
-        margin-top: 1rem;
+        margin-top: 1.5rem;
+        padding: 1rem 0;
+        border-top: 1px solid var(--color-border);
+        flex-shrink: 0;
+    }
+
+    /* Responsive para acciones */
+    @media (max-width: 768px) {
+        .modal-actions {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .modal-actions button {
+            width: 100%;
+        }
     }
     .modal-actions button {
         padding: 0.75rem 1.5rem;
         border: none;
-        border-radius: var(--border-radius);
+        border-radius: 6px;
         cursor: pointer;
         font-weight: 500;
-        transition: background-color 0.2s;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        min-width: 100px;
     }
     .modal-actions button:disabled {
         opacity: 0.6;
@@ -2419,6 +3040,7 @@
     .modal-actions button[type="submit"] {
         background: var(--color-primary);
         color: white;
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
     }
 
     .modal-actions button[type="submit"]:hover {
@@ -2441,7 +3063,8 @@
     }
 
     .modal-actions button[type="button"]:hover {
-        background: var(--color-border);
+        background: var(--color-bg);
+        border-color: var(--color-text-secondary);
     }
 
     .action-btn svg,
@@ -2594,26 +3217,81 @@
     }
     .permissions-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 1rem;
-        margin-top: 0.5rem;
+        margin-top: 1rem;
+        max-height: 350px;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+    }
+
+    .permissions-grid::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .permissions-grid::-webkit-scrollbar-track {
+        background: var(--color-bg-secondary);
+        border-radius: 4px;
+    }
+
+    .permissions-grid::-webkit-scrollbar-thumb {
+        background-color: var(--color-text-secondary);
+        border-radius: 4px;
+        border: 1px solid var(--color-bg-secondary);
+    }
+
+    .permissions-grid::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-text-primary);
     }
     .perm-category {
-        margin-bottom: 1rem;
+        background: var(--color-bg-secondary);
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+        margin-bottom: 0.75rem;
     }
-    .perm-category h4 {
-        margin: 0 0 0.5rem 0;
+    .perm-category h5 {
+        margin: 0 0 1rem 0;
         color: var(--color-text-primary);
-        font-size: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 0.5rem;
+    }
+    .permission-group {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: var(--color-bg);
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
+    }
+    .permission-group h6 {
+        margin: 0 0 1rem 0;
+        color: var(--color-text-primary);
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 0.5rem;
     }
     .checkbox-label {
         display: flex;
         align-items: center;
         gap: 0.5rem;
         margin: 0.25rem 0;
-        font-size: 0.95em;
+        font-size: 0.9em;
         color: var(--color-text-primary);
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        cursor: pointer;
     }
+
+    .checkbox-label:hover {
+        background: var(--color-bg-secondary);
+    }
+
     .checkbox-label input[type="checkbox"] {
         margin: 0;
     }
@@ -2684,6 +3362,46 @@
     }
     .package-header-btn:hover {
         color: var(--color-text-primary);
+    }
+
+    .package-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        justify-content: center;
+    }
+
+    .package-actions button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--border-radius);
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .package-actions .btn-primary {
+        background: var(--color-primary);
+        color: white;
+        border: none;
+    }
+
+    .package-actions .btn-primary:hover {
+        background: var(--color-primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .package-actions .btn-secondary {
+        background: var(--color-bg-secondary);
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border);
+    }
+
+    .package-actions .btn-secondary:hover {
+        background: var(--color-bg);
+        border-color: var(--color-text-secondary);
     }
     .package-section {
         margin-top: 1rem;
