@@ -91,7 +91,10 @@ Este documento define la matriz completa de permisos para el sistema CUIOT, incl
 - **OWN**: Propio (solo del usuario)
 - **ASSIGNED**: Asignado (personas bajo cuidado asignadas)
 - **INSTITUTION**: Institución (usuarios de la misma institución)
+- **INSTITUTION_LIMITED**: Institución limitada (sin datos médicos/financieros)
+- **ASSIGNED_CARE_ONLY**: Asignado solo cuidado (datos relacionados al cuidado)
 - **FAMILY**: Familiar (personas bajo representación legal)
+- **FAMILY_VIEW_ONLY**: Familiar solo visualización (sin datos sensibles)
 - **ALL**: Todos (acceso global)
 - **NONE**: Sin acceso
 
@@ -101,13 +104,30 @@ Este documento define la matriz completa de permisos para el sistema CUIOT, incl
 |-----|-------------------|-------------------|---------------|
 | **admin** | ALL | - | Ninguna |
 | **institution_admin** | INSTITUTION | OWN | Solo su institución |
-| **institution_staff** | INSTITUTION | OWN | Solo lectura institucional |
+| **institution_staff** | INSTITUTION_LIMITED | OWN | Sin acceso a datos médicos/financieros |
 | **medical_staff** | INSTITUTION | OWN | Acceso médico especial |
-| **caregiver** | ASSIGNED | OWN | Solo personas asignadas |
-| **freelance_caregiver** | ASSIGNED | OWN | Solo personas asignadas |
+| **caregiver** | ASSIGNED_CARE_ONLY | OWN | Solo datos relacionados al cuidado |
+| **freelance_caregiver** | ASSIGNED_CARE_ONLY | OWN | Solo datos relacionados al cuidado |
 | **family_member** | FAMILY | OWN | Solo representación legal |
+| **family_non_legal** | FAMILY_VIEW_ONLY | OWN | Solo visualización básica |
 | **cared_person_self** | OWN | - | Solo gestión propia |
 | **caredperson** | OWN | - | Limitado, requiere representante |
+
+### **Tipos de Restricciones de Datos**
+
+#### **Categorías de Información Sensible**
+- **MEDICAL_DATA**: Datos médicos (diagnósticos, expedientes, medicamentos)
+- **FINANCIAL_DATA**: Datos financieros (facturación, pagos, contratos)
+- **LEGAL_DATA**: Documentos legales (consentimientos, representación)
+- **ADMINISTRATIVE**: Datos administrativos (personal, protocolos, estadísticas)
+- **PERSONAL_DATA**: Datos personales (contactos, preferencias, notas)
+
+#### **Niveles de Acceso por Categoría**
+- **FULL**: Acceso completo (leer, escribir, eliminar)
+- **READ_ONLY**: Solo lectura
+- **CARE_RELATED**: Solo datos relacionados al cuidado
+- **BASIC_ONLY**: Solo datos básicos
+- **NONE**: Sin acceso
 
 ### **Entidades del Sistema**
 1. **Users**: Usuarios del sistema
@@ -124,6 +144,95 @@ Este documento define la matriz completa de permisos para el sistema CUIOT, incl
 ---
 
 ## 3. MATRIZ DE PERMISOS DETALLADA
+
+### **Limitaciones Específicas por Rol**
+
+#### **INSTITUTION_STAFF - Limitaciones Críticas**
+```typescript
+institution_staff: {
+    scope: "institution_limited",
+    restrictions: {
+        medical_data: "read_only_basic",      // Solo datos médicos básicos
+        financial_data: "none",               // Sin acceso a datos financieros
+        personal_data: "own_only",            // Solo datos propios
+        administrative: "view_only"           // Solo visualización administrativa
+    },
+    allowed_actions: [
+        "read_own_profile",
+        "read_assigned_patients_basic",
+        "read_institution_protocols",
+        "create_own_reports",
+        "view_basic_analytics"
+    ],
+    denied_actions: [
+        "read_medical_records",
+        "read_financial_data",
+        "update_patient_data",
+        "delete_any_data",
+        "manage_staff"
+    ]
+}
+```
+
+#### **CAREGIVER - Limitaciones de Cuidado**
+```typescript
+caregiver: {
+    scope: "assigned_care_only",
+    restrictions: {
+        medical_data: "care_related_only",    // Solo datos médicos de cuidado
+        financial_data: "none",               // Sin acceso financiero
+        legal_data: "none",                   // Sin acceso legal
+        administrative: "none"                // Sin acceso administrativo
+    },
+    allowed_actions: [
+        "read_own_profile",
+        "read_assigned_basic",
+        "read_care_schedule",
+        "read_medication_schedule",
+        "create_care_notes",
+        "update_care_status",
+        "create_care_alerts"
+    ],
+    denied_actions: [
+        "read_medical_diagnosis",
+        "read_financial_info",
+        "read_legal_documents",
+        "update_medical_data",
+        "delete_medical_records",
+        "manage_contracts"
+    ]
+}
+```
+
+#### **FAMILY_NON_LEGAL - Limitaciones Estrictas**
+```typescript
+family_non_legal: {
+    scope: "family_view_only",
+    restrictions: {
+        medical_data: "none",                 // Sin acceso a datos médicos
+        financial_data: "none",               // Sin acceso financiero
+        legal_data: "none",                   // Sin acceso legal
+        administrative: "none"                // Sin acceso administrativo
+    },
+    allowed_actions: [
+        "read_own_profile",
+        "read_family_basic",
+        "read_emergency_contacts",
+        "read_care_schedule",
+        "receive_notifications",
+        "create_emergency_alerts"
+    ],
+    denied_actions: [
+        "read_medical_records",
+        "read_financial_data",
+        "read_legal_documents",
+        "update_any_data",
+        "delete_any_data",
+        "create_contracts",
+        "manage_payments"
+    ]
+}
+```
 
 ### **Interpretación de la Matriz**
 
@@ -161,103 +270,105 @@ Este documento define la matriz completa de permisos para el sistema CUIOT, incl
 | Permiso | admin | institution_admin | institution_staff | medical_staff | caregiver | freelance_caregiver | family_member | cared_person_self | caredperson |
 |---------|-------|-------------------|-------------------|---------------|-----------|-------------------|---------------|-------------------|-------------|
 | **CREATE** |
-| create_admin | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| create_institution_admin | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| create_caregiver | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| create_family_member | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| create_cared_person | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| create_admin | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| create_institution_admin | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| create_caregiver | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| create_family_member | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| create_cared_person | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | **READ** |
-| read_own_profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| read_institution_users | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| read_assigned_users | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| read_all_users | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| read_user_activity | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_own_profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| read_institution_users | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_assigned_users | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| read_all_users | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_user_activity | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **UPDATE** |
-| update_own_profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| update_institution_users | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| update_assigned_users | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| update_all_users | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| update_user_roles | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| update_own_profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| update_institution_users | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| update_assigned_users | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| update_all_users | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| update_user_roles | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **DELETE** |
-| delete_own_account | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| delete_institution_users | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| delete_all_users | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| delete_own_account | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| delete_institution_users | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| delete_all_users | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **ACCIONES ESPECÍFICAS** |
-| reset_user_password | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| lock_unlock_user | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| verify_user_identity | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| reset_user_password | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| lock_unlock_user | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| verify_user_identity | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ### **3.2 PERSONAS BAJO CUIDADO (Cared Persons)**
 
 **Alcances por Rol:**
 - **admin**: ALL (acceso global)
 - **institution_admin**: OWN + INSTITUTION
-- **institution_staff**: OWN + INSTITUTION (solo lectura)
+- **institution_staff**: OWN + INSTITUTION_LIMITED (sin datos médicos/financieros)
 - **medical_staff**: OWN + INSTITUTION (acceso médico)
-- **caregiver**: OWN + ASSIGNED
-- **freelance_caregiver**: OWN + ASSIGNED
-- **family_member**: OWN + FAMILY
+- **caregiver**: OWN + ASSIGNED_CARE_ONLY (solo datos de cuidado)
+- **freelance_caregiver**: OWN + ASSIGNED_CARE_ONLY (solo datos de cuidado)
+- **family_member**: OWN + FAMILY (representación legal)
+- **family_non_legal**: OWN + FAMILY_VIEW_ONLY (solo visualización básica)
 - **cared_person_self**: OWN
 - **caredperson**: OWN (limitado)
 
 | Permiso | admin | institution_admin | institution_staff | medical_staff | caregiver | freelance_caregiver | family_member | cared_person_self | caredperson |
 |---------|-------|-------------------|-------------------|---------------|-----------|-------------------|---------------|-------------------|-------------|
 | **CREATE** |
-| create_self_care | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| create_delegated_care | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| create_medical_profile | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| create_self_care | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| create_delegated_care | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| create_medical_profile | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | **READ** |
-| read_own_profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| read_assigned_persons | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| read_institution_persons | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| read_all_persons | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| read_care_history | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| read_own_profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| read_assigned_persons | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| read_institution_persons | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_all_persons | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_care_history | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | **UPDATE** |
-| update_own_profile | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| update_assigned_persons | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| update_institution_persons | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| update_all_persons | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| update_own_profile | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ |
+| update_assigned_persons | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| update_institution_persons | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| update_all_persons | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **DELETE** |
-| delete_own_profile | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
-| delete_assigned_persons | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| delete_institution_persons | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| delete_all_persons | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| delete_own_profile | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ | ❌ |
+| delete_assigned_persons | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| delete_institution_persons | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| delete_all_persons | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **ACCIONES ESPECÍFICAS** |
-| assign_caregivers | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
-| manage_medications | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| create_emergency_protocols | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| assign_caregivers | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ | ❌ |
+| manage_medications | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| create_emergency_protocols | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
 
 ### **3.3 INSTITUCIONES (Institutions)**
 
 **Alcances por Rol:**
 - **admin**: ALL (acceso global)
 - **institution_admin**: OWN (solo su institución)
-- **institution_staff**: OWN (solo su institución, lectura)
+- **institution_staff**: OWN (solo su institución, lectura limitada)
 - **medical_staff**: OWN (solo su institución, lectura)
 - **caregiver**: NONE (no acceso a instituciones)
 - **freelance_caregiver**: NONE (no acceso a instituciones)
 - **family_member**: NONE (no acceso a instituciones)
+- **family_non_legal**: NONE (no acceso a instituciones)
 - **cared_person_self**: NONE (no acceso a instituciones)
 - **caredperson**: NONE (no acceso a instituciones)
 
 | Permiso | admin | institution_admin | institution_staff | medical_staff | caregiver | freelance_caregiver | family_member | cared_person_self | caredperson |
 |---------|-------|-------------------|-------------------|---------------|-----------|-------------------|---------------|-------------------|-------------|
 | **CREATE** |
-| create_institution | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| create_branch | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| create_institution | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| create_branch | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **READ** |
-| read_own_institution | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| read_all_institutions | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| read_institution_stats | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_own_institution | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_all_institutions | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| read_institution_stats | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **UPDATE** |
-| update_own_institution | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| update_all_institutions | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| update_own_institution | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| update_all_institutions | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **DELETE** |
-| delete_own_institution | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| delete_all_institutions | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| delete_own_institution | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| delete_all_institutions | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **ACCIONES ESPECÍFICAS** |
-| manage_staff | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| manage_billing | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| manage_staff | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| manage_billing | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | view_analytics | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ### **3.4 DISPOSITIVOS IoT (Devices)**
@@ -511,6 +622,14 @@ const SYSTEM_ROLES = {
         restrictions: "Solo personas bajo su representación"
     },
     
+    family_non_legal: {
+        name: "Familiar No Responsable",
+        description: "Familiar sin representación legal",
+        scope: "family_view_only",
+        can_create_roles: [],
+        restrictions: "Solo visualización básica, sin acceso a datos sensibles"
+    },
+    
     cared_person_self: {
         name: "Persona en Autocuidado",
         description: "Autogestión del cuidado",
@@ -553,6 +672,24 @@ const PERMISSION_SCOPES = {
         description: "Familiar - Personas bajo representación",
         applies_to: ["cared_persons", "devices", "alerts", "events"],
         examples: ["read_family_persons", "update_family_devices"]
+    },
+    
+    family_view_only: {
+        description: "Familiar solo visualización - Sin acceso a datos sensibles",
+        applies_to: ["cared_persons_basic", "emergency_contacts", "care_schedule"],
+        examples: ["read_family_basic", "receive_notifications"]
+    },
+    
+    institution_limited: {
+        description: "Institución limitada - Sin datos médicos/financieros",
+        applies_to: ["institution_basic", "protocols", "basic_analytics"],
+        examples: ["read_institution_basic", "view_basic_analytics"]
+    },
+    
+    assigned_care_only: {
+        description: "Asignado solo cuidado - Datos relacionados al cuidado",
+        applies_to: ["care_schedule", "medication_schedule", "care_notes"],
+        examples: ["read_care_schedule", "create_care_notes"]
     },
     
     institution: {
@@ -713,18 +850,29 @@ class PermissionService:
 2. **institution_admin**: Puede crear cuidadores, familiares y personas bajo cuidado
 3. **caregiver**: Puede crear familiares y personas bajo cuidado como referidos
 4. **family_member**: Puede crear personas bajo cuidado delegado
+5. **family_non_legal**: No puede crear usuarios
+6. **institution_staff**: No puede crear usuarios
 
 #### **Gestión de Dispositivos**
 1. **admin**: Control total sobre todos los dispositivos
 2. **institution_admin**: Gestión de dispositivos institucionales
-3. **caregiver**: Configuración de dispositivos asignados
-4. **family_member**: Gestión de dispositivos familiares
+3. **institution_staff**: Solo visualización de dispositivos básicos institucionales
+4. **caregiver**: Configuración de dispositivos de cuidado asignados
+5. **family_member**: Gestión de dispositivos familiares
+6. **family_non_legal**: Solo visualización de dispositivos familiares básicos
 
 #### **Reportes y Analíticas**
 1. **admin**: Acceso completo a todos los reportes
 2. **institution_admin**: Reportes institucionales
-3. **caregiver**: Reportes de personas asignadas
-4. **family_member**: Reportes familiares
+3. **institution_staff**: Solo reportes básicos institucionales (sin datos médicos/financieros)
+4. **caregiver**: Reportes de cuidado de personas asignadas
+5. **family_member**: Reportes familiares
+6. **family_non_legal**: Solo resúmenes básicos familiares (sin datos sensibles)
+
+#### **Limitaciones de Datos Sensibles**
+1. **institution_staff**: Sin acceso a expedientes médicos ni datos financieros
+2. **caregiver**: Solo datos médicos relacionados al cuidado
+3. **family_non_legal**: Sin acceso a datos médicos, financieros ni legales
 
 ---
 
@@ -734,10 +882,11 @@ class PermissionService:
 
 1. **CRUD Completo**: Create, Read, Update, Delete para cada entidad
 2. **Acciones Específicas**: Funcionalidades especiales por entidad
-3. **Alcances Claros**: Own, Assigned, Institution, All
-4. **Matriz Detallada**: 10 entidades × 9 roles = 90 combinaciones
-5. **Implementación Técnica**: Código SQL y Python incluido
-6. **Reglas de Negocio**: Principios y casos de uso específicos
+3. **Alcances Granulares**: Own, Assigned, Institution, Family, Institution_Limited, Assigned_Care_Only, Family_View_Only, All
+4. **Matriz Detallada**: 10 entidades × 10 roles = 100 combinaciones
+5. **Limitaciones Específicas**: Control de acceso a datos médicos, financieros y legales
+6. **Implementación Técnica**: Código SQL y Python incluido
+7. **Reglas de Negocio**: Principios y casos de uso específicos
 
 ### **Beneficios**
 
